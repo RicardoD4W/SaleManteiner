@@ -70,6 +70,15 @@ export interface SaleStats {
 
 export interface SalesRepo {
   create(input: CreateSaleInput): Sale;
+  /**
+   * Inserción masiva atómica (Fase 3 / CSV import). Si alguna fila falla a
+   * mitad de camino (constraint de BD, lo que sea), `db.transaction` revierte
+   * TODO el batch — la garantía de "todo o nada" la da `better-sqlite3`.
+   * Las N filas comparten el mismo `now` para `created_at` (asignamos un único
+   * timestamp al inicio del batch) — evita drift de milisegundos dentro del
+   * mismo import.
+   */
+  createMany(inputs: CreateSaleInput[]): Sale[];
   getById(id: number): Sale | null;
   list(filters?: ListFilters): Sale[];
   update(id: number, input: UpdateSaleInput): Sale | null;
@@ -92,7 +101,18 @@ export function createSalesRepo(db: Database): SalesRepo {
   const deleteStmt = db.prepare('DELETE FROM sales WHERE id = ?');
 
   function create(input: CreateSaleInput): Sale {
+    return insertOne(input, new Date().toISOString());
+  }
+
+  function createMany(inputs: CreateSaleInput[]): Sale[] {
+    if (inputs.length === 0) return [];
+    // Un único `now` para todo el batch → mismo `created_at` para todas las filas
+    // del import. Lo determinamos antes de la transacción para no variar dentro.
     const now = new Date().toISOString();
+    return db.transaction(() => inputs.map((s) => insertOne(s, now)))();
+  }
+
+  function insertOne(input: CreateSaleInput, now: string): Sale {
     const result = insertStmt.run(
       input.product_name,
       input.buyer_name ?? null,
@@ -209,5 +229,5 @@ export function createSalesRepo(db: Database): SalesRepo {
     };
   }
 
-  return { create, getById, list, update, remove, stats };
+  return { create, createMany, getById, list, update, remove, stats };
 }

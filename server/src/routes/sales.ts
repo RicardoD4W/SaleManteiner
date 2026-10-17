@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { z } from 'zod';
 import type { SalesRepo } from '../repo/sales-repo.js';
 import { CreateSaleInput, UpdateSaleInput } from '../schemas/sales.js';
+import { ImportSalesInput, ImportSalesOutput } from '../schemas/sales-import.js';
 
 export interface SalesRouterDeps {
   repo: SalesRepo;
@@ -43,6 +44,38 @@ export function salesRouter(deps: SalesRouterDeps): Router {
     asyncHandler(async (_req, res) => {
       const data = repo.stats();
       res.json({ data });
+    }),
+  );
+
+  /**
+   * Fase 3 — Importación CSV.
+   *
+   * Acepta `{ sales: CreateSaleInput[] }` (1..1000 filas). Las filas ya pasan por
+   * el schema completo (incluido el refine S3 `sold` ↔ `sold_at`), así que un
+   * CSV impuro se rechaza entero y se devuelve 422 con el detalle por fila.
+   * Si todas pasan, el repo las inserta en `db.transaction` (todo-o-nada en BD).
+   *
+   * 422 (Unprocessable Entity) en vez de 400 porque el body está bien formado
+   * (JSON parseado OK) pero su contenido semántico no satisface el schema.
+   */
+  router.post(
+    '/import',
+    asyncHandler(async (req, res) => {
+      const parsed = ImportSalesInput.safeParse(req.body);
+      if (!parsed.success) {
+        const totalRows = Array.isArray(req.body?.sales) ? req.body.sales.length : 0;
+        return res.status(422).json({
+          error: 'CSV contiene filas inválidas — no se importó ninguna venta',
+          totalRows,
+          issues: parsed.error.flatten(),
+        });
+      }
+      const sales = repo.createMany(parsed.data.sales);
+      const payload: ImportSalesOutput = {
+        imported: sales.length,
+        ids: sales.map((s) => s.id),
+      };
+      res.status(201).json({ data: payload });
     }),
   );
 
