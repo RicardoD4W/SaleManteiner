@@ -1,0 +1,35 @@
+{
+  "name": "salemanteiner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App web local para registrar y mantener un histórico de ventas de Wallapop",
+  "type": "module",
+  "workspaces": [
+    "web",
+    "server"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:server dev:web",
+    "dev:web": "npm --workspace web run dev",
+    "dev:server": "npm --workspace server run dev",
+    "build": "npm-run-all build:server build:web",
+    "build:web": "npm --workspace web run build",
+    "build:server": "npm --workspace server run build",
+    "typecheck": "npm-run-all typecheck:web typecheck:server",
+    "typecheck:web": "npm --workspace web run typecheck",
+    "typecheck:server": "npm --workspace server run typecheck",
+    "lint": "npm-run-all lint:*",
+    "lint:web": "npm --workspace web run lint",
+    "lint:server": "npm --workspace server run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.9.10"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
