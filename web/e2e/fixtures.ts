@@ -19,6 +19,10 @@ export interface SaleSeed {
   price_cents: number;
   associated_costs_cents?: number;
   sold?: boolean;
+  /** ISO 8601. Si `sold: true` y se omite, se rellena con `new Date().toISOString()` para satisfacer la coherencia S3. */
+  sold_at?: string;
+  /** `YYYY-MM-DD`. Editable por el cliente. */
+  purchase_date?: string;
   notes?: string;
 }
 
@@ -27,10 +31,17 @@ export const test = base.extend<{ seedSales: (sales: SaleSeed[]) => Promise<numb
     const fn = async (sales: SaleSeed[]) => {
       const created: number[] = [];
       for (const sale of sales) {
-        const res = await request.post('/api/sales', { data: sale });
+        // El refine S3 del schema exige coherencia `sold` ↔ `sold_at` en create.
+        // Si el seed marca `sold: true` sin fecha, completamos con "ahora" para
+        // no romper tests que solo les importa el flujo (no la fecha exacta).
+        const body = {
+          ...sale,
+          sold_at: sale.sold ? (sale.sold_at ?? new Date().toISOString()) : null,
+        };
+        const res = await request.post('/api/sales', { data: body });
         expect(res.ok(), `POST /api/sales falló: ${res.status()}`).toBe(true);
-        const body = (await res.json()) as { data: { id: number } };
-        created.push(body.data.id);
+        const json = (await res.json()) as { data: { id: number } };
+        created.push(json.data.id);
       }
       return created;
     };

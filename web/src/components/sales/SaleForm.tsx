@@ -92,6 +92,7 @@ export function SaleForm({ sale, onSuccess }: SaleFormProps) {
     reset,
     watch,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
     setError,
   } = useForm<SaleFormInput, unknown, SaleFormOutput>({
@@ -140,20 +141,16 @@ export function SaleForm({ sale, onSuccess }: SaleFormProps) {
 
   // Regla UX (S4): al flippear el checkbox "ya lo vendí", autocompletar la fecha
   // de venta con hoy si el usuario no la había tocado. Al desmarcar, limpiarla.
-  // eslint-disable-next-line react-hooks/incompatible-library -- RHF `watch()` no es memoizable; necesitamos el valor reactivo para `disabled` y para la rama del auto-fill. Mismo patrón que SalesTable.tsx con TanStack.
+  //
+  // Lo implementamos con `register('sold', { onChange })` (handler SÍNCRONO
+  // en el cambio del checkbox) en vez de un `useEffect` + `watch()`. Razones:
+  //  - Sin race condition con el submit: el setValue se ejecuta en el mismo tick
+  //    que el cambio del checkbox, así Playwright/tests pueden hacer
+  //    `check(...) → click(Submit)` sin que el form envíe `sold_at: null`.
+  //  - Sin el eslint-disable de `incompatible-library` del watch.
+  // Necesitamos `watch('sold')` igual para la prop `disabled` del input de fecha.
+  // eslint-disable-next-line react-hooks/incompatible-library -- RHF `watch()` no es memoizable; solo lo usamos para el `disabled` reactivo del input de fecha.
   const sold = watch('sold');
-  const soldAtDate = watch('sold_at_date');
-  useEffect(() => {
-    if (sold && !soldAtDate) {
-      setValue('sold_at_date', todayLocalDate(), { shouldValidate: false, shouldDirty: true });
-    }
-    if (!sold && soldAtDate) {
-      setValue('sold_at_date', '', { shouldValidate: false, shouldDirty: true });
-    }
-    // Dependemos de `sold`, `setValue` y `soldAtDate`. El re-disparo cuando
-    // `soldAtDate` cambia tras `setValue` es intencional: queremos que, tras
-    // autocompletar, el siguiente flip encuentre el nuevo valor.
-  }, [sold, setValue, soldAtDate]);
 
   const onSubmit: SubmitHandler<SaleFormOutput> = async (values) => {
     const soldAtDateTrim = values.sold_at_date?.trim() ?? '';
@@ -249,7 +246,23 @@ export function SaleForm({ sale, onSuccess }: SaleFormProps) {
         <input
           type="checkbox"
           className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-          {...register('sold')}
+          {...register('sold', {
+            onChange: (e) => {
+              const isChecked = e.target.checked;
+              if (isChecked && !getValues('sold_at_date')) {
+                setValue('sold_at_date', todayLocalDate(), {
+                  shouldValidate: false,
+                  shouldDirty: true,
+                });
+              }
+              if (!isChecked) {
+                setValue('sold_at_date', '', {
+                  shouldValidate: false,
+                  shouldDirty: true,
+                });
+              }
+            },
+          })}
         />
         Ya lo vendí
       </label>
