@@ -69,14 +69,15 @@ SaleManteiner/
         ├── App.tsx              ← RouterProvider (createBrowserRouter)
         ├── index.css            ← @import "tailwindcss" + @theme (paleta brand, font)
         ├── vite-env.d.ts
-        ├── api/                 ← client.ts (envelope + ApiError) + sales.ts (CRUD/stats)
+        ├── api/                 ← client.ts (envelope + ApiError) + sales.ts (CRUD/stats + import)
         ├── components/
         │   ├── ui/              ← Button, Input, Textarea, Card, Badge, Spinner
         │   ├── sales/           ← KpiCards, SalesTable (TanStack), SaleForm (RHF+Zod), DeleteSaleButton
+        │   ├── import/          ← UploadCSV (papaparse), ImportPreview (tabla verde/rojo)
         │   └── layout/          ← Layout, NavLink
-        ├── hooks/               ← useStats/useSales/useSale/useCreateSale/useUpdateSale/useDeleteSale
-        ├── lib/                 ← format.ts (formatCents, formatDate), queryClient.ts
-        ├── pages/               ← SalesListPage, SaleNewPage, SaleEditPage
+        ├── hooks/               ← useStats/useSales/useSale/useCreateSale/useUpdateSale/useDeleteSale/useImportSales
+        ├── lib/                 ← format.ts (formatCents, formatDate, todayLocalDate, localDateToISO), queryClient.ts
+        ├── pages/               ← SalesListPage, SaleNewPage, SaleEditPage, SalesImportPage
         ├── schemas/             ← sales.ts, common.ts (duplicado del backend, refactor a shared/ es deuda)
         └── .agents/skills/      ← skills cargadas en web
 ```
@@ -127,7 +128,8 @@ Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni 
 | **0** Andamiaje               | ✅        | Monorepo `web/` + `server/`, Vite + TS, ESLint, Prettier, scripts de setup, README.                                                                                             |
 | **1** Backend MVP + BD + CRUD | ✅        | SQLite + migraciones, schemas Zod de ventas (modelo simplificado manual), repo CRUD, endpoints REST, tests Vitest con BD en memoria. 23/23 tests.                               |
 | **2** Frontend MVP manual     | ✅        | TanStack Query + Router + Table, RHF + Zod, KpiCards + tabla + formulario + delete. Sin tests automatizados (deuda para Fase 8). Pendiente: smoke E2E manual contra el backend. |
-| 3                             | pendiente | Importación CSV (papaparse) con mapeo editable de columnas.                                                                                                                     |
+| 3                             | ✅        | Importación CSV (papaparse). Headers del CSV = nombres de `CreateSaleInput`. Batch atómico en server (`db.transaction` + Zod refine). UI: `/sales/import` con dropzone, preview verde/rojo, botón importar. 50/50 tests server, 99/99 tests web, 7/7 specs Playwright. |
+| 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                       |
 | 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                       |
 | 5                             | pendiente | Dashboard con KPIs + gráficos (Recharts).                                                                                                                                       |
 | 6                             | pendiente | Exportación CSV / XLSX.                                                                                                                                                         |
@@ -195,12 +197,12 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-Fases 1 y 2 están terminadas a nivel de código (tests + builds verdes). Antes de arrancar **Fase 3 (importación CSV con papaparse y mapeo editable de columnas)**, queda pendiente:
+**Fases 1, 2 y 3 cerradas**. Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)**:
 
-1. **Smoke test E2E manual** del frontend contra el backend (`npm run dev` + navegar `/`, `/sales/new`, `/sales/:id`, crear/editar/borrar una venta y ver KPIs actualizarse).
-2. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
+1. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
+2. Smoke manual **opcional** del flujo de import en `localhost:5173` (los E2E ya lo cubren automático).
 
-Cuando ambos estén OK, armar el feature doc de Fase 3 en `odd/tasks/fase-3-csv-import.md` y arrancar la implementación.
+Cuando confirmes la persistencia de BD y el smoke (si querés), armar el feature doc de Fase 4 en `odd/tasks/fase-4-scraping.md` y arrancar.
 
 ## 13. Notas recientes (2026-10-16)
 
