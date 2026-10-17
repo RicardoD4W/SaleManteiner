@@ -76,7 +76,7 @@ SaleManteiner/
         │   ├── import/          ← UploadCSV (papaparse), ImportPreview (tabla verde/rojo)
         │   └── layout/          ← Layout, NavLink
         ├── hooks/               ← useStats/useSales/useSale/useCreateSale/useUpdateSale/useDeleteSale/useImportSales
-        ├── lib/                 ← format.ts (formatCents, formatDate, todayLocalDate, localDateToISO), queryClient.ts
+        ├── lib/                 ← format.ts (formatCents, formatDate, todayLocalDate, localDateToISO), download.ts (triggerDownload), queryClient.ts
         ├── pages/               ← SalesListPage, SaleNewPage, SaleEditPage, SalesImportPage
         ├── schemas/             ← sales.ts, common.ts (duplicado del backend, refactor a shared/ es deuda)
         └── .agents/skills/      ← skills cargadas en web
@@ -130,9 +130,8 @@ Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni 
 | **2** Frontend MVP manual     | ✅        | TanStack Query + Router + Table, RHF + Zod, KpiCards + tabla + formulario + delete. Sin tests automatizados (deuda para Fase 8). Pendiente: smoke E2E manual contra el backend. |
 | 3                             | ✅        | Importación CSV (papaparse). Headers del CSV = nombres de `CreateSaleInput`. Batch atómico en server (`db.transaction` + Zod refine). UI: `/sales/import` con dropzone, preview verde/rojo, botón importar. 50/50 tests server, 99/99 tests web, 7/7 specs Playwright. |
 | 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                       |
-| 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                       |
 | 5                             | pendiente | Dashboard con KPIs + gráficos (Recharts).                                                                                                                                       |
-| 6                             | pendiente | Exportación CSV / XLSX.                                                                                                                                                         |
+| 6                             | ✅        | Exportación CSV (mismas columnas que el import). Endpoint GET /api/sales/export con BOM UTF-8 + Content-Disposition attachment. Botón "Exportar CSV" en SalesListPage. 61/61 tests server, 99/99 tests web, 8/8 specs Playwright. |
 | 7                             | pendiente | Pantalla de configuración + cifrado AES-256-GCM del token.                                                                                                                      |
 | 8                             | pendiente | Pulido + tests E2E + docs.                                                                                                                                                      |
 
@@ -197,12 +196,12 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Fases 1, 2 y 3 cerradas**. Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)**:
+**Fases 1, 2, 3 y 6 cerradas** (Fase 5 sigue pendiente). El roundtrip CSV está completo: importás desde Excel/Fase 3, exportás desde la app/Fase 6. Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)** o la **Fase 5 (dashboard)**:
 
 1. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
-2. Smoke manual **opcional** del flujo de import en `localhost:5173` (los E2E ya lo cubren automático).
+2. Smoke manual **opcional** de los flujos nuevos en `localhost:5173` (import y export ya están cubiertos por E2E).
 
-Cuando confirmes la persistencia de BD y el smoke (si querés), armar el feature doc de Fase 4 en `odd/tasks/fase-4-scraping.md` y arrancar.
+Cuando confirmes, armar el feature doc correspondiente y arrancar.
 
 ## 13. Notas recientes (2026-10-16)
 

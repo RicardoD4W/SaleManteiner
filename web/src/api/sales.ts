@@ -75,4 +75,11 @@ export const salesApi = {
       method: 'POST',
       body: { sales },
     }).then((r) => r.data),
+
+  /**
+   * URL del endpoint de exportación CSV (Fase 6). El endpoint responde con
+   * `Content-Disposition: attachment; filename=…`, así que basta un GET al
+   * href para que el browser dispare el download — no necesita `apiFetch`.
+   */
+  exportUrl: '/api/sales/export',
 };
