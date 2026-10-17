@@ -78,6 +78,7 @@ SaleManteiner/
         ├── hooks/               ← useStats/useSales/useSale/useCreateSale/useUpdateSale/useDeleteSale/useImportSales
         ├── lib/                 ← format.ts (formatCents, formatDate, todayLocalDate, localDateToISO), download.ts (triggerDownload), queryClient.ts
         ├── pages/               ← SalesListPage, SaleNewPage, SaleEditPage, SalesImportPage
+        ├── pages/dashboard/     ← DashboardPage (layout + tabs) + OverviewTab + RevenueTab + ProductsTab
         ├── schemas/             ← sales.ts, common.ts (duplicado del backend, refactor a shared/ es deuda)
         └── .agents/skills/      ← skills cargadas en web
 ```
@@ -123,17 +124,17 @@ Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni 
 
 ## 7. Fases del proyecto
 
-| Fase                          | Estado    | Descripción                                                                                                                                                                     |
-| ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** Andamiaje               | ✅        | Monorepo `web/` + `server/`, Vite + TS, ESLint, Prettier, scripts de setup, README.                                                                                             |
-| **1** Backend MVP + BD + CRUD | ✅        | SQLite + migraciones, schemas Zod de ventas (modelo simplificado manual), repo CRUD, endpoints REST, tests Vitest con BD en memoria. 23/23 tests.                               |
-| **2** Frontend MVP manual     | ✅        | TanStack Query + Router + Table, RHF + Zod, KpiCards + tabla + formulario + delete. Sin tests automatizados (deuda para Fase 8). Pendiente: smoke E2E manual contra el backend. |
+| Fase                          | Estado    | Descripción                                                                                                                                                                                                                                                            |
+| ----------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** Andamiaje               | ✅        | Monorepo `web/` + `server/`, Vite + TS, ESLint, Prettier, scripts de setup, README.                                                                                                                                                                                    |
+| **1** Backend MVP + BD + CRUD | ✅        | SQLite + migraciones, schemas Zod de ventas (modelo simplificado manual), repo CRUD, endpoints REST, tests Vitest con BD en memoria. 23/23 tests.                                                                                                                      |
+| **2** Frontend MVP manual     | ✅        | TanStack Query + Router + Table, RHF + Zod, KpiCards + tabla + formulario + delete. Sin tests automatizados (deuda para Fase 8). Pendiente: smoke E2E manual contra el backend.                                                                                        |
 | 3                             | ✅        | Importación CSV (papaparse). Headers del CSV = nombres de `CreateSaleInput`. Batch atómico en server (`db.transaction` + Zod refine). UI: `/sales/import` con dropzone, preview verde/rojo, botón importar. 50/50 tests server, 99/99 tests web, 7/7 specs Playwright. |
-| 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                       |
-| 5                             | pendiente | Dashboard con KPIs + gráficos (Recharts).                                                                                                                                       |
-| 6                             | ✅        | Exportación CSV (mismas columnas que el import). Endpoint GET /api/sales/export con BOM UTF-8 + Content-Disposition attachment. Botón "Exportar CSV" en SalesListPage. 61/61 tests server, 99/99 tests web, 8/8 specs Playwright. |
-| 7                             | pendiente | Pantalla de configuración + cifrado AES-256-GCM del token.                                                                                                                      |
-| 8                             | pendiente | Pulido + tests E2E + docs.                                                                                                                                                      |
+| 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                                                                                                              |
+| 5                             | ✅        | Dashboard con KPIs + gráficos + tabs anidadas (React Router). Endpoint `GET /api/sales/stats/dashboard` (KPIs + revenue 12 meses + top 10 productos). `/dashboard` como layout con `<Outlet/>` y 3 tabs (`/dashboard`, `/dashboard/revenue`, `/dashboard/products`) — cada una URL compartible. Recharts v3 daba incompatibilidad runtime con React 19 strict mode → reemplazado por SVG inline (~80 líneas, sin deps, mismo resultado visual). 70/70 tests server, 99/99 tests web, 13/13 specs Playwright. |
+| 6                             | ✅        | Exportación CSV (mismas columnas que el import). Endpoint GET /api/sales/export con BOM UTF-8 + Content-Disposition attachment. Botón "Exportar CSV" en SalesListPage. 61/61 tests server, 99/99 tests web, 8/8 specs Playwright.                                      |
+| 7                             | pendiente | Pantalla de configuración + cifrado AES-256-GCM del token.                                                                                                                                                                                                             |
+| 8                             | pendiente | Pulido + tests E2E + docs.                                                                                                                                                                                                                                             |
 
 **Estimación total**: 5–6 días de trabajo real (no consecutivos).
 
@@ -196,10 +197,12 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Fases 1, 2, 3 y 6 cerradas** (Fase 5 sigue pendiente). El roundtrip CSV está completo: importás desde Excel/Fase 3, exportás desde la app/Fase 6. Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)** o la **Fase 5 (dashboard)**:
+**Fases 1, 2, 3, 5 y 6 cerradas** (Fase 4 y 7 pendientes). El roundtrip CSV está completo: importás desde Excel/Fase 3, exportás desde la app/Fase 6. El dashboard agrega visibilidad: 12 meses de revenue/profit + top productos, todo detrás de tabs anidadas con React Router (deep-linkable).
+
+Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)** o la **Fase 7 (settings + cifrado)**:
 
 1. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
-2. Smoke manual **opcional** de los flujos nuevos en `localhost:5173` (import y export ya están cubiertos por E2E).
+2. Smoke manual **opcional** de los flujos nuevos en `localhost:5173` (import + export + dashboard ya están cubiertos por E2E).
 
 Cuando confirmes, armar el feature doc correspondiente y arrancar.
 
