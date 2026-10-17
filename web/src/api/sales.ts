@@ -20,6 +20,12 @@ export interface SaleStats {
   net_profit_cents: number;
 }
 
+/** Resultado del endpoint POST /api/sales/import (Fase 3). */
+export interface ImportResult {
+  imported: number;
+  ids: number[];
+}
+
 interface ListResponse {
   data: Sale[];
 }
@@ -28,6 +34,9 @@ interface ItemResponse {
 }
 interface StatsResponse {
   data: SaleStats;
+}
+interface ImportResponse {
+  data: ImportResult;
 }
 
 export const salesApi = {
@@ -54,4 +63,16 @@ export const salesApi = {
   remove: (id: number) => apiFetch<void>(`/api/sales/${id}`, { method: 'DELETE' }),
 
   stats: () => apiFetch<StatsResponse>('/api/sales/stats').then((r) => r.data),
+
+  /**
+   * Importación CSV (Fase 3). Envía un array de `CreateSaleInput` ya validado
+   * por el cliente. El server re-valida con `ImportSalesInput` y rechaza con
+   * 422 si alguna fila no cumple. En éxito devuelve `ImportResult` con el
+   * conteo y los IDs asignados.
+   */
+  import: (sales: CreateSaleInput[]) =>
+    apiFetch<ImportResponse>('/api/sales/import', {
+      method: 'POST',
+      body: { sales },
+    }).then((r) => r.data),
 };

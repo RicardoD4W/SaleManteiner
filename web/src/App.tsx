@@ -3,6 +3,7 @@ import { Layout } from './components/layout/Layout';
 import { SalesListPage } from './pages/SalesListPage';
 import { SaleNewPage } from './pages/SaleNewPage';
 import { SaleEditPage } from './pages/SaleEditPage';
+import { SalesImportPage } from './pages/SalesImportPage';
 
 const router = createBrowserRouter([
   {
@@ -11,6 +12,9 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <SalesListPage /> },
       { path: 'sales/new', element: <SaleNewPage /> },
+      // `sales/import` va antes de `sales/:id` para que el router no trate
+      // "import" como un id.
+      { path: 'sales/import', element: <SalesImportPage /> },
       { path: 'sales/:id', element: <SaleEditPage /> },
     ],
   },
