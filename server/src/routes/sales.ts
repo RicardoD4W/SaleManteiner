@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { SalesRepo } from '../repo/sales-repo.js';
 import { CreateSaleInput, UpdateSaleInput } from '../schemas/sales.js';
 import { ImportSalesInput, ImportSalesOutput } from '../schemas/sales-import.js';
+import { serializeSalesToCsv } from '../csv-export.js';
 
 export interface SalesRouterDeps {
   repo: SalesRepo;
@@ -44,6 +45,33 @@ export function salesRouter(deps: SalesRouterDeps): Router {
     asyncHandler(async (_req, res) => {
       const data = repo.stats();
       res.json({ data });
+    }),
+  );
+
+  /**
+   * Fase 6 — Exportación CSV.
+   *
+   * Devuelve TODAS las ventas como CSV (sin paginación). Headers + BOM + escape
+   * RFC 4180 los maneja `serializeSalesToCsv`. Filename sugerido con la fecha
+   * local del export para que múltiples exports no se pisen en Downloads.
+   *
+   * Content-Type: `text/csv; charset=utf-8`. El BOM al inicio del body permite
+   * que Excel-español detecte UTF-8 automáticamente (sin BOM abre con Latin-1).
+   *
+   * Va antes de `/:id` para que "export" no se interprete como un id numérico.
+   */
+  router.get(
+    '/export',
+    asyncHandler(async (_req, res) => {
+      const sales = repo.list();
+      const csv = serializeSalesToCsv(sales);
+      const today = new Date().toISOString().slice(0, 10);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="sales-${today}.csv"`,
+      );
+      res.send(csv);
     }),
   );
 
