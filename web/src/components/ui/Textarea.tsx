@@ -1,0 +1,53 @@
+import { forwardRef, useId, type TextareaHTMLAttributes } from 'react';
+
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+  hint?: string;
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { label, error, hint, id, className, rows = 3, ...rest },
+  ref,
+) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  const errorId = error ? `${inputId}-error` : undefined;
+  const hintId = hint && !error ? `${inputId}-hint` : undefined;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {label ? (
+        <label htmlFor={inputId} className="text-sm font-medium text-gray-800">
+          {label}
+        </label>
+      ) : null}
+      <textarea
+        ref={ref}
+        id={inputId}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={errorId ?? hintId}
+        className={[
+          'block w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900',
+          'placeholder:text-gray-400 resize-y',
+          'focus:outline-none focus:ring-2 focus:ring-offset-0',
+          error
+            ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
+            : 'border-gray-300 focus:border-brand-500 focus:ring-brand-100',
+          className ?? '',
+        ].join(' ')}
+        {...rest}
+      />
+      {error ? (
+        <p id={errorId} className="text-sm text-red-600">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={hintId} className="text-sm text-gray-500">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+});

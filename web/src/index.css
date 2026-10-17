@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Paleta inspirada en Wallapop (no idéntica) */
+  --color-brand-50: #fef3ec;
+  --color-brand-100: #fde2cf;
+  --color-brand-200: #fbc39e;
+  --color-brand-300: #f8a06c;
+  --color-brand-400: #f57d3a;
+  --color-brand-500: #e85f0f; /* color principal */
+  --color-brand-600: #b84a0a;
+  --color-brand-700: #8a3606;
+  --color-brand-800: #5c2304;
+  --color-brand-900: #2e1102;
+
+  --font-sans:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
