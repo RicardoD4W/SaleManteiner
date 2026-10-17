@@ -1,0 +1,110 @@
+import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { Card, CardBody } from '../../components/ui/Card';
+import { Spinner } from '../../components/ui/Spinner';
+import { TopProductsChart } from '../../components/dashboard/TopProductsChart';
+import { formatCents } from '../../lib/format';
+
+/**
+ * Tab Productos (Fase 5 / S8):
+ *   - TopProductsChart grande (BarChart horizontal).
+ *   - Tabla compacta con producto · veces vendido · revenue · profit
+ *     (los nombres largos se truncan en el chart; acá van completos).
+ */
+export function ProductsTab() {
+  const { data, isLoading, isError, error, refetch } = useDashboardStats();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3 text-sm text-gray-500">
+        <Spinner size="sm" /> Cargando top productos…
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="text-sm text-red-600">Error: {error.message}</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+          >
+            Reintentar
+          </button>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardBody>
+          <h3 className="text-base font-medium text-gray-900">Top 10 productos por revenue</h3>
+          {data.topProducts.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">
+              Todavía no hay ventas vendidas para armar el ranking.
+            </p>
+          ) : (
+            <TopProductsChart data={data.topProducts} />
+          )}
+        </CardBody>
+      </Card>
+
+      {data.topProducts.length > 0 ? (
+        <Card>
+          <CardBody>
+            <h3 className="text-base font-medium text-gray-900">Detalle</h3>
+            <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
+                <table
+                  className="min-w-full divide-y divide-gray-200 text-sm"
+                  data-testid="products-table"
+                >
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700">
+                      Producto
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                      Veces vendido
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                      Revenue
+                    </th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                      Profit
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {data.topProducts.map((p) => (
+                    <tr key={p.product_name}>
+                      <td className="px-3 py-2 text-gray-800">{p.product_name}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                        {p.times_sold}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                        {formatCents(p.total_revenue_cents)}
+                      </td>
+                      <td
+                        className={[
+                          'px-3 py-2 text-right tabular-nums',
+                          p.total_profit_cents >= 0 ? 'text-gray-700' : 'text-red-600',
+                        ].join(' ')}
+                      >
+                        {formatCents(p.total_profit_cents)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
+    </div>
+  );
+}

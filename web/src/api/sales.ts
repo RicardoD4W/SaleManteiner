@@ -20,6 +20,29 @@ export interface SaleStats {
   net_profit_cents: number;
 }
 
+/** Una entrada de revenue mensual (Fase 5 / dashboard). */
+export interface RevenueByMonth {
+  /** 'YYYY-MM'. */
+  month: string;
+  revenue_cents: number;
+  profit_cents: number;
+}
+
+/** Una entrada de top productos (Fase 5 / dashboard). */
+export interface TopProduct {
+  product_name: string;
+  times_sold: number;
+  total_revenue_cents: number;
+  total_profit_cents: number;
+}
+
+/** Payload completo del dashboard (Fase 5 / S3). */
+export interface DashboardStats {
+  kpis: SaleStats;
+  revenueByMonth: RevenueByMonth[];
+  topProducts: TopProduct[];
+}
+
 /** Resultado del endpoint POST /api/sales/import (Fase 3). */
 export interface ImportResult {
   imported: number;
@@ -63,6 +86,14 @@ export const salesApi = {
   remove: (id: number) => apiFetch<void>(`/api/sales/${id}`, { method: 'DELETE' }),
 
   stats: () => apiFetch<StatsResponse>('/api/sales/stats').then((r) => r.data),
+
+  /**
+   * Dashboard stats (Fase 5 / S3): KPIs + revenue mensual (12 meses) +
+   * top 10 productos por revenue. Un único endpoint para evitar N requests
+   * al navegar entre tabs.
+   */
+  dashboardStats: () =>
+    apiFetch<{ data: DashboardStats }>('/api/sales/stats/dashboard').then((r) => r.data),
 
   /**
    * Importación CSV (Fase 3). Envía un array de `CreateSaleInput` ya validado
