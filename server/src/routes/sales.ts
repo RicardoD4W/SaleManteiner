@@ -1,6 +1,6 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
-import type { SalesRepo } from '../repo/sales-repo.js';
+import type { SalesRepo, DashboardStats } from '../repo/sales-repo.js';
 import { CreateSaleInput, UpdateSaleInput } from '../schemas/sales.js';
 import { ImportSalesInput, ImportSalesOutput } from '../schemas/sales-import.js';
 import { serializeSalesToCsv } from '../csv-export.js';
@@ -44,6 +44,23 @@ export function salesRouter(deps: SalesRouterDeps): Router {
     '/stats',
     asyncHandler(async (_req, res) => {
       const data = repo.stats();
+      res.json({ data });
+    }),
+  );
+
+  /**
+   * Fase 5 — Dashboard. Un único endpoint que devuelve los KPIs más la serie
+   * mensual de revenue (12 meses) y el top 10 de productos por revenue.
+   * El cliente cachea este payload con React Query durante 60s para que
+   * navegar entre tabs (Overview / Revenue / Products) no haga refetch.
+   *
+   * Va antes de `/:id` por la misma razón que `/stats`: rutas con paths
+   * estáticos primero, las dinámicas después.
+   */
+  router.get(
+    '/stats/dashboard',
+    asyncHandler(async (_req, res) => {
+      const data: DashboardStats = repo.statsDashboard();
       res.json({ data });
     }),
   );

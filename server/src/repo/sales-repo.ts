@@ -68,6 +68,31 @@ export interface SaleStats {
   net_profit_cents: number;
 }
 
+/** Una entrada de revenue mensual para el dashboard (Fase 5). */
+export interface RevenueByMonth {
+  /** 'YYYY-MM' (mes calendario). */
+  month: string;
+  revenue_cents: number;
+  profit_cents: number;
+}
+
+/** Una entrada de top productos para el dashboard (Fase 5). */
+export interface TopProduct {
+  product_name: string;
+  times_sold: number;
+  total_revenue_cents: number;
+  total_profit_cents: number;
+}
+
+/** Payload completo del dashboard (Fase 5 / S3). */
+export interface DashboardStats {
+  kpis: SaleStats;
+  /** 12 meses calendario (incluyendo el actual), ordenados ascendente. */
+  revenueByMonth: RevenueByMonth[];
+  /** Top 10 productos vendidos, ordenados por revenue descendente. */
+  topProducts: TopProduct[];
+}
+
 export interface SalesRepo {
   create(input: CreateSaleInput): Sale;
   /**
@@ -84,6 +109,8 @@ export interface SalesRepo {
   update(id: number, input: UpdateSaleInput): Sale | null;
   remove(id: number): boolean;
   stats(): SaleStats;
+  /** Devuelve el payload completo del dashboard (KPIs + revenue mensual + top). */
+  statsDashboard(): DashboardStats;
 }
 
 const DEFAULT_LIMIT = 50;
@@ -229,5 +256,77 @@ export function createSalesRepo(db: Database): SalesRepo {
     };
   }
 
-  return { create, createMany, getById, list, update, remove, stats };
+  /**
+   * Dashboard stats (Fase 5 / S3-S4):
+   *  - `kpis`: reusa `stats()` para mantener una sola fuente de verdad.
+   *  - `revenueByMonth`: GROUP BY strftime('%Y-%m', sold_at) sobre los últimos
+   *    12 meses calendario (incluyendo el actual). Meses sin ventas se
+   *    rellenan con zeros en TS para que el gráfico siempre tenga 12 puntos.
+   *  - `topProducts`: GROUP BY product_name, orden por SUM(price_cents) DESC,
+   *    LIMIT 10. Solo se cuentan ventas vendidas (sold=1).
+   */
+  function statsDashboard(): DashboardStats {
+    const kpis = stats();
+
+    const monthRows = db
+      .prepare(
+        `SELECT
+           strftime('%Y-%m', sold_at) AS month,
+           SUM(price_cents) AS revenue_cents,
+           SUM(price_cents - cost_cents - associated_costs_cents) AS profit_cents
+         FROM sales
+         WHERE sold = 1
+           AND sold_at IS NOT NULL
+           AND sold_at >= date('now', '-12 months')
+         GROUP BY month`,
+      )
+      .all() as Array<{ month: string; revenue_cents: number; profit_cents: number }>;
+
+    const months = lastNMonths(12);
+    const monthMap = new Map(monthRows.map((r) => [r.month, r]));
+    const revenueByMonth: RevenueByMonth[] = months.map((month) => {
+      const r = monthMap.get(month);
+      return {
+        month,
+        revenue_cents: r?.revenue_cents ?? 0,
+        profit_cents: r?.profit_cents ?? 0,
+      };
+    });
+
+    const topProducts = db
+      .prepare(
+        `SELECT
+           product_name,
+           COUNT(*) AS times_sold,
+           SUM(price_cents) AS total_revenue_cents,
+           SUM(price_cents - cost_cents - associated_costs_cents) AS total_profit_cents
+         FROM sales
+         WHERE sold = 1
+         GROUP BY product_name
+         ORDER BY total_revenue_cents DESC
+         LIMIT 10`,
+      )
+      .all() as TopProduct[];
+
+    return { kpis, revenueByMonth, topProducts };
+  }
+
+  return { create, createMany, getById, list, update, remove, stats, statsDashboard };
+}
+
+/**
+ * Genera los últimos N meses calendario (incluyendo el actual) en formato
+ * 'YYYY-MM', ordenados ascendente. Usado por `statsDashboard()` para
+ * garantizar que la serie temporal tenga siempre N puntos (meses sin
+ * ventas rellenos con zero en el caller).
+ */
+function lastNMonths(n: number): string[] {
+  const result: string[] = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    result.push(month);
+  }
+  return result;
 }
