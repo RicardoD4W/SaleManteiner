@@ -3,14 +3,21 @@ import cors from 'cors';
 import { pinoHttp } from 'pino-http';
 import { logger } from './logger.js';
 import { healthRouter } from './routes/health.js';
-import { salesRouter } from './routes/sales.js';
-import type { SalesRepo } from './repo/sales-repo.js';
+import { buysRouter } from './routes/buys.js';
+import { soldsRouter } from './routes/solds.js';
+import { customersRouter } from './routes/customers.js';
+import { dashboardRouter } from './routes/dashboard.js';
+import type { BuysRepo } from './repo/buys-repo.js';
+import type { SoldsRepo } from './repo/solds-repo.js';
+import type { CustomersRepo } from './repo/customers-repo.js';
 
 const SERVICE = 'salemanteiner-server';
 const VERSION = '0.1.0';
 
 export interface CreateAppDeps {
-  salesRepo: SalesRepo;
+  buysRepo: BuysRepo;
+  soldsRepo: SoldsRepo;
+  customersRepo: CustomersRepo;
 }
 
 export function createApp(deps: CreateAppDeps): Express {
@@ -21,7 +28,10 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use(pinoHttp({ logger }));
 
   app.use('/api/health', healthRouter({ service: SERVICE, version: VERSION }));
-  app.use('/api/sales', salesRouter({ repo: deps.salesRepo }));
+  app.use('/api/buys', buysRouter({ repo: deps.buysRepo }));
+  app.use('/api/solds', soldsRouter({ repo: deps.soldsRepo }));
+  app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
+  app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
 
   // 404
   app.use((req, res) => {
