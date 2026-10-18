@@ -47,50 +47,50 @@ export function ImportPreview({ rows, maxShown = 10 }: ImportPreviewProps) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+          <thead className="bg-gray-50 dark:bg-gray-950">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-gray-700">#</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700">
+              <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">#</th>
+              <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
                 Producto
               </th>
-              <th className="px-3 py-2 text-right font-medium text-gray-700">
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                 Coste
               </th>
-              <th className="px-3 py-2 text-right font-medium text-gray-700">
+              <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                 Precio
               </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700">
+              <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
                 Vendido
               </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700">
+              <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
                 Estado
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {shown.map((row) => (
               <tr
                 key={row.rowNumber}
-                className={row.ok ? '' : 'bg-red-50'}
+                className={row.ok ? '' : 'bg-red-50 dark:bg-red-950/30'}
                 data-testid={`preview-row-${row.rowNumber}`}
               >
-                <td className="px-3 py-2 text-gray-500">{row.rowNumber}</td>
-                <td className="px-3 py-2 text-gray-800">
+                <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{row.rowNumber}</td>
+                <td className="px-3 py-2 text-gray-800 dark:text-gray-200">
                   {row.parsed?.product_name ?? row.raw?.['product_name'] ?? '—'}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                   {row.parsed
                     ? (row.parsed.cost_cents / 100).toFixed(2) + ' €'
                     : '—'}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                   {row.parsed
                     ? (row.parsed.price_cents / 100).toFixed(2) + ' €'
                     : '—'}
                 </td>
-                <td className="px-3 py-2 text-gray-700">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
                   {row.parsed ? (row.parsed.sold ? 'Sí' : 'No') : '—'}
                 </td>
                 <td className="px-3 py-2">
@@ -98,7 +98,7 @@ export function ImportPreview({ rows, maxShown = 10 }: ImportPreviewProps) {
                     <Badge variant="success">OK</Badge>
                   ) : (
                     <span
-                      className="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                      className="inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-950/30 dark:text-red-400"
                       title={row.error}
                     >
                       Inválida: {row.error}

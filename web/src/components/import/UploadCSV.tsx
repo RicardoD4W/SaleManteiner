@@ -97,8 +97,8 @@ export function UploadCSV({ onParsed, onError }: UploadCSVProps) {
       className={[
         'flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 text-center cursor-pointer transition-colors',
         isHovering
-          ? 'border-brand-500 bg-brand-50'
-          : 'border-gray-300 bg-white hover:border-gray-400',
+          ? 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-900/20'
+          : 'border-gray-300 bg-white hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600',
       ].join(' ')}
       data-testid="csv-dropzone"
     >
@@ -110,12 +110,12 @@ export function UploadCSV({ onParsed, onError }: UploadCSVProps) {
         className="sr-only"
         data-testid="csv-input"
       />
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-300">
         {isParsing
           ? 'Parseando…'
           : 'Arrastrá tu CSV acá, o hacé click para elegir uno'}
       </p>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
         Encabezados: <code>product_name</code>, <code>buyer_name</code>,{' '}
         <code>cost_cents</code>, <code>price_cents</code>,{' '}
         <code>associated_costs_cents</code>, <code>sold</code>,{' '}

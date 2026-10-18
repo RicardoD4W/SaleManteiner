@@ -18,7 +18,7 @@ function StatCard({ label, value, hint, emphasis = false }: StatCardProps) {
         <p
           className={[
             'mt-1 text-2xl font-semibold tabular-nums',
-            emphasis ? 'text-brand-600' : 'text-gray-900',
+            emphasis ? 'text-brand-600 dark:text-brand-400' : 'text-gray-900 dark:text-gray-100',
           ].join(' ')}
         >
           {value}
@@ -44,12 +44,12 @@ export function KpiCards() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-red-600 dark:text-red-400">
             No se pudieron cargar las estadísticas: {error.message}
           </p>
           <button
             onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Reintentar
           </button>

@@ -33,11 +33,11 @@ export function DeleteSaleButton({ id, productName }: DeleteSaleButtonProps) {
   }
 
   return (
-    <div className="rounded-md border border-red-200 bg-red-50 p-3">
-      <p className="text-sm text-red-800">
-        ¿Eliminar <strong>“{productName}”</strong>? Esta acción no se puede deshacer.
+    <div className="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+      <p className="text-sm text-red-800 dark:text-red-300">
+        ¿Eliminar <strong>"{productName}"</strong>? Esta acción no se puede deshacer.
       </p>
-      {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p> : null}
       <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
           Cancelar

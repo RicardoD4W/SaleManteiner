@@ -47,7 +47,7 @@ export function RevenueChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <div className="h-64 w-full" data-testid="revenue-chart">
-        <p className="text-sm text-gray-500">Sin datos.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Sin datos.</p>
       </div>
     );
   }
@@ -92,6 +92,7 @@ export function RevenueChart({ data }: Props) {
             y1={yAt(t)}
             y2={yAt(t)}
             stroke="#e5e7eb"
+            className="dark:stroke-gray-800"
             strokeDasharray="3 3"
             strokeWidth={1}
           />
@@ -106,6 +107,7 @@ export function RevenueChart({ data }: Props) {
             textAnchor="end"
             fontSize={11}
             fill="#6b7280"
+            className="dark:fill-gray-400"
           >
             {formatEurosShort(t)}
           </text>
@@ -120,6 +122,7 @@ export function RevenueChart({ data }: Props) {
             textAnchor="middle"
             fontSize={11}
             fill="#6b7280"
+            className="dark:fill-gray-400"
           >
             {monthLabel(d.month)}
           </text>
@@ -129,6 +132,7 @@ export function RevenueChart({ data }: Props) {
         <path
           d={pathFor('revenue_cents')}
           stroke="#22c55e"
+          className="dark:stroke-brand-400"
           strokeWidth={2}
           fill="none"
         />
@@ -139,16 +143,17 @@ export function RevenueChart({ data }: Props) {
           strokeWidth={2}
           fill="none"
           strokeDasharray="4 4"
+          className="dark:stroke-blue-400"
         />
 
         {/* Leyenda */}
         <g transform={`translate(${PAD_LEFT + 8} ${PAD_TOP + 8})`}>
-          <rect width="12" height="3" y="6" fill="#22c55e" />
-          <text x="18" y="9" fontSize={11} fill="#374151">
+          <rect width="12" height="3" y="6" fill="#22c55e" className="dark:fill-brand-400" />
+          <text x="18" y="9" fontSize={11} fill="#374151" className="dark:fill-gray-300">
             Ingresos
           </text>
-          <rect width="12" height="3" y="22" fill="#3b82f6" />
-          <text x="18" y="25" fontSize={11} fill="#374151">
+          <rect width="12" height="3" y="22" fill="#3b82f6" className="dark:fill-blue-400" />
+          <text x="18" y="25" fontSize={11} fill="#374151" className="dark:fill-gray-300">
             Beneficio
           </text>
         </g>

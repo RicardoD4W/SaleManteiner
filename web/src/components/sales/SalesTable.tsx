@@ -29,7 +29,7 @@ export function SalesTable() {
         cell: (info) => (
           <Link
             to={`/sales/${info.row.original.id}`}
-            className="font-medium text-brand-700 hover:underline"
+            className="font-medium text-brand-700 dark:text-brand-400 hover:underline"
           >
             {info.getValue()}
           </Link>
@@ -37,26 +37,26 @@ export function SalesTable() {
       }),
       columnHelper.accessor('buyer_name', {
         header: 'Comprador',
-        cell: (info) => info.getValue() ?? <span className="text-gray-400">—</span>,
+        cell: (info) => info.getValue() ?? <span className="text-gray-400 dark:text-gray-500">—</span>,
       }),
       columnHelper.accessor('cost_cents', {
         header: 'Coste',
         cell: (info) => (
-          <span className="tabular-nums text-gray-700">{formatCents(info.getValue())}</span>
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">{formatCents(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor('price_cents', {
         header: 'Precio',
         cell: (info) => (
-          <span className="tabular-nums text-gray-700">{formatCents(info.getValue())}</span>
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">{formatCents(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor('associated_costs_cents', {
         header: 'Costes asoc.',
         cell: (info) => (
-          <span className="tabular-nums text-gray-700">{formatCents(info.getValue())}</span>
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">{formatCents(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
@@ -64,7 +64,7 @@ export function SalesTable() {
         header: 'Compra',
         // `formatDate(null)` devuelve "—"; los strings YYYY-MM-DD ordenan lexicográficamente bien.
         cell: (info) => (
-          <span className="text-gray-700">{formatDate(info.getValue())}</span>
+          <span className="text-gray-700 dark:text-gray-300">{formatDate(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
@@ -78,7 +78,7 @@ export function SalesTable() {
         header: 'Venta',
         // `formatDate(null)` devuelve "—"; los ISO ordenan lexicográficamente bien.
         cell: (info) => (
-          <span className="text-gray-700">{formatDate(info.getValue())}</span>
+          <span className="text-gray-700 dark:text-gray-300">{formatDate(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
@@ -88,7 +88,7 @@ export function SalesTable() {
         cell: (info) => (
           <Link
             to={`/sales/${info.row.original.id}`}
-            className="text-sm font-medium text-brand-600 hover:underline"
+            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Editar
           </Link>
@@ -120,11 +120,11 @@ export function SalesTable() {
 
   if (isError) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
         <p>No se pudieron cargar las ventas: {error.message}</p>
         <button
           onClick={() => refetch()}
-          className="mt-2 text-sm font-medium text-brand-700 hover:underline"
+          className="mt-2 text-sm font-medium text-brand-700 hover:underline dark:text-brand-400"
         >
           Reintentar
         </button>
@@ -134,11 +134,11 @@ export function SalesTable() {
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center">
-        <p className="text-sm text-gray-600">No hay ventas todavía.</p>
+      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+        <p className="text-sm text-gray-600 dark:text-gray-400">No hay ventas todavía.</p>
         <Link
           to="/sales/new"
-          className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline"
+          className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
         >
           Crear la primera →
         </Link>
@@ -147,16 +147,16 @@ export function SalesTable() {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+          <thead className="bg-gray-50 dark:bg-gray-950">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-4 py-2 text-left font-medium text-gray-700"
+                    className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300"
                     onClick={header.column.getToggleSortingHandler()}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
                   >
@@ -168,11 +168,11 @@ export function SalesTable() {
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50">
+              <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-2 align-middle text-gray-800">
+                  <td key={cell.id} className="px-4 py-2 align-middle text-gray-800 dark:text-gray-200">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -181,7 +181,7 @@ export function SalesTable() {
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600">
+      <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
         <span>
           Mostrando {table.getRowModel().rows.length} de {data.length}
         </span>
@@ -189,7 +189,7 @@ export function SalesTable() {
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
+            className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
           >
             ← Anterior
           </button>
@@ -199,7 +199,7 @@ export function SalesTable() {
           <button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
+            className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
           >
             Siguiente →
           </button>

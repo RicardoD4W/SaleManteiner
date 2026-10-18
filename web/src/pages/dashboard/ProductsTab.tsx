@@ -25,10 +25,10 @@ export function ProductsTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600">Error: {error.message}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</p>
           <button
             onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Reintentar
           </button>
@@ -43,9 +43,9 @@ export function ProductsTab() {
     <div className="space-y-6">
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900">Top 10 productos por revenue</h3>
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Top 10 productos por revenue</h3>
           {data.topProducts.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay ventas vendidas para armar el ranking.
             </p>
           ) : (
@@ -57,42 +57,42 @@ export function ProductsTab() {
       {data.topProducts.length > 0 ? (
         <Card>
           <CardBody>
-            <h3 className="text-base font-medium text-gray-900">Detalle</h3>
-            <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Detalle</h3>
+              <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
                 <table
-                  className="min-w-full divide-y divide-gray-200 text-sm"
+                  className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800"
                   data-testid="products-table"
                 >
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700">
+                    <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
                       Producto
                     </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                       Veces vendido
                     </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                       Revenue
                     </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700">
+                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                       Profit
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {data.topProducts.map((p) => (
                     <tr key={p.product_name}>
-                      <td className="px-3 py-2 text-gray-800">{p.product_name}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                      <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{p.product_name}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                         {p.times_sold}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                         {formatCents(p.total_revenue_cents)}
                       </td>
                       <td
                         className={[
                           'px-3 py-2 text-right tabular-nums',
-                          p.total_profit_cents >= 0 ? 'text-gray-700' : 'text-red-600',
+                          p.total_profit_cents >= 0 ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400',
                         ].join(' ')}
                       >
                         {formatCents(p.total_profit_cents)}

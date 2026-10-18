@@ -25,10 +25,10 @@ export function RevenueTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600">Error: {error.message}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</p>
           <button
             onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Reintentar
           </button>
@@ -55,7 +55,7 @@ export function RevenueTab() {
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Revenue YTD
             </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
               {formatCents(ytdRevenue)}
             </p>
             <p className="mt-1 text-xs text-gray-500">últimos 12 meses</p>
@@ -69,7 +69,7 @@ export function RevenueTab() {
             <p
               className={[
                 'mt-1 text-2xl font-semibold tabular-nums',
-                ytdProfit >= 0 ? 'text-gray-900' : 'text-red-600',
+                ytdProfit >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400',
               ].join(' ')}
             >
               {formatCents(ytdProfit)}
@@ -82,7 +82,7 @@ export function RevenueTab() {
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Mejor mes
             </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
               {bestMonth ? formatCents(bestMonth.revenue_cents) : '—'}
             </p>
             <p className="mt-1 text-xs text-gray-500">
@@ -94,7 +94,7 @@ export function RevenueTab() {
 
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900">Revenue y profit por mes</h3>
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Revenue y profit por mes</h3>
           <RevenueChart data={data.revenueByMonth} />
         </CardBody>
       </Card>

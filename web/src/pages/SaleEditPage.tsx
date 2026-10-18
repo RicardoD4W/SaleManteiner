@@ -14,8 +14,8 @@ export function SaleEditPage() {
   if (!Number.isFinite(saleId) || saleId <= 0) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600">Id de venta inválido.</p>
-        <Link to="/" className="mt-2 inline-block text-sm text-brand-600 hover:underline">
+        <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
+        <Link to="/" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -33,8 +33,8 @@ export function SaleEditPage() {
   if (isError) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600">No se pudo cargar la venta: {error.message}</p>
-        <Link to="/" className="mt-2 inline-block text-sm text-brand-600 hover:underline">
+        <p className="text-sm text-red-600 dark:text-red-400">No se pudo cargar la venta: {error.message}</p>
+        <Link to="/" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -46,8 +46,8 @@ export function SaleEditPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-2xl font-semibold text-gray-900">Editar venta</h2>
-        <Link to="/" className="text-sm text-gray-500 hover:underline">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
+        <Link to="/" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
           ← Volver
         </Link>
       </div>
@@ -59,14 +59,14 @@ export function SaleEditPage() {
             <span
               className={
                 sale.price_cents - sale.cost_cents - sale.associated_costs_cents >= 0
-                  ? 'font-semibold text-brand-600'
-                  : 'font-semibold text-red-600'
+                  ? 'font-semibold text-brand-600 dark:text-brand-400'
+                  : 'font-semibold text-red-600 dark:text-red-400'
               }
             >
               {formatCents(sale.price_cents - sale.cost_cents - sale.associated_costs_cents)}
             </span>
           </div>
-          <div className="flex justify-between text-xs text-gray-400">
+          <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
             <span>Registrada el {formatDateTime(sale.created_at)}</span>
             {sale.sold_at ? <span>· Vendida el {formatDate(sale.sold_at)}</span> : null}
           </div>

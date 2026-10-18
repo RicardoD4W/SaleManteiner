@@ -128,10 +128,10 @@ export function SalesImportPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-2xl font-semibold text-gray-900">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           Importar ventas desde CSV
         </h2>
-        <Link to="/" className="text-sm text-gray-500 hover:underline">
+        <Link to="/" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
           ← Volver
         </Link>
       </div>
@@ -140,7 +140,7 @@ export function SalesImportPage() {
         <CardBody className="space-y-4">
           {parsed == null ? (
             <>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Subí un CSV con una fila por venta. Las cabeceras deben llamarse
                 igual que los campos del formulario (ver la lista abajo del
                 dropzone).
@@ -148,7 +148,7 @@ export function SalesImportPage() {
               <UploadCSV onParsed={handleParsed} onError={handleCsvError} />
               {error ? (
                 <p
-                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
                   role="alert"
                 >
                   {error}
@@ -157,7 +157,7 @@ export function SalesImportPage() {
             </>
           ) : (
             <>
-              <div className="flex items-baseline justify-between text-sm text-gray-600">
+              <div className="flex items-baseline justify-between text-sm text-gray-600 dark:text-gray-300">
                 <span>
                   Archivo: <strong>{parsed.fileName}</strong> ·{' '}
                   {parsed.rows.length} filas
@@ -165,7 +165,7 @@ export function SalesImportPage() {
                 <button
                   type="button"
                   onClick={reset}
-                  className="text-brand-600 hover:underline"
+                  className="text-brand-600 hover:underline dark:text-brand-400"
                 >
                   Cambiar archivo
                 </button>
@@ -173,7 +173,7 @@ export function SalesImportPage() {
 
               {invalidCount > 0 ? (
                 <p
-                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
                   role="alert"
                 >
                   Hay {invalidCount} fila(s) inválida(s). Corregí el CSV y volvé
@@ -211,7 +211,7 @@ export function SalesImportPage() {
 
               {error ? (
                 <p
-                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
                   role="alert"
                 >
                   {error}

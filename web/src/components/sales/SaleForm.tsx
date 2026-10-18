@@ -242,10 +242,10 @@ export function SaleForm({ sale, onSuccess }: SaleFormProps) {
           hint="Día que compraste el producto (opcional)"
         />
       </div>
-      <label className="flex items-center gap-2 text-sm text-gray-800">
+      <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
         <input
           type="checkbox"
-          className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+          className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
           {...register('sold', {
             onChange: (e) => {
               const isChecked = e.target.checked;
@@ -285,7 +285,7 @@ export function SaleForm({ sale, onSuccess }: SaleFormProps) {
         error={errors.notes?.message}
       />
       {errors.root ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
           {errors.root.message}
         </p>
       ) : null}

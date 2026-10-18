@@ -27,7 +27,7 @@ function StatCard({ label, value, hint, emphasis = false }: StatCardProps) {
         <p
           className={[
             'mt-1 text-2xl font-semibold tabular-nums',
-            emphasis ? 'text-brand-600' : 'text-gray-900',
+            emphasis ? 'text-brand-600 dark:text-brand-400' : 'text-gray-900 dark:text-gray-100',
           ].join(' ')}
         >
           {value}
@@ -53,12 +53,12 @@ export function OverviewTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-red-600 dark:text-red-400">
             No se pudo cargar el dashboard: {error.message}
           </p>
           <button
             onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Reintentar
           </button>
@@ -96,7 +96,7 @@ export function OverviewTab() {
 
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
             Ingresos de los últimos 12 meses
           </h3>
           <RevenueChart data={data.revenueByMonth} />
@@ -106,7 +106,7 @@ export function OverviewTab() {
       <Card>
         <CardBody>
           <div className="flex items-baseline justify-between">
-            <h3 className="text-base font-medium text-gray-900">Top 5 productos</h3>
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Top 5 productos</h3>
             <Link
               to="/dashboard/products"
               className="text-sm font-medium text-brand-600 hover:underline"
@@ -117,14 +117,14 @@ export function OverviewTab() {
           {data.topProducts.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500">Sin ventas vendidas todavía.</p>
           ) : (
-            <ul className="mt-3 divide-y divide-gray-100">
+            <ul className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
               {data.topProducts.slice(0, 5).map((p) => (
                 <li
                   key={p.product_name}
                   className="flex items-baseline justify-between py-2 text-sm"
                 >
-                  <span className="text-gray-800">{p.product_name}</span>
-                  <span className="tabular-nums text-gray-600">
+                  <span className="text-gray-800 dark:text-gray-200">{p.product_name}</span>
+                  <span className="tabular-nums text-gray-600 dark:text-gray-400">
                     {formatCents(p.total_revenue_cents)}
                     <span className="ml-2 text-xs text-gray-400">
                       · {p.times_sold}×

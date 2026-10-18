@@ -31,7 +31,7 @@ export function TopProductsChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <div className="h-72 w-full" data-testid="top-products-chart">
-        <p className="text-sm text-gray-500">Sin datos.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Sin datos.</p>
       </div>
     );
   }
@@ -55,13 +55,14 @@ export function TopProductsChart({ data }: Props) {
           const x = PAD_LEFT + innerW * f;
           return (
             <g key={`xt-${i}`}>
-              <line x1={x} x2={x} y1={PAD_TOP} y2={viewH - PAD_BOTTOM} stroke="#e5e7eb" strokeDasharray="3 3" />
+              <line x1={x} x2={x} y1={PAD_TOP} y2={viewH - PAD_BOTTOM} stroke="#e5e7eb" className="dark:stroke-gray-800" strokeDasharray="3 3" />
               <text
                 x={x}
                 y={viewH - 4}
                 textAnchor="middle"
                 fontSize={11}
                 fill="#6b7280"
+                className="dark:fill-gray-400"
               >
                 {formatEurosShort(maxRevenue * f)}
               </text>
@@ -82,6 +83,7 @@ export function TopProductsChart({ data }: Props) {
                 textAnchor="end"
                 fontSize={11}
                 fill="#374151"
+                className="dark:fill-gray-300"
               >
                 {truncate(d.product_name)}
               </text>
@@ -93,12 +95,14 @@ export function TopProductsChart({ data }: Props) {
                 rx={2}
                 ry={2}
                 fill="#22c55e"
+                className="dark:fill-brand-400"
               />
               <text
                 x={x + w + 6}
                 y={y + BAR_H / 2 + 4}
                 fontSize={11}
                 fill="#374151"
+                className="dark:fill-gray-300"
               >
                 {formatEurosShort(d.total_revenue_cents)}
               </text>
