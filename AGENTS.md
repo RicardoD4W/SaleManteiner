@@ -74,7 +74,7 @@ SaleManteiner/
 │       │   └── dashboard.ts     ← /api/stats/dashboard (KPIs nuevo modelo: compras_total_eur, ventas_total_eur, beneficio_total_eur, stock_pendiente_count + revenueByMonth + topProducts + topBuyers)
 │       ├── __tests__/           ← buys, solds, customers, stock, stats-dashboard (109 tests con BD :memory:)
 │       └── .agents/skills/      ← skills cargadas en server
-└── web/                         ← frontend React + Vite (EN TRANSICION: feature buys-and-solds WU2-WU3 en curso)
+└── web/                         ← frontend React + Vite
     ├── eslint.config.js         ← flat config (ESLint 10)
     ├── index.html               ← anti-FOUC dark mode script en <head>
     ├── package.json
@@ -84,24 +84,24 @@ SaleManteiner/
     ├── playwright.config.ts     ← tests E2E (Playwright)
     └── src/
         ├── main.tsx             ← root + QueryClientProvider
-        ├── App.tsx              ← RouterProvider — T13 de WU3: rutas /, /buys/*, /solds/*, /dashboard/*
+        ├── App.tsx              ← RouterProvider (rutas: / = Dashboard, /buys/*, /solds/*, /dashboard/* con 4 tabs anidadas)
         ├── index.css            ← @import "tailwindcss" + @custom-variant dark + @theme (paleta brand, font)
         ├── vite-env.d.ts
-        ├── api/                 ← WU2: buys.ts, solds.ts, customers.ts (mirror de server, reemplaza sales.ts)
+        ├── api/                 ← buys.ts, solds.ts, customers.ts (mirror de server)
         ├── components/
         │   ├── ui/              ← Button, Input, Textarea, Card, Badge, Spinner (todos con dark:)
-        │   ├── sales/           ← WU2: ProductPickerModal (multi-select), CustomerAutocomplete (con creación inline)
+        │   ├── sales/           ← ProductPickerModal (multi-select), CustomerAutocomplete (creación inline)
         │   ├── dashboard/       ← RevenueChart, TopProductsChart, TopBuyersChart (SVG inline)
-        │   └── layout/          ← Layout (con ThemeToggle sol/luna), NavLink
-        ├── hooks/               ← WU2: useBuys, useCreateBuy, useUpdateBuy, useDeleteBuy, useBuy, useBuysStock, useSolds, useCreateSold, useUpdateSold, useDeleteSold, useSold, useCustomers, useCreateCustomer, useStatsDashboard
+        │   └── layout/          ← Layout (con nav Dashboard · Compras · Ventas · + Nueva + ThemeToggle sol/luna), NavLink
+        ├── hooks/               ← useBuys, useCreateBuy, useUpdateBuy, useDeleteBuy, useBuy, useBuysStock, useSolds, useCreateSold, useUpdateSold, useDeleteSold, useSold, useCustomers, useCreateCustomer, useStatsDashboard, useTheme
         ├── lib/                 ← format.ts (formatEuro, formatDate, todayLocalDate, localDateToISO), round.ts (round2), download.ts, queryClient.ts
         ├── pages/
-        │   ├── buys/            ← WU2: BuysListPage, BuyNewPage, BuyEditPage
-        │   └── solds/           ← WU2: SoldsListPage, SoldNewPage, SoldEditPage
-        ├── pages/dashboard/     ← WU3: DashboardPage con tab Compradores nueva + OverviewTab + RevenueTab + ProductsTab (adaptados al nuevo modelo)
-        ├── schemas/             ← WU2: buys.ts, solds.ts, customers.ts, common.ts (mirror de server, en euros decimales)
+        │   ├── buys/            ← BuysListPage, BuyNewPage, BuyEditPage
+        │   └── solds/           ← SoldsListPage, SoldNewPage, SoldEditPage
+        ├── pages/dashboard/     ← DashboardPage + OverviewTab + RevenueTab + ProductsTab + BuyersTab (adaptados al nuevo modelo con KPIs compras_total_eur, ventas_total_eur, beneficio_total_eur, stock_pendiente_count)
+        ├── schemas/             ← buys.ts, solds.ts, customers.ts, common.ts (mirror de server, en euros decimales con EuroMoney = z.number().nonnegative().multipleOf(0.01))
         ├── test-utils/          ← fixtures.ts, render.tsx
-        ├── e2e/                 ← Playwright specs (incluye buys-and-solds-flow.spec.ts para T14)
+        ├── e2e/                 ← Playwright specs (buys-and-solds-flow.spec.ts, dashboard-flow.spec.ts, create-flow.spec.ts, etc.)
         └── .agents/skills/      ← skills cargadas en web
 ```
 
@@ -118,31 +118,72 @@ SaleManteiner/
 | D7  | Volumen esperado: **~50 ventas/mes** → SQLite local basta, paginación a 25.                                                                                                                                                                                                                           |
 | D8  | Sincronización **manual** (sin `node-cron`). Botón "Sincronizar ahora" en la UI.                                                                                                                                                                                                                      |
 
-## 6. Modelo de datos (MVP manual)
+## 6. Modelo de datos (buys + solds + customers)
 
-Tabla única `sales` con modelo simplificado para carga manual. **En transición**: este modelo está siendo reemplazado por el modelo `buys + solds + sale_items + customers` definido en `odd/tasks/feature-buys-and-solds.md` (feature en progreso; WU1 backend pendiente de arrancar).
+4 tablas del feature `buys-and-solds` (S1 de `odd/tasks/feature-buys-and-solds.md`):
 
-| Campo                    | Tipo                                   | Notas                                                                               |
-| ------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------- |
-| `id`                     | INTEGER PK AUTOINCREMENT               | —                                                                                   |
-| `product_name`           | TEXT NOT NULL                          | nombre del producto                                                                 |
-| `buyer_name`             | TEXT NULL                              | nombre del comprador (opcional al inicio)                                           |
-| `cost_cents`             | INTEGER NOT NULL DEFAULT 0             | lo que te costó el producto                                                         |
-| `price_cents`            | INTEGER NOT NULL DEFAULT 0             | por cuánto lo vendiste                                                              |
-| `associated_costs_cents` | INTEGER NOT NULL DEFAULT 0             | cartón, burbuja, envío, etc. (suma)                                                 |
-| `sold`                   | INTEGER NOT NULL DEFAULT 0 (CHECK 0/1) | booleano                                                                            |
-| `purchase_date`          | TEXT NULL                              | `YYYY-MM-DD`, día local. Editable por el cliente.                                   |
-| `notes`                  | TEXT NULL                              | notas libres                                                                        |
-| `created_at`             | TEXT NOT NULL                          | ISO 8601, automático                                                                |
-| `sold_at`                | TEXT NULL                              | ISO 8601, editable por el cliente (la regla auto-set al flip de `sold` se eliminó). |
+### Tabla `buys` (compras de producto)
 
-Índices (legacy `sales`): `idx_sales_sold`, `idx_sales_sold_at`. Importes legacy en **céntimos** (entero, branded `Cents`) para evitar floats. El feature nuevo usa importes en **euros decimales (SQLite REAL)** con validación `multipleOf(0.01)` y helper `round2()` para mitigar el error IEEE 754 — ver `feature-buys-and-solds.md` Spec S2.
+| Campo              | Tipo           | Notas                                                                              |
+| ------------------ | -------------- | ---------------------------------------------------------------------------------- |
+| `id`               | INTEGER PK     | autoincrement                                                                    |
+| `product_name`     | TEXT NOT NULL  | nombre del producto                                                            |
+| `purchase_cost`    | REAL           | coste TOTAL pagado en euros decimales (se prorratea por unidad al calcular beneficio) |
+| `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                          |
+| `associated_costs` | REAL           | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)        |
+| `purchase_date`    | TEXT           | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                    |
+| `created_at`       | TEXT NOT NULL  | ISO 8601, automático (set en INSERT)                                         |
 
-**Reglas del repo** (no se hacen en SQL, se hacen en el repo para mantener la lógica de negocio cerca):
+Índices: `idx_buys_purchase_date`.
 
-- `created_at` se setea en el INSERT.
-- `purchase_date` y `sold_at` las gestiona el cliente. El server **respeta siempre el input**: si el cliente los manda, pisa; si no, conserva el valor existente; `null` explícito borra.
-- Coherencia `sold` ↔ `sold_at` la valida Zod al parsear el input (ver S3 del feature doc en `odd/tasks/feature-purchase-date-and-manual-sold-at.md`). El form garantiza la invariante rellenando automáticamente `sold_at_date` con la fecha de hoy al flippear el checkbox "Ya lo vendí".
+### Tabla `customers` (clientes)
+
+| Campo        | Tipo          | Notas                          |
+| ------------ | ------------- | ------------------------------ |
+| `id`         | INTEGER PK    | autoincrement                    |
+| `name`       | TEXT NOT NULL | nombre del cliente              |
+| `created_at` | TEXT NOT NULL | ISO 8601, automático           |
+
+Índices: `idx_customers_name`.
+
+### Tabla `solds` (ventas)
+
+| Campo              | Tipo           | Notas                                                                            |
+| ------------------ | -------------- | -------------------------------------------------------------------------------- |
+| `id`               | INTEGER PK     | autoincrement                                                                  |
+| `customer_id`      | INTEGER NOT NULL FK→customers.id ON DELETE RESTRICT | el cliente no se puede borrar si tiene ventas |
+| `sale_price`       | REAL           | precio TOTAL de la venta en euros decimales (no se prorratea por item)          |
+| `associated_costs` | REAL           | gastos envío/comisión TOTALES de la venta                                        |
+| `sold_at`          | TEXT           | `YYYY-MM-DD`, día local. Default hoy. Nullable.                                |
+| `notes`            | TEXT NULL      | notas libres (solo en venta)                                                    |
+| `created_at`       | TEXT NOT NULL  | ISO 8601, automático                                                       |
+
+Índices: `idx_solds_sold_at`, `idx_solds_customer`.
+
+### Tabla `sale_items` (items de pack en una venta)
+
+| Campo      | Tipo           | Notas                                                                              |
+| ---------- | -------------- | ---------------------------------------------------------------------------------- |
+| `sold_id`  | INTEGER FK → solds.id ON DELETE CASCADE | la venta padre                                                |
+| `buy_id`   | INTEGER FK → buys.id ON DELETE RESTRICT  | el buy no se puede borrar si tiene items vendidos              |
+| `quantity` | INTEGER NOT NULL | unidades vendidas de este buy (≥ 1)                                        |
+
+PK compuesta: `(sold_id, buy_id)`. Una venta puede tener N items (pack multi-producto). Cada item referencia una compra distinta y una cantidad vendida.
+
+Índices: `idx_sale_items_buy` (lookup de "ya vendido?" — el más frecuente, lo usa la modal en cada apertura), `idx_sale_items_sold` (detalle de venta).
+
+### Reglas del repo
+
+- **Importes en euros decimales** (SQLite REAL). Validación Zod: `z.number().nonnegative().multipleOf(0.01)` (`EuroMoney` en `server/src/schemas/common.ts`).
+- **Helper `round2()`** (en `server/src/lib/round.ts` y `web/src/lib/round.ts`) para mitigar error IEEE 754 en operaciones aritméticas. Se aplica en toda suma/resta/multiplicación de importes.
+- **Validación de stock transaccional** (S7): `POST /api/solds` se ejecuta dentro de `db.transaction()`. Lee stock disponible de cada `buy_id`, valida cobertura, INSERT en `solds` + INSERTs en `sale_items`. Si no cubre → rollback + 422 con `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }`.
+- **`created_at`** se setea en el INSERT (no se acepta del cliente).
+- **`purchase_date` y `sold_at`** las gestiona el cliente. El server **respeta siempre el input**: si el cliente los manda, pisa; si no, conserva el valor existente; `null` explícito borra.
+- **Coste de compra = TOTAL pagado**: el form pide el total; el backend guarda `purchase_cost` total + `quantity` y calcula el unitario con `round2(buy.purchase_cost / buy.quantity)` cuando hace falta (cálculo de beneficio, listado de stock).
+- **Beneficio por venta** (S13): `round2(sold.sale_price - sold.associated_costs - sum(item.quantity * round2(buy.purchase_cost / buy.quantity)) - sum(item.quantity * round2(buy.associated_costs / buy.quantity)))`.
+- **Prorrateo en packs** (S8, topProducts): `si.quantity * (s.sale_price / total_qty_de_la_venta)` para que el revenue se reparta entre los items del pack (sin over-count).
+
+Refs: `odd/tasks/feature-buys-and-solds.md` S1-S13.
 
 ## 7. Fases del proyecto
 

@@ -16,12 +16,15 @@ export function Layout() {
           <div className="flex items-center gap-2">
             <nav className="flex items-center gap-1" aria-label="Principal">
               <NavLink to="/" end className={cn}>
-                Ventas
-              </NavLink>
-              <NavLink to="/dashboard" className={cn}>
                 Dashboard
               </NavLink>
-              <NavLink to="/sales/new" className={cn}>
+              <NavLink to="/buys" className={cn}>
+                Compras
+              </NavLink>
+              <NavLink to="/solds" className={cn}>
+                Ventas
+              </NavLink>
+              <NavLink to="/solds/new" className={cn}>
                 + Nueva
               </NavLink>
             </nav>
