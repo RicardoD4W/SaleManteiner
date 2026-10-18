@@ -124,49 +124,49 @@ SaleManteiner/
 
 ### Tabla `buys` (compras de producto)
 
-| Campo              | Tipo           | Notas                                                                              |
-| ------------------ | -------------- | ---------------------------------------------------------------------------------- |
-| `id`               | INTEGER PK     | autoincrement                                                                    |
-| `product_name`     | TEXT NOT NULL  | nombre del producto                                                            |
-| `purchase_cost`    | REAL           | coste TOTAL pagado en euros decimales (se prorratea por unidad al calcular beneficio) |
-| `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                          |
-| `associated_costs` | REAL           | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)        |
-| `purchase_date`    | TEXT           | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                    |
-| `created_at`       | TEXT NOT NULL  | ISO 8601, automático (set en INSERT)                                         |
+| Campo              | Tipo             | Notas                                                                                 |
+| ------------------ | ---------------- | ------------------------------------------------------------------------------------- |
+| `id`               | INTEGER PK       | autoincrement                                                                         |
+| `product_name`     | TEXT NOT NULL    | nombre del producto                                                                   |
+| `purchase_cost`    | REAL             | coste TOTAL pagado en euros decimales (se prorratea por unidad al calcular beneficio) |
+| `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                                     |
+| `associated_costs` | REAL             | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)           |
+| `purchase_date`    | TEXT             | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                        |
+| `created_at`       | TEXT NOT NULL    | ISO 8601, automático (set en INSERT)                                                  |
 
 Índices: `idx_buys_purchase_date`.
 
 ### Tabla `customers` (clientes)
 
-| Campo        | Tipo          | Notas                          |
-| ------------ | ------------- | ------------------------------ |
-| `id`         | INTEGER PK    | autoincrement                    |
-| `name`       | TEXT NOT NULL | nombre del cliente              |
-| `created_at` | TEXT NOT NULL | ISO 8601, automático           |
+| Campo        | Tipo          | Notas                |
+| ------------ | ------------- | -------------------- |
+| `id`         | INTEGER PK    | autoincrement        |
+| `name`       | TEXT NOT NULL | nombre del cliente   |
+| `created_at` | TEXT NOT NULL | ISO 8601, automático |
 
 Índices: `idx_customers_name`.
 
 ### Tabla `solds` (ventas)
 
-| Campo              | Tipo           | Notas                                                                            |
-| ------------------ | -------------- | -------------------------------------------------------------------------------- |
-| `id`               | INTEGER PK     | autoincrement                                                                  |
-| `customer_id`      | INTEGER NOT NULL FK→customers.id ON DELETE RESTRICT | el cliente no se puede borrar si tiene ventas |
-| `sale_price`       | REAL           | precio TOTAL de la venta en euros decimales (no se prorratea por item)          |
-| `associated_costs` | REAL           | gastos envío/comisión TOTALES de la venta                                        |
-| `sold_at`          | TEXT           | `YYYY-MM-DD`, día local. Default hoy. Nullable.                                |
-| `notes`            | TEXT NULL      | notas libres (solo en venta)                                                    |
-| `created_at`       | TEXT NOT NULL  | ISO 8601, automático                                                       |
+| Campo              | Tipo                                                | Notas                                                                  |
+| ------------------ | --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `id`               | INTEGER PK                                          | autoincrement                                                          |
+| `customer_id`      | INTEGER NOT NULL FK→customers.id ON DELETE RESTRICT | el cliente no se puede borrar si tiene ventas                          |
+| `sale_price`       | REAL                                                | precio TOTAL de la venta en euros decimales (no se prorratea por item) |
+| `associated_costs` | REAL                                                | gastos envío/comisión TOTALES de la venta                              |
+| `sold_at`          | TEXT                                                | `YYYY-MM-DD`, día local. Default hoy. Nullable.                        |
+| `notes`            | TEXT NULL                                           | notas libres (solo en venta)                                           |
+| `created_at`       | TEXT NOT NULL                                       | ISO 8601, automático                                                   |
 
 Índices: `idx_solds_sold_at`, `idx_solds_customer`.
 
 ### Tabla `sale_items` (items de pack en una venta)
 
-| Campo      | Tipo           | Notas                                                                              |
-| ---------- | -------------- | ---------------------------------------------------------------------------------- |
-| `sold_id`  | INTEGER FK → solds.id ON DELETE CASCADE | la venta padre                                                |
-| `buy_id`   | INTEGER FK → buys.id ON DELETE RESTRICT  | el buy no se puede borrar si tiene items vendidos              |
-| `quantity` | INTEGER NOT NULL | unidades vendidas de este buy (≥ 1)                                        |
+| Campo      | Tipo                                    | Notas                                             |
+| ---------- | --------------------------------------- | ------------------------------------------------- |
+| `sold_id`  | INTEGER FK → solds.id ON DELETE CASCADE | la venta padre                                    |
+| `buy_id`   | INTEGER FK → buys.id ON DELETE RESTRICT | el buy no se puede borrar si tiene items vendidos |
+| `quantity` | INTEGER NOT NULL                        | unidades vendidas de este buy (≥ 1)               |
 
 PK compuesta: `(sold_id, buy_id)`. Una venta puede tener N items (pack multi-producto). Cada item referencia una compra distinta y una cantidad vendida.
 

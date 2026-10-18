@@ -1,4 +1,0 @@
-product_name,buyer_name,cost_cents,price_cents,associated_costs_cents,sold,purchase_date,sold_at,notes
-iPhone 12 64GB,Juan Pérez,15000,25000,500,true,2026-09-28,2026-10-05T14:30:00.000Z,En caja original
-Libro TypeScript,"",1200,2500,0,false,"","",
-Camiseta vintage,"Lucía",500,1500,200,true,2026-09-01,2026-10-10T09:00:00.000Z,""
