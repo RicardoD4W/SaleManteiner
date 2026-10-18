@@ -1,19 +1,20 @@
-import type { TopProduct } from '../../api/sales.js';
-
 /**
- * Bar chart horizontal con top productos por revenue (Fase 5 / S8).
- *
- * SVG manual (ver RevenueChart para la razón). Mismo look que recharts
- * hubiera dado, sin el problema de runtime con React 19 strict.
+ * Bar chart horizontal con top productos por revenue (modelo buys/solds).
+ * Importes en EUROS (no céntimos).
  */
 interface Props {
-  data: TopProduct[];
+  data: Array<{
+    product_name: string;
+    times_sold: number;
+    total_revenue: number;
+    total_profit: number;
+  }>;
 }
 
 const VIEW_W = 800;
 const BAR_H = 22;
 const BAR_GAP = 8;
-const PAD_LEFT = 160; // ancho reservado para nombres
+const PAD_LEFT = 160;
 const PAD_RIGHT = 16;
 const PAD_TOP = 16;
 const PAD_BOTTOM = 16;
@@ -22,9 +23,9 @@ function truncate(s: string, max = 22): string {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
-function formatEurosShort(cents: number): string {
-  if (cents >= 100_000) return `${(cents / 100_000).toFixed(1)}k €`;
-  return `${(cents / 100).toFixed(0)} €`;
+function formatEurosShort(euros: number): string {
+  if (euros >= 100_000) return `${(euros / 1000).toFixed(1)}k €`;
+  return `${euros.toFixed(0)} €`;
 }
 
 export function TopProductsChart({ data }: Props) {
@@ -37,7 +38,7 @@ export function TopProductsChart({ data }: Props) {
   }
 
   const innerW = VIEW_W - PAD_LEFT - PAD_RIGHT;
-  const maxRevenue = Math.max(1, ...data.map((d) => d.total_revenue_cents));
+  const maxRevenue = Math.max(1, ...data.map((d) => d.total_revenue));
   const totalH = data.length * (BAR_H + BAR_GAP) - BAR_GAP + PAD_TOP + PAD_BOTTOM;
   const viewH = Math.max(VIEW_W * 0.5, totalH);
 
@@ -50,7 +51,6 @@ export function TopProductsChart({ data }: Props) {
         role="img"
         aria-label="Top productos por revenue"
       >
-        {/* Eje X ticks (4 levels) */}
         {[0, 0.25, 0.5, 0.75, 1].map((f, i) => {
           const x = PAD_LEFT + innerW * f;
           return (
@@ -70,10 +70,9 @@ export function TopProductsChart({ data }: Props) {
           );
         })}
 
-        {/* Barras */}
         {data.map((d, i) => {
           const y = PAD_TOP + i * (BAR_H + BAR_GAP);
-          const w = Math.max(2, (innerW * d.total_revenue_cents) / maxRevenue);
+          const w = Math.max(2, (innerW * d.total_revenue) / maxRevenue);
           const x = PAD_LEFT;
           return (
             <g key={d.product_name}>
@@ -104,7 +103,7 @@ export function TopProductsChart({ data }: Props) {
                 fill="#374151"
                 className="dark:fill-gray-300"
               >
-                {formatEurosShort(d.total_revenue_cents)}
+                {formatEurosShort(d.total_revenue)}
               </text>
             </g>
           );

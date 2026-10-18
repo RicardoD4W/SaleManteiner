@@ -1,21 +1,19 @@
-import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TopProductsChart } from '../../components/dashboard/TopProductsChart';
-import { formatCents } from '../../lib/format';
+import { formatEuro } from '../../lib/format';
 
 /**
- * Tab Productos (Fase 5 / S8):
- *   - TopProductsChart grande (BarChart horizontal).
- *   - Tabla compacta con producto · veces vendido · revenue · profit
- *     (los nombres largos se truncan en el chart; acá van completos).
+ * Tab Productos (T12): TopProductsChart + tabla detalle.
+ * Importes en EUROS.
  */
 export function ProductsTab() {
-  const { data, isLoading, isError, error, refetch } = useDashboardStats();
+  const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 text-sm text-gray-500">
+      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
         <Spinner size="sm" /> Cargando top productos…
       </div>
     );
@@ -58,11 +56,11 @@ export function ProductsTab() {
         <Card>
           <CardBody>
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Detalle</h3>
-              <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                <table
-                  className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800"
-                  data-testid="products-table"
-                >
+            <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+              <table
+                className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800"
+                data-testid="products-table"
+              >
                 <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
@@ -87,15 +85,15 @@ export function ProductsTab() {
                         {p.times_sold}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                        {formatCents(p.total_revenue_cents)}
+                        {formatEuro(p.total_revenue)}
                       </td>
                       <td
                         className={[
                           'px-3 py-2 text-right tabular-nums',
-                          p.total_profit_cents >= 0 ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400',
+                          p.total_profit >= 0 ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400',
                         ].join(' ')}
                       >
-                        {formatCents(p.total_profit_cents)}
+                        {formatEuro(p.total_profit)}
                       </td>
                     </tr>
                   ))}

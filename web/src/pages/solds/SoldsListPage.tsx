@@ -1,0 +1,260 @@
+/**
+ * Página de listado de ventas (S6 del feature).
+ *
+ * Tabla con TanStack Table:
+ *  - Fecha, Cliente, Items (resumen "N items · X€"), Precio, Asociados,
+ *    Beneficio (calculado), Acciones.
+ *
+ * Beneficio = sale_price - associated_costs -
+ *   SUM(item.quantity * (unit_cost + unit_assoc))   [S13 del feature]
+ *
+ * Por ahora mostramos el listado plano; la info de items viene de
+ * `GET /api/solds` sin items (T12 traerá el detalle enriquecido).
+ */
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type SortingState,
+} from '@tanstack/react-table';
+import { useState } from 'react';
+import { useSolds } from '../../hooks/useSolds';
+import { useCustomers } from '../../hooks/useCustomers';
+import { Spinner } from '../../components/ui/Spinner';
+import { formatDate, formatEuro } from '../../lib/format';
+import type { Sold } from '../../schemas/solds';
+
+const columnHelper = createColumnHelper<SoldWithCustomer>();
+
+/** Sold con nombre del cliente resuelto desde el cache. */
+interface SoldWithCustomer extends Sold {
+  customerName: string;
+}
+
+export function SoldsListPage() {
+  const { data: solds, isLoading, isError, error, refetch } = useSolds();
+  const { data: customers } = useCustomers();
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+
+  /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
+  const customerMap = useMemo(() => {
+    const map = new Map<number, string>();
+    (customers ?? []).forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [customers]);
+
+  const soldsWithCustomer: SoldWithCustomer[] = useMemo(
+    () =>
+      (solds ?? []).map((s) => ({
+        ...s,
+        customerName: customerMap.get(s.customer_id) ?? `Cliente #${s.customer_id}`,
+      })),
+    [solds, customerMap],
+  );
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('sold_at', {
+        header: 'Fecha',
+        cell: (info) => (
+          <span className="text-gray-700 dark:text-gray-300">
+            {formatDate(info.getValue())}
+          </span>
+        ),
+        sortingFn: 'basic',
+      }),
+      columnHelper.accessor((row) => row.customerName, {
+        id: 'customer',
+        header: 'Cliente',
+        cell: (info) => (
+          <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>
+        ),
+        sortingFn: 'basic',
+      }),
+      columnHelper.accessor('sale_price', {
+        header: 'Precio (€)',
+        cell: (info) => (
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+            {formatEuro(info.getValue())}
+          </span>
+        ),
+        sortingFn: 'basic',
+      }),
+      columnHelper.accessor('associated_costs', {
+        header: 'Asociados (€)',
+        cell: (info) => (
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+            {formatEuro(info.getValue())}
+          </span>
+        ),
+        sortingFn: 'basic',
+      }),
+      // Beneficio calculado (placeholder — requiere items, se calcula en T12).
+      // Por ahora mostramos "—" ya que no tenemos unit_cost/unit_assoc sin los items.
+      columnHelper.display({
+        id: 'profit',
+        header: 'Beneficio',
+        cell: () => (
+          <span className="text-xs text-gray-400 dark:text-gray-500 italic">
+            (con items)
+          </span>
+        ),
+      }),
+      columnHelper.accessor('created_at', {
+        header: 'Registrado',
+        cell: (info) => (
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {formatDate(info.getValue())}
+          </span>
+        ),
+        sortingFn: 'basic',
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: '',
+        cell: (info) => (
+          <Link
+            to={`/solds/${info.row.original.id}`}
+            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Editar
+          </Link>
+        ),
+      }),
+    ],
+    [],
+  );
+
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table
+  const table = useReactTable<SoldWithCustomer>({
+    data: soldsWithCustomer,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 25 } },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+        <Spinner size="sm" /> Cargando ventas…
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+        <p>No se pudieron cargar las ventas: {error.message}</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 text-sm font-medium text-brand-700 hover:underline dark:text-brand-400"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  if (!solds || solds.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+        <p className="text-sm text-gray-600 dark:text-gray-400">No hay ventas todavía.</p>
+        <Link
+          to="/solds/new"
+          className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          Crear la primera →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Ventas</h2>
+        <Link
+          to="/solds/new"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:hover:bg-brand-400"
+        >
+          + Nueva venta
+        </Link>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-950">
+              {table.getHeaderGroups().map((hg) => (
+                <tr key={hg.id}>
+                  {hg.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300"
+                      onClick={header.column.getToggleSortingHandler()}
+                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getIsSorted() === 'asc' ? ' ▲' : null}
+                      {header.column.getIsSorted() === 'desc' ? ' ▼' : null}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="px-4 py-2 align-middle text-gray-800 dark:text-gray-200"
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación */}
+        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+          <span>
+            Mostrando {table.getRowModel().rows.length} de {solds.length}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
+            >
+              ← Anterior
+            </button>
+            <span className="px-2 py-1">
+              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            </span>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
+            >
+              Siguiente →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,24 +1,11 @@
-import type { RevenueByMonth } from '../../api/sales.js';
-
 /**
- * Línea de revenue mensual + profit (Fase 5 / S7).
+ * Línea de revenue mensual + profit (modelo buys/solds).
  *
- * Implementación con SVG inline en lugar de `recharts`. Razón: recharts v3
- * tira runtime error en React 19 strict (sus types compilan pero su runtime
- * usa patterns incompatibles). SVG manual es ~80 líneas, sin deps externas
- * y exactamente lo que necesita el dashboard (no necesitamos zoom, brush, ni
- * tooltips interactivos complejos). Migrar a recharts de nuevo cuando
- * estabilicen el soporte para React 19.
- *
- * Diseño:
- *  - viewBox fijo 800x240 (ResponsiveContainer via CSS scale).
- *  - Línea verde (`Ingresos`) y azul punteada (`Beneficio`).
- *  - Eje X: 12 labels `ene`..`dic`.
- *  - Eje Y: ticks redondeados en céntimos→euros.
- *  - Datos en céntimos (entero) — los formateos a euros viven SOLO en los ticks/tooltip.
+ * SVG inline (ver version anterior del doc para la razón de no usar recharts).
+ * Importes en EUROS (no céntimos).
  */
 interface Props {
-  data: RevenueByMonth[];
+  data: Array<{ month: string; revenue: number; profit: number }>;
 }
 
 const VIEW_W = 800;
@@ -38,9 +25,9 @@ function monthLabel(yyyymm: string): string {
   return MONTH_LABELS[m - 1] ?? yyyymm;
 }
 
-function formatEurosShort(cents: number): string {
-  if (cents >= 100_000) return `${(cents / 100_000).toFixed(1)}k €`;
-  return `${(cents / 100).toFixed(0)} €`;
+function formatEurosShort(euros: number): string {
+  if (euros >= 100_000) return `${(euros / 1000).toFixed(1)}k €`;
+  return `${euros.toFixed(0)} €`;
 }
 
 export function RevenueChart({ data }: Props) {
@@ -54,12 +41,8 @@ export function RevenueChart({ data }: Props) {
 
   const innerW = VIEW_W - PAD_LEFT - PAD_RIGHT;
   const innerH = VIEW_H - PAD_TOP - PAD_BOTTOM;
-  const maxValue = Math.max(
-    1,
-    ...data.map((d) => Math.max(d.revenue_cents, d.profit_cents)),
-  );
+  const maxValue = Math.max(1, ...data.map((d) => Math.max(d.revenue, d.profit)));
 
-  // Y axis: 5 ticks (0, 25%, 50%, 75%, 100%).
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * maxValue);
   function xAt(i: number): number {
     if (data.length === 1) return PAD_LEFT + innerW / 2;
@@ -69,7 +52,7 @@ export function RevenueChart({ data }: Props) {
     return PAD_TOP + innerH - (innerH * v) / maxValue;
   }
 
-  const pathFor = (key: 'revenue_cents' | 'profit_cents'): string =>
+  const pathFor = (key: 'revenue' | 'profit'): string =>
     data
       .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d[key]).toFixed(1)}`)
       .join(' ');
@@ -83,7 +66,6 @@ export function RevenueChart({ data }: Props) {
         role="img"
         aria-label="Ingresos por mes"
       >
-        {/* Grid horizontal */}
         {yTicks.map((t, i) => (
           <line
             key={`yt-${i}`}
@@ -98,7 +80,6 @@ export function RevenueChart({ data }: Props) {
           />
         ))}
 
-        {/* Y axis labels */}
         {yTicks.map((t, i) => (
           <text
             key={`ytl-${i}`}
@@ -113,7 +94,6 @@ export function RevenueChart({ data }: Props) {
           </text>
         ))}
 
-        {/* X axis labels */}
         {data.map((d, i) => (
           <text
             key={`xl-${i}`}
@@ -128,17 +108,15 @@ export function RevenueChart({ data }: Props) {
           </text>
         ))}
 
-        {/* Revenue (verde, sólido) */}
         <path
-          d={pathFor('revenue_cents')}
+          d={pathFor('revenue')}
           stroke="#22c55e"
           className="dark:stroke-brand-400"
           strokeWidth={2}
           fill="none"
         />
-        {/* Profit (azul, punteado) */}
         <path
-          d={pathFor('profit_cents')}
+          d={pathFor('profit')}
           stroke="#3b82f6"
           strokeWidth={2}
           fill="none"
@@ -146,7 +124,6 @@ export function RevenueChart({ data }: Props) {
           className="dark:stroke-blue-400"
         />
 
-        {/* Leyenda */}
         <g transform={`translate(${PAD_LEFT + 8} ${PAD_TOP + 8})`}>
           <rect width="12" height="3" y="6" fill="#22c55e" className="dark:fill-brand-400" />
           <text x="18" y="9" fontSize={11} fill="#374151" className="dark:fill-gray-300">

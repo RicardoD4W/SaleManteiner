@@ -28,6 +28,11 @@ export function formatCents(cents: number): string {
   return eurFormatter.format(cents / 100);
 }
 
+/** Convierte euros (decimal) a string EUR formateado: 12.50 → "12,50 €". */
+export function formatEuro(euros: number): string {
+  return eurFormatter.format(euros);
+}
+
 /** Convierte céntimos a número en euros (para inputs): 1250 → 12.5. */
 export function centsToEuros(cents: number): number {
   return cents / 100;

@@ -35,21 +35,21 @@
 
 ## Tasks
 
-| ID  | Título                                                          | Specs      | Ruta                                                                                                                | Commit |
-| --- | --------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
-| T1  | Hook `useTheme()` con localStorage + matchMedia                 | S1, S5, S6 | `web/src/hooks/useTheme.ts` (nuevo)                                                                                  | WU1    |
-| T2  | Componente `<ThemeToggle/>` con ícono Sun/Moon                  | S2, S9     | `web/src/components/layout/ThemeToggle.tsx` (nuevo)                                                                 | WU1    |
-| T3  | Anti-FOUC en `index.html` + `main.tsx`                          | S4         | `web/index.html`, `web/src/main.tsx`                                                                                  | WU1    |
-| T4  | Integrar `<ThemeToggle/>` en `<Layout/>`                        | S2         | `web/src/components/layout/Layout.tsx`                                                                                | WU1    |
-| T5  | Aplicar `dark:` a UI primitivos (`Card`, `Badge`, `Button`, `Input`, `Textarea`, `Spinner`) | S3 | `web/src/components/ui/*`                                                                              | WU2    |
-| T6  | Aplicar `dark:` a páginas legacy (`SalesListPage`, `SaleNewPage`, `SaleEditPage`, `SalesImportPage`) | S3 | `web/src/pages/Sale*.tsx`, `web/src/pages/SalesListPage.tsx`, `web/src/pages/SalesImportPage.tsx`            | WU2    |
-| T7  | Aplicar `dark:` a componentes de lista y form (`SalesTable`, `KpiCards`, `SaleForm`, `DeleteSaleButton`) | S3 | `web/src/components/sales/*`                                                                              | WU2    |
-| T8  | Aplicar `dark:` a dashboard (`DashboardPage` + 3 tabs + 2 charts SVG) | S3 | `web/src/pages/dashboard/*`, `web/src/components/dashboard/*`                                                     | WU2    |
-| T9  | Aplicar `dark:` a componentes de import (`UploadCSV`, `ImportPreview`) | S3 | `web/src/components/import/*`                                                                              | WU2    |
-| T10 | Tests Vitest: hook `useTheme` + snapshot `ThemeToggle`          | S8b, S8c   | `web/src/hooks/__tests__/useTheme.test.ts` (nuevo), `web/src/components/layout/__tests__/ThemeToggle.test.tsx` (nuevo) | WU3    |
-| T11 | Spec Playwright: `dark-mode.spec.ts` (toggle + persistencia)    | S8d        | `web/e2e/dark-mode.spec.ts` (nuevo)                                                                                   | WU3    |
-| T12 | AGENTS.md: documenta convención `dark:` + skill `tailwind-css-patterns` recordada | S7, (docs) | `AGENTS.md`                                                                                                          | WU3    |
-| T13 | Smoke manual checklist en este feature doc (Log)                | (validación) | `odd/tasks/feature-dark-mode.md` (Log)                                                                              | WU3    |
+| ID  | Título                                                                                                   | Specs        | Ruta                                                                                                                   | Commit |
+| --- | -------------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- | ------ |
+| T1  | Hook `useTheme()` con localStorage + matchMedia                                                          | S1, S5, S6   | `web/src/hooks/useTheme.ts` (nuevo)                                                                                    | WU1    |
+| T2  | Componente `<ThemeToggle/>` con ícono Sun/Moon                                                           | S2, S9       | `web/src/components/layout/ThemeToggle.tsx` (nuevo)                                                                    | WU1    |
+| T3  | Anti-FOUC en `index.html` + `main.tsx`                                                                   | S4           | `web/index.html`, `web/src/main.tsx`                                                                                   | WU1    |
+| T4  | Integrar `<ThemeToggle/>` en `<Layout/>`                                                                 | S2           | `web/src/components/layout/Layout.tsx`                                                                                 | WU1    |
+| T5  | Aplicar `dark:` a UI primitivos (`Card`, `Badge`, `Button`, `Input`, `Textarea`, `Spinner`)              | S3           | `web/src/components/ui/*`                                                                                              | WU2    |
+| T6  | Aplicar `dark:` a páginas legacy (`SalesListPage`, `SaleNewPage`, `SaleEditPage`, `SalesImportPage`)     | S3           | `web/src/pages/Sale*.tsx`, `web/src/pages/SalesListPage.tsx`, `web/src/pages/SalesImportPage.tsx`                      | WU2    |
+| T7  | Aplicar `dark:` a componentes de lista y form (`SalesTable`, `KpiCards`, `SaleForm`, `DeleteSaleButton`) | S3           | `web/src/components/sales/*`                                                                                           | WU2    |
+| T8  | Aplicar `dark:` a dashboard (`DashboardPage` + 3 tabs + 2 charts SVG)                                    | S3           | `web/src/pages/dashboard/*`, `web/src/components/dashboard/*`                                                          | WU2    |
+| T9  | Aplicar `dark:` a componentes de import (`UploadCSV`, `ImportPreview`)                                   | S3           | `web/src/components/import/*`                                                                                          | WU2    |
+| T10 | Tests Vitest: hook `useTheme` + snapshot `ThemeToggle`                                                   | S8b, S8c     | `web/src/hooks/__tests__/useTheme.test.ts` (nuevo), `web/src/components/layout/__tests__/ThemeToggle.test.tsx` (nuevo) | WU3    |
+| T11 | Spec Playwright: `dark-mode.spec.ts` (toggle + persistencia)                                             | S8d          | `web/e2e/dark-mode.spec.ts` (nuevo)                                                                                    | WU3    |
+| T12 | AGENTS.md: documenta convención `dark:` + skill `tailwind-css-patterns` recordada                        | S7, (docs)   | `AGENTS.md`                                                                                                            | WU3    |
+| T13 | Smoke manual checklist en este feature doc (Log)                                                         | (validación) | `odd/tasks/feature-dark-mode.md` (Log)                                                                                 | WU3    |
 
 **Work units (commits separados)**:
 
@@ -73,6 +73,7 @@
 - **L4** (cierre WU2 aplicación — 22 archivos modificados por `gentle-ai-worker`): T5-T9 aplicaron `dark:` a UI primitivos (Card, Badge, Button, Input, Textarea, Spinner), páginas legacy (SalesList, SaleNew, SaleEdit, SalesImport), componentes de lista/form (KpiCards, SalesTable, SaleForm, DeleteSaleButton), dashboard (DashboardPage + 3 tabs + 2 charts SVG con `className` para sobreescribir `fill`/`stroke` hardcodeados vía CSS specificity) e import (UploadCSV, ImportPreview). Total 189 inserciones, 139 eliminaciones. Verificación: `npm test -w web -- --run` 99 tests passing. Decisión clave: para SVG, mantener el atributo hardcodeado como fallback y agregar `className="dark:fill-... dark:stroke-..."` que Tailwind compila a clases con specificity que sobreescriben el atributo.
 - **L5** (cierre WU3 validación — parcial): T10 tests Vitest del hook `useTheme` (7 tests cubriendo: init desde clase `dark`, init sin clase, toggle dark↔light, persistencia, `setLight`/`setDark`, resiliencia a localStorage bloqueado) + componente `<ThemeToggle/>` (4 tests: aria-label dinámico, click toggle end-to-end, ícono aria-hidden). Total 11 tests passing. T12 AGENTS.md: sección 9 ahora tiene la sub-sección "Convención de dark mode (Tailwind 4)" con reglas, tokens canónicos, patrón SVG y referencia a la skill. Pendiente: T11 spec Playwright (opcional, decisión: lo dejamos para Fase 8 de pulido + E2E si surge motivación real) y T13 smoke manual abajo.
 - **L6** (Smoke manual — opcional, los Vitest cubren el flujo del toggle):
+
   ```powershell
   # desde la raíz del repo
   fnm use 20
@@ -101,6 +102,7 @@
   # 5) Sin flash
   # - Recargar la página en light o dark: el primer paint respeta el tema (no hay flash de light → dark).
   ```
+
   Si algo falla, anotar como L7 y abrir feature doc de bugfix.
 
 - **L7 (slice boundary — 2026-10-18, cierre del feature)**: la suma de los 3 commits de este feature es ~953 líneas (WU1 = 271, WU2 = 292, docs+tests = ~390), por encima del ~400 line slice recomendado por la convención de work-unit-commits. La razón: WU2 tocó 21 archivos para aplicar `dark:` globalmente al front legacy — partir WU2 en 5-6 commits de 50-100 líneas cada uno (primitivos / páginas / lista-form / dashboard / import) generaría más ruido sin agregar valor de revisión. Decisión: mantener la estructura 3-commit (WU1 contrato / WU2 aplicación / docs+tests). Cuando se decida mergear `feature/dark-mode` a master, el reviewer tiene 3 commits focalizados para revisar.

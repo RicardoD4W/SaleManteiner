@@ -1,21 +1,19 @@
-import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { RevenueChart } from '../../components/dashboard/RevenueChart';
-import { formatCents } from '../../lib/format';
+import { formatEuro } from '../../lib/format';
 
 /**
- * Tab Ingresos (Fase 5 / S7):
- *   - RevenueChart grande con revenue (verde) + profit (azul punteado) por mes.
- *   - Totales agregados YTD (últimos 12 meses): revenue total + profit total.
- *   - Mes mejor / mes peor para tener contexto de los extremos.
+ * Tab Ingresos (T12): revenue + profit mensual con YTD y mejor mes.
+ * Importes en EUROS.
  */
 export function RevenueTab() {
-  const { data, isLoading, isError, error, refetch } = useDashboardStats();
+  const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 text-sm text-gray-500">
+      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
         <Spinner size="sm" /> Cargando revenue…
       </div>
     );
@@ -39,11 +37,11 @@ export function RevenueTab() {
 
   if (!data) return null;
 
-  const ytdRevenue = data.revenueByMonth.reduce((acc, m) => acc + m.revenue_cents, 0);
-  const ytdProfit = data.revenueByMonth.reduce((acc, m) => acc + m.profit_cents, 0);
-  const monthsWithSales = data.revenueByMonth.filter((m) => m.revenue_cents > 0);
+  const ytdRevenue = data.revenueByMonth.reduce((acc, m) => acc + m.revenue, 0);
+  const ytdProfit = data.revenueByMonth.reduce((acc, m) => acc + m.profit, 0);
+  const monthsWithSales = data.revenueByMonth.filter((m) => m.revenue > 0);
   const bestMonth = monthsWithSales.reduce(
-    (best, m) => (m.revenue_cents > best.revenue_cents ? m : best),
+    (best, m) => (m.revenue > best.revenue ? m : best),
     monthsWithSales[0] ?? null,
   );
 
@@ -52,18 +50,18 @@ export function RevenueTab() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="revenue-totals">
         <Card>
           <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Revenue YTD
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {formatCents(ytdRevenue)}
+              {formatEuro(ytdRevenue)}
             </p>
-            <p className="mt-1 text-xs text-gray-500">últimos 12 meses</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">últimos 12 meses</p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Profit YTD
             </p>
             <p
@@ -72,20 +70,22 @@ export function RevenueTab() {
                 ytdProfit >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400',
               ].join(' ')}
             >
-              {formatCents(ytdProfit)}
+              {formatEuro(ytdProfit)}
             </p>
-            <p className="mt-1 text-xs text-gray-500">revenue − costes − asociados</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              revenue − COGS − gastos
+            </p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Mejor mes
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {bestMonth ? formatCents(bestMonth.revenue_cents) : '—'}
+              {bestMonth ? formatEuro(bestMonth.revenue) : '—'}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {bestMonth ? bestMonth.month : 'sin ventas registradas'}
             </p>
           </CardBody>
