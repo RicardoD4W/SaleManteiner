@@ -22,7 +22,7 @@ interface ProductPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Se llama al confirmar con los items seleccionados. */
-  onConfirm: (items: Array<{ buy_id: number; quantity: number }>) => void;
+  onConfirm: (items: Array<{ buy_id: number; product_name: string; quantity: number }>) => void;
 }
 
 /** Filtro de texto para buscar por nombre de producto. */
@@ -158,13 +158,19 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
   };
 
   const handleConfirm = () => {
-    const selected: Array<{ buy_id: number; quantity: number }> = Object.entries(checked)
+    const buys = buysWithStock ?? [];
+    const selected: Array<{ buy_id: number; product_name: string; quantity: number }> = Object.entries(
+      checked,
+    )
       .filter(([, v]) => v)
       .map(([buy_id, _v]) => {
         void _v;
+        const id = Number(buy_id);
+        const buy = buys.find((b) => b.id === id);
         return {
-          buy_id: Number(buy_id),
-          quantity: quantities[Number(buy_id)] ?? 1,
+          buy_id: id,
+          product_name: buy?.product_name ?? `Producto #${id}`,
+          quantity: quantities[id] ?? 1,
         };
       });
     onConfirm(selected);

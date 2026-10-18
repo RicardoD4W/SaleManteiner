@@ -109,11 +109,15 @@ export function SoldNewPage() {
   const { fields: itemFields } = useFieldArray({ control, name: 'items' });
 
   // Cuando el modal confirma, poblamos el form.
-  const handleModalConfirm = (items: Array<{ buy_id: number; quantity: number }>) => {
+  const handleModalConfirm = (
+    items: Array<{ buy_id: number; product_name: string; quantity: number }>,
+  ) => {
     const itemMap = new Map(selectedItems.map((i) => [i.buy_id, i]));
     const merged: SelectedItem[] = items.map((i) => ({
       buy_id: i.buy_id,
-      product_name: itemMap.get(i.buy_id)?.product_name ?? `Producto #${i.buy_id}`,
+      // El modal ya pasa el product_name; lo conservamos del state previo si
+      // por algún motivo viene vacío (no debería), si no usamos el del modal.
+      product_name: i.product_name || itemMap.get(i.buy_id)?.product_name || `Producto #${i.buy_id}`,
       quantity: i.quantity,
       max: itemMap.get(i.buy_id)?.max ?? i.quantity,
     }));

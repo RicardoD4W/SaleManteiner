@@ -12,7 +12,7 @@
  *  - Lista con `role="listbox"` + opciones con `role="option"`
  *  - Navegación con teclado: ↑↓ para navegar, Enter para seleccionar, Escape para cerrar
  */
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 
@@ -50,6 +50,16 @@ export function CustomerAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
   const listRef = useRef<HTMLUListElement>(null);
+
+  // Sincronizar inputValue con el value externo cuando cambia (ej: el padre carga
+  // un customer en un useEffect tras el mount, o lo limpia pasando null). Sin
+  // esto, el useState inicial solo se evalúa una vez y el input queda vacío.
+  // Alternativa React 19 sería usar `key` en el padre para resetear el componente,
+  // pero eso rompe la API actual.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronizamos el input controlado con el value externo; el bailout de React evita renders si el valor no cambió
+    setInputValue(value?.name ?? '');
+  }, [value]);
 
   // Filtrar clientes por nombre tipeado (prefijo, case-insensitive).
   const filtered = (customers ?? []).filter((c) =>

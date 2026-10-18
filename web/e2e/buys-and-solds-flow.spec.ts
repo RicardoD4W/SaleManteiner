@@ -106,11 +106,9 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   await modal.getByLabel('Cantidad').fill('5');
   await modal.getByRole('button', { name: /confirmar/i }).click();
 
-  // 4. El form de venta aparece con los items pre-rellenados.
-  // NOTA: el WU2 pasa solo {buy_id, quantity} desde el modal al form, así que el
-  // form muestra "Producto #N" (placeholder) en vez del nombre real. Lo verificamos
-  // con el legend del fieldset de items en vez del nombre del producto.
-  await expect(page.getByText('Productos (1)')).toBeVisible();
+  // 4. El form de venta aparece con los items pre-rellenados. El modal ya pasa
+  // product_name, así que la lista de items muestra el nombre real del producto.
+  await expect(page.getByText('Funda iPhone')).toBeVisible();
 
   // 5. Seleccionar el cliente via el CustomerAutocomplete.
   // El input tiene label "Cliente *" y role="combobox". Tipeamos el nombre y
@@ -136,10 +134,6 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   // 8. Redirige a /solds/:id (no /solds). Verificamos el patrón del detalle.
   await page.waitForURL(/\/solds\/\d+/, { timeout: 10_000 });
   // El SoldEditPage muestra los items del pack con el product_name real.
-  // (El customer también se carga pero el CustomerAutocomplete tiene un bug de
-  // WU2: `useState(value?.name ?? '')` no se re-inicializa cuando `value`
-  // cambia, así que el input queda vacío. El redirect + items en pantalla
-  // son suficientes para probar que la venta se creó con el customer.)
   await expect(page.getByText('Funda iPhone')).toBeVisible();
 });
 
@@ -202,9 +196,8 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
     },
   });
 
-  // 3. Ir a /dashboard (no "/" — el index de root no renderiza el Outlet de
-  // tabs; hay que ir a /dashboard para que se monte el OverviewTab).
-  await page.goto('/dashboard');
+  // 3. Ir a "/" — el index de root renderiza OverviewTab directamente.
+  await page.goto('/');
   // El OverviewTab tiene un data-testid en el grid de los 4 KPIs.
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
 

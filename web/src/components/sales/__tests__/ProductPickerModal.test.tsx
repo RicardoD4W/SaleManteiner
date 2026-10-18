@@ -143,8 +143,16 @@ describe('ProductPickerModal', () => {
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
 
-    const calledItems = onConfirm.mock.calls[0]?.[0] as Array<{ buy_id: number; quantity: number }>;
-    expect(calledItems).toContainEqual({ buy_id: 1, quantity: 1 });
+    const calledItems = onConfirm.mock.calls[0]?.[0] as Array<{
+      buy_id: number;
+      product_name: string;
+      quantity: number;
+    }>;
+    expect(calledItems).toContainEqual({
+      buy_id: 1,
+      product_name: 'Funda iPhone',
+      quantity: 1,
+    });
   });
 
   it('el botón Cancelar llama a onClose', async () => {
