@@ -85,20 +85,20 @@ SaleManteiner/
 
 ## 5. Decisiones de producto
 
-| #   | Decisión                                                                                                                                          |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | **Scraping no oficial** como fuente principal (riesgo de ToS aceptado por el usuario).                                                            |
-| D2  | Modelo **A+**: una sola llamada trae todo el catálogo (publicados + reservados + vendidos). Estado se asigna automático y se puede editar manual. |
-| D3  | La app funciona **sin proxy** desde el día 1; cuando haya uno, se enruta con `https-proxy-agent` o `HTTPS_PROXY`.                                 |
-| D4  | Mini-login email+contraseña; 2FA manual la primera vez; cookies guardadas en `~/.salemanteiner/wallapop-session.json`.                            |
-| D5  | UI **solo español**, sin i18n. Fechas `dd/MM/yyyy`.                                                                                               |
-| D6  | Nombre del proyecto: **SaleManteiner**.                                                                                                           |
-| D7  | Volumen esperado: **~50 ventas/mes** → SQLite local basta, paginación a 25.                                                                       |
-| D8  | Sincronización **manual** (sin `node-cron`). Botón "Sincronizar ahora" en la UI.                                                                  |
+| #   | Decisión                                                                                                                                                                                                                                                                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | **Scraping no oficial** como fuente principal (riesgo de ToS aceptado por el usuario).                                                                                                                                                                                                                |
+| D2  | Modelo **A+**: una sola llamada trae todo el catálogo (publicados + reservados + vendidos). Estado se asigna automático y se puede editar manual.                                                                                                                                                     |
+| D3  | **Descartada** (la app no usaba proxy en MVP y el scraping de Wallapop se retiró del plan). Reemplazada por la decisión arquitectónica del feature `feature-buys-and-solds`: 4 tablas (`buys`, `solds`, `sale_items`, `customers`), importes en euros decimales en SQLite REAL con helper `round2()`. |
+| D4  | Mini-login email+contraseña; 2FA manual la primera vez; cookies guardadas en `~/.salemanteiner/wallapop-session.json`.                                                                                                                                                                                |
+| D5  | UI **solo español**, sin i18n. Fechas `dd/MM/yyyy`.                                                                                                                                                                                                                                                   |
+| D6  | Nombre del proyecto: **SaleManteiner**.                                                                                                                                                                                                                                                               |
+| D7  | Volumen esperado: **~50 ventas/mes** → SQLite local basta, paginación a 25.                                                                                                                                                                                                                           |
+| D8  | Sincronización **manual** (sin `node-cron`). Botón "Sincronizar ahora" en la UI.                                                                                                                                                                                                                      |
 
 ## 6. Modelo de datos (MVP manual)
 
-Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni CSV en esta fase.
+Tabla única `sales` con modelo simplificado para carga manual. **En transición**: este modelo está siendo reemplazado por el modelo `buys + solds + sale_items + customers` definido en `odd/tasks/feature-buys-and-solds.md` (feature en progreso; WU1 backend pendiente de arrancar).
 
 | Campo                    | Tipo                                   | Notas                                                                               |
 | ------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -114,7 +114,7 @@ Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni 
 | `created_at`             | TEXT NOT NULL                          | ISO 8601, automático                                                                |
 | `sold_at`                | TEXT NULL                              | ISO 8601, editable por el cliente (la regla auto-set al flip de `sold` se eliminó). |
 
-Índices: `idx_sales_sold`, `idx_sales_sold_at`. Todos los importes en **céntimos** (entero, branded `Cents`) para evitar floats.
+Índices (legacy `sales`): `idx_sales_sold`, `idx_sales_sold_at`. Importes legacy en **céntimos** (entero, branded `Cents`) para evitar floats. El feature nuevo usa importes en **euros decimales (SQLite REAL)** con validación `multipleOf(0.01)` y helper `round2()` para mitigar el error IEEE 754 — ver `feature-buys-and-solds.md` Spec S2.
 
 **Reglas del repo** (no se hacen en SQL, se hacen en el repo para mantener la lógica de negocio cerca):
 
@@ -124,17 +124,17 @@ Tabla única `sales` con modelo simplificado para carga manual. Sin scraping ni 
 
 ## 7. Fases del proyecto
 
-| Fase                          | Estado    | Descripción                                                                                                                                                                                                                                                            |
-| ----------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** Andamiaje               | ✅        | Monorepo `web/` + `server/`, Vite + TS, ESLint, Prettier, scripts de setup, README.                                                                                                                                                                                    |
-| **1** Backend MVP + BD + CRUD | ✅        | SQLite + migraciones, schemas Zod de ventas (modelo simplificado manual), repo CRUD, endpoints REST, tests Vitest con BD en memoria. 23/23 tests.                                                                                                                      |
-| **2** Frontend MVP manual     | ✅        | TanStack Query + Router + Table, RHF + Zod, KpiCards + tabla + formulario + delete. Sin tests automatizados (deuda para Fase 8). Pendiente: smoke E2E manual contra el backend.                                                                                        |
-| 3                             | ✅        | Importación CSV (papaparse). Headers del CSV = nombres de `CreateSaleInput`. Batch atómico en server (`db.transaction` + Zod refine). UI: `/sales/import` con dropzone, preview verde/rojo, botón importar. 50/50 tests server, 99/99 tests web, 7/7 specs Playwright. |
-| 4                             | pendiente | Módulo de scraping + proxy + JWT/cookies. Worker bajo demanda (sin cron).                                                                                                                                                                                              |
-| 5                             | ✅        | Dashboard con KPIs + gráficos + tabs anidadas (React Router). Endpoint `GET /api/sales/stats/dashboard` (KPIs + revenue 12 meses + top 10 productos). `/dashboard` como layout con `<Outlet/>` y 3 tabs (`/dashboard`, `/dashboard/revenue`, `/dashboard/products`) — cada una URL compartible. Recharts v3 daba incompatibilidad runtime con React 19 strict mode → reemplazado por SVG inline (~80 líneas, sin deps, mismo resultado visual). 70/70 tests server, 99/99 tests web, 13/13 specs Playwright. |
-| 6                             | ✅        | Exportación CSV (mismas columnas que el import). Endpoint GET /api/sales/export con BOM UTF-8 + Content-Disposition attachment. Botón "Exportar CSV" en SalesListPage. 61/61 tests server, 99/99 tests web, 8/8 specs Playwright.                                      |
-| 7                             | pendiente | Pantalla de configuración + cifrado AES-256-GCM del token.                                                                                                                                                                                                             |
-| 8                             | pendiente | Pulido + tests E2E + docs.                                                                                                                                                                                                                                             |
+| Fase                          | Estado        | Descripción                                                                                                                                                               |
+| ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** Andamiaje               | ✅            | Monorepo `web/` + `server/`, Vite + TS, ESLint, Prettier, scripts de setup, README.                                                                                       |
+| **1** Backend MVP + BD + CRUD | 🔁 sustituida | Sustituida por `feature-buys-and-solds.md` (T1-T7). El código legacy `sales` se reemplaza por `buys + solds + sale_items + customers` en WU1 backend.                     |
+| **2** Frontend MVP manual     | 🔁 sustituida | Sustituida por `feature-buys-and-solds.md` (T8-T11). UI pasa de `/sales/*` a `/buys/*` y `/solds/*`; modal multi-select; autocomplete de clientes con creación inline.    |
+| **3** Importación CSV         | ❌ descartada | Descartada junto con la Fase 4 (Log L6 del feature doc). Se reactiva en feature futuro si hace falta. No hay código de import en este feature.                            |
+| **4** Scraping Wallapop       | ❌ descartada | Descartada por el usuario (Log L6). Riesgo ToS aceptado pero no implementado. No hay código de proxy ni de scraping en el repo.                                           |
+| **5** Dashboard               | 🔁 sustituida | Sustituida por T12 del feature (KPIs del nuevo modelo + nueva tab "Compradores"). Mantiene las 3 tabs existentes (Resumen/Ingresos/Productos) adaptadas al nuevo esquema. |
+| **6** Exportación CSV         | ❌ descartada | Descartada junto con la Fase 3. Se reactiva en feature futuro si hace falta.                                                                                              |
+| **7** Settings + cifrado      | ⏸️ en pausa   | Queda pausada: el cifrado de un token que no existe (Fase 4 descartada) no aplica. Se reactiva si en el futuro aparece otro dato sensible para cifrar.                    |
+| **8** Pulido + E2E + docs     | pendiente     | Cuando se cierre `feature-buys-and-solds`, queda agregar pulido de UX y tests E2E adicionales. Probablemente surge como feature doc nuevo.                                |
 
 **Estimación total**: 5–6 días de trabajo real (no consecutivos).
 
@@ -170,7 +170,7 @@ Comandos útiles:
 
 > **Convención de trabajo**: antes de tocar código de un workspace, leer el `SKILL.md` de las skills relevantes y las `references/*.md` que apliquen al cambio. Esto NO es opcional.
 
-Reglas Zod ya aplicadas en Fase 1: `schema-use-enums` (no aplica, no hay enums), `schema-string-validations` (ShortText/LongText), `schema-use-unknown-not-any`, `parse-use-safeparse`, `parse-validate-early`, `parse-never-trust-json`, `type-use-z-infer`, `type-export-schemas-and-types`, `type-branded-types` (Cents/RowId), `error-use-flatten`, `error-custom-messages`, `object-strict-vs-strip` (`.strict()` en inputs), `object-optional-vs-nullable` (`.optional()` en input, `.nullable()` en output), `refine-defaults` (`.default()` solo en create, NO en update — ver "Decisión: defaults en create vs update" abajo), `parse-handle-all-issues` (varios errores, no solo el primero), `perf-cache-schemas` (schemas a nivel de módulo), `type-input-vs-output` (test usa `parse()` para construir el output).
+Reglas Zod aplicadas al esquema legacy `sales` (se mantienen las mismas reglas en los schemas nuevos `Buy`/`Sold`/`Customer` salvo donde se indica): `schema-use-enums` (no aplica, no hay enums), `schema-string-validations` (ShortText/LongText), `schema-use-unknown-not-any`, `parse-use-safeparse`, `parse-validate-early`, `parse-never-trust-json`, `type-use-z-infer`, `type-export-schemas-and-types`, `error-use-flatten`, `error-custom-messages`, `object-strict-vs-strip` (`.strict()` en inputs), `object-optional-vs-nullable` (`.optional()` en input, `.nullable()` en output), `refine-defaults` (`.default()` solo en create, NO en update — ver "Decisión: defaults en create vs update" abajo), `parse-handle-all-issues` (varios errores, no solo el primero), `perf-cache-schemas` (schemas a nivel de módulo), `type-input-vs-output` (test usa `parse()` para construir el output). El feature nuevo **sustituye `type-branded-types` (Cents/RowId)** por importes en euros decimales sin marca + helper `round2()` para mitigar el error IEEE 754 (Spec S2 del feature).
 
 ### Decisión: defaults en create vs update (importante)
 
@@ -182,14 +182,16 @@ El repo, en `update()`, filtra los `undefined` antes de hacer spread sobre el `e
 
 ## 10. Riesgos abiertos
 
-| Riesgo                                | Mitigación                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
-| Wallapop banea la cuenta por scraping | Documentado en README. Cuenta secundaria recomendada para pruebas.             |
-| Wallapop cambia `api.wallapop.com`    | Worker en módulo aislado, los fallos no rompen la app. Caché + fallback a CSV. |
-| Baneo de IP por rate                  | Rate limiter 1 req / 5 s + jitter + caché.                                     |
-| JWT expira                            | Re-login automático; si falla, pedir credenciales.                             |
-| Proxy deja de funcionar               | "Probar conexión" en ajustes; log con causa exacta.                            |
-| Captcha / fingerprinting              | Documentado. Si pasa → desactivar scraping, usar manual + CSV.                 |
+> Las filas de esta sección referencian scraping de Wallapop + proxy + JWT, que el **feature actual descarta por completo** (Fase 4 retirada del plan, ver Log L6 de `odd/tasks/feature-buys-and-solds.md`). Quedan solo como referencia histórica hasta que se reactive; si se reactiva el scraping en el futuro, las mitigaciones vuelven a aplicar.
+
+| Riesgo                                | Estado / mitigación                                |
+| ------------------------------------- | -------------------------------------------------- |
+| Wallapop banea la cuenta por scraping | Descartado (no se implementa scraping). No aplica. |
+| Wallapop cambia `api.wallapop.com`    | Descartado. No aplica.                             |
+| Baneo de IP por rate                  | Descartado. No aplica.                             |
+| JWT expira                            | Descartado. No aplica (no hay login automatizado). |
+| Proxy deja de funcionar               | Descartado. No aplica.                             |
+| Captcha / fingerprinting              | Descartado. No aplica.                             |
 
 ## 11. Fuera de alcance
 
@@ -197,14 +199,14 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Fases 1, 2, 3, 5 y 6 cerradas** (Fase 4 y 7 pendientes). El roundtrip CSV está completo: importás desde Excel/Fase 3, exportás desde la app/Fase 6. El dashboard agrega visibilidad: 12 meses de revenue/profit + top productos, todo detrás de tabs anidadas con React Router (deep-linkable).
+**Estado actual**: en transición del modelo `sales` (legacy) al modelo `buys + solds + sale_items + customers` definido en `odd/tasks/feature-buys-and-solds.md`. Fases 1, 2, 3, 5 y 6 marcadas como sustituidas o descartadas arriba; Fase 4 (scraping) retirada del plan; CSV import/export fuera del feature actual.
 
-Decisiones pendientes antes de arrancar la **Fase 4 (scraping Wallapop + JWT/cookies)** o la **Fase 7 (settings + cifrado)**:
+**Próximo paso en curso**: arrancar **WU1 backend** del feature (`feature-buys-and-solds.md` T1-T7): migración 003 con `DROP TABLE sales`, schemas Zod nuevos (`Buy`, `Sold`, `Customer`), helper `round2()`, repos, endpoints REST con validación de stock transaccional, endpoint `/api/stats/dashboard` migrado, tests server. Cuando WU1 esté verde, siguen WU2 (frontend estructural) → WU3 (dashboard + E2E) → WU4 (docs finales + smoke manual).
+
+Decisiones que quedaron pendientes (no bloquean T1):
 
 1. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
-2. Smoke manual **opcional** de los flujos nuevos en `localhost:5173` (import + export + dashboard ya están cubiertos por E2E).
-
-Cuando confirmes, armar el feature doc correspondiente y arrancar.
+2. Al cerrar WU4, smoke manual opcional de los flujos nuevos en `localhost:5173` (los E2E ya cubren el flujo principal).
 
 ## 13. Notas recientes (2026-10-16)
 

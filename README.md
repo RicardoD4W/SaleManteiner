@@ -1,21 +1,21 @@
 # SaleManteiner
 
-App web local (React + Node) para **registrar y mantener un histórico de ventas** de tu cuenta de Wallapop.
+App web local (React + Node) para **registrar y mantener un histórico de compras y ventas** de tu cuenta de Wallapop. Tracker de profitability para reseller: carga las compras, después registra las ventas (con modal multi-select, packs y stock por unidad).
 
-> ⚠️ **Aviso**: la captura automática prevista usa endpoints internos de Wallapop no documentados. Esto **viola los Términos de Servicio de Wallapop** y puede provocar el baneo de tu cuenta. La arquitectura mitiga el riesgo (módulo aislado, fallback a manual/CSV, rate limiting) pero no lo elimina. Úsalo bajo tu responsabilidad.
+> Gestión manual únicamente. Captura automática y scraping descartados por diseño (riesgo de Términos de Servicio de Wallapop). CSV import/export fuera de la versión actual.
 
 ## Estado
 
-Fase 0 — andamiaje del monorepo. Aún no hace nada útil.
+Backend + frontend operativos con el modelo `sales` legacy (entradas manuales). Migración en curso al modelo `buys + solds + sale_items + customers` documentado en `odd/tasks/feature-buys-and-solds.md`.
 
 ## Estructura
 
-```
+```text
 SaleManteiner/
-├── web/            # Frontend React 18 + Vite + TypeScript + Tailwind
+├── web/            # Frontend React 19 + Vite + TypeScript + Tailwind 4
 ├── server/         # Backend Node 20 + Express + TypeScript
-├── scripts/        # Utilidades (setup del entorno con fnm)
-├── PLAN.md         # Plan completo del proyecto (léelo primero)
+├── odd/tasks/      # Feature docs por unidad de trabajo
+├── AGENTS.md       # Contexto del proyecto (léelo primero)
 └── package.json    # Workspaces de npm
 ```
 
@@ -73,7 +73,8 @@ npm run build          # Build de producción de web/ y server/
 
 ## Documentación
 
-- **[PLAN.md](./PLAN.md)** — Plan completo del proyecto: requisitos, arquitectura, fases, decisiones tomadas.
+- **[AGENTS.md](./AGENTS.md)** — Contexto del proyecto: arquitectura, modelo de datos, decisiones tomadas, fases, convenciones de trabajo, skills cargadas.
+- **[odd/tasks/](./odd/tasks/)** — Feature docs por unidad de trabajo (uno por feature/iteración; cada uno con specs, tareas y log).
 
 ## Licencia
 

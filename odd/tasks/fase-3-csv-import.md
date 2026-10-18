@@ -21,18 +21,18 @@
 
 ## Tasks
 
-| ID  | Título | Specs | Ruta | Commit |
-| --- | --- | --- | --- | --- |
-| T1  | Schema Zod server para el body del import | S3 | `server/src/schemas/sales-import.ts` | WU1 |
-| T2  | Repo: `createMany(sales[])` con `db.transaction` | S3 | `server/src/repo/sales-repo.ts` | WU1 |
-| T3  | Endpoint `POST /api/sales/import` | S3 | `server/src/routes/sales.ts` | WU1 |
-| T4  | Tests server: import OK, fila inválida aborta todo, validación 422 | S3 | `server/src/__tests__/sales-import.test.ts` | WU1 |
-| T5  | Cliente HTTP `salesApi.import(...)` + hook `useImportSales` | S3, S4 | `web/src/api/sales.ts`, `web/src/hooks/useImportSales.ts` | WU2 |
-| T6  | Página `SalesImportPage` + componentes `UploadCSV` e `ImportPreview` con papaparse | S1, S2, S4 | `web/src/pages/SalesImportPage.tsx`, `web/src/components/import/UploadCSV.tsx`, `web/src/components/import/ImportPreview.tsx` | WU2 |
-| T7  | Ruta `/sales/import` en `App.tsx` + link "Importar CSV" en `SalesListPage` | S5 | `web/src/App.tsx`, `web/src/pages/SalesListPage.tsx` | WU2 |
-| T8  | Fixture `sample.csv` + test E2E `import-flow.spec.ts` | S7 | `web/e2e/fixtures/sample.csv`, `web/e2e/import-flow.spec.ts` | WU3 |
-| T9  | AGENTS.md documenta Fase 3 + nueva ruta | S8 | `AGENTS.md` | WU3 |
-| T10 | Smoke manual checklist en este feature doc (Log) | (validación) | `odd/tasks/fase-3-csv-import.md` (Log) | WU3 |
+| ID  | Título                                                                             | Specs        | Ruta                                                                                                                          | Commit |
+| --- | ---------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
+| T1  | Schema Zod server para el body del import                                          | S3           | `server/src/schemas/sales-import.ts`                                                                                          | WU1    |
+| T2  | Repo: `createMany(sales[])` con `db.transaction`                                   | S3           | `server/src/repo/sales-repo.ts`                                                                                               | WU1    |
+| T3  | Endpoint `POST /api/sales/import`                                                  | S3           | `server/src/routes/sales.ts`                                                                                                  | WU1    |
+| T4  | Tests server: import OK, fila inválida aborta todo, validación 422                 | S3           | `server/src/__tests__/sales-import.test.ts`                                                                                   | WU1    |
+| T5  | Cliente HTTP `salesApi.import(...)` + hook `useImportSales`                        | S3, S4       | `web/src/api/sales.ts`, `web/src/hooks/useImportSales.ts`                                                                     | WU2    |
+| T6  | Página `SalesImportPage` + componentes `UploadCSV` e `ImportPreview` con papaparse | S1, S2, S4   | `web/src/pages/SalesImportPage.tsx`, `web/src/components/import/UploadCSV.tsx`, `web/src/components/import/ImportPreview.tsx` | WU2    |
+| T7  | Ruta `/sales/import` en `App.tsx` + link "Importar CSV" en `SalesListPage`         | S5           | `web/src/App.tsx`, `web/src/pages/SalesListPage.tsx`                                                                          | WU2    |
+| T8  | Fixture `sample.csv` + test E2E `import-flow.spec.ts`                              | S7           | `web/e2e/fixtures/sample.csv`, `web/e2e/import-flow.spec.ts`                                                                  | WU3    |
+| T9  | AGENTS.md documenta Fase 3 + nueva ruta                                            | S8           | `AGENTS.md`                                                                                                                   | WU3    |
+| T10 | Smoke manual checklist en este feature doc (Log)                                   | (validación) | `odd/tasks/fase-3-csv-import.md` (Log)                                                                                        | WU3    |
 
 **Work units (commits)**:
 
@@ -52,15 +52,15 @@
 - **L3** (2026-10-17, cierre WU2 web): `papaparse` agregado a `web/package.json`, `salesApi.import(...)` + `ImportResult` type, `useImportSales` hook, componentes `UploadCSV` (drag/drop + papaparse con `header: true, dynamicTyping: false`) y `ImportPreview` (tabla verde/rojo, primeras 10 filas), página `SalesImportPage` (orquesta parseo → validación Zod fila por fila → botón "Importar N ventas" deshabilitado si hay inválidas), ruta `/sales/import` en `App.tsx` (antes de `/:id`), link "Importar CSV" en `SalesListPage`.
 - **L4** (2026-10-17, cierre WU3 validación): fixture CSV `web/e2e/fixtures/sample.csv` con 3 filas (1 con sold/purchase_date, 1 todo null, 1 con fechas), spec Playwright `import-flow.spec.ts` con 2 tests (flujo feliz + fila inválida deshabilita botón). **7/7 Playwright verde** (suma los 5 specs previos de Fases 1-2). `AGENTS.md` actualizado: sección 4 (Estructura) agrega páginas `SalesImportPage`/`UploadCSV`/`ImportPreview` + hook `useImportSales` + `papaparse`; sección 7 marca Fase 3 como ✅; sección 12 redirige a Fase 4.
 - **L5** (Smoke manual — opcional, los E2E ya cubren el flujo):
-    ```powershell
-    # desde la raíz del repo
-    fnm use 20
-    npm install   # solo si hace falta (papaparse se agregó en WU2)
-    npm run dev   # backend :4000, frontend :5173
+  ```powershell
+  # desde la raíz del repo
+  fnm use 20
+  npm install   # solo si hace falta (papaparse se agregó en WU2)
+  npm run dev   # backend :4000, frontend :5173
 
-    # Abrir http://localhost:5173 y click en "Importar CSV" arriba a la derecha.
-    # Subir web/e2e/fixtures/sample.csv (o uno propio con headers iguales a los
-    # del schema). Esperado: preview con 3 filas verdes, botón "Importar 3 ventas",
-    # redirect a / con toast y KPIs actualizados (Total=3, Vendidas=2).
-    ```
-    Si algo falla, anotar en este Log como L6 y abrir feature doc de bugfix.
+  # Abrir http://localhost:5173 y click en "Importar CSV" arriba a la derecha.
+  # Subir web/e2e/fixtures/sample.csv (o uno propio con headers iguales a los
+  # del schema). Esperado: preview con 3 filas verdes, botón "Importar 3 ventas",
+  # redirect a / con toast y KPIs actualizados (Total=3, Vendidas=2).
+  ```
+  Si algo falla, anotar en este Log como L6 y abrir feature doc de bugfix.

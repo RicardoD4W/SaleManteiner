@@ -17,15 +17,15 @@
 
 ## Tasks
 
-| ID  | Título | Specs | Ruta | Commit |
-| --- | --- | --- | --- | --- |
-| T1  | Repo: helper `serializeSaleToCsv(sales: Sale[])` + tests unit del serializer | S1, S2, S4-S7 | `server/src/repo/sales-repo.ts` (extender), `server/src/__tests__/sales-export.test.ts` | WU1 |
-| T2  | Endpoint `GET /api/sales/export` (envuelve BOM + serializer) | S1, S3 | `server/src/routes/sales.ts` | WU1 |
-| T3  | Cliente HTTP: `salesApi.exportUrl()` (solo devuelve URL) + helper `triggerDownload(filename)` | S8 | `web/src/api/sales.ts`, `web/src/lib/download.ts` | WU2 |
-| T4  | Botón "Exportar CSV" en `SalesListPage` (con `download` attribute) | S8 | `web/src/pages/SalesListPage.tsx` | WU2 |
-| T5  | Spec E2E Playwright: click botón → captura download → valida header + fila | S9 | `web/e2e/export-flow.spec.ts` | WU2 |
-| T6  | AGENTS.md documenta Fase 6 + nueva ruta + botón | S10 | `AGENTS.md` | WU2 |
-| T7  | Smoke manual checklist en este feature doc (Log) | (validación) | `odd/tasks/fase-6-csv-export.md` (Log) | WU2 |
+| ID  | Título                                                                                        | Specs         | Ruta                                                                                    | Commit |
+| --- | --------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------- | ------ |
+| T1  | Repo: helper `serializeSaleToCsv(sales: Sale[])` + tests unit del serializer                  | S1, S2, S4-S7 | `server/src/repo/sales-repo.ts` (extender), `server/src/__tests__/sales-export.test.ts` | WU1    |
+| T2  | Endpoint `GET /api/sales/export` (envuelve BOM + serializer)                                  | S1, S3        | `server/src/routes/sales.ts`                                                            | WU1    |
+| T3  | Cliente HTTP: `salesApi.exportUrl()` (solo devuelve URL) + helper `triggerDownload(filename)` | S8            | `web/src/api/sales.ts`, `web/src/lib/download.ts`                                       | WU2    |
+| T4  | Botón "Exportar CSV" en `SalesListPage` (con `download` attribute)                            | S8            | `web/src/pages/SalesListPage.tsx`                                                       | WU2    |
+| T5  | Spec E2E Playwright: click botón → captura download → valida header + fila                    | S9            | `web/e2e/export-flow.spec.ts`                                                           | WU2    |
+| T6  | AGENTS.md documenta Fase 6 + nueva ruta + botón                                               | S10           | `AGENTS.md`                                                                             | WU2    |
+| T7  | Smoke manual checklist en este feature doc (Log)                                              | (validación)  | `odd/tasks/fase-6-csv-export.md` (Log)                                                  | WU2    |
 
 **Work units (commits)**:
 
@@ -40,15 +40,15 @@ Esta feature es más chica que Fase 3: 2 commits en lugar de 3. La razón: casi 
 - **L2** (2026-10-17, cierre WU1 server): helper puro `serializeSalesToCsv` en `server/src/csv-export.ts` con headers lowercase snake_case en orden fijo (`product_name,buyer_name,cost_cents,price_cents,associated_costs_cents,sold,purchase_date,sold_at,notes`), escape RFC 4180, `null` → celda vacía, booleanos como `true`/`false`, importes como céntimos literales. 11 tests nuevos (61/61 verde del server). Endpoint `GET /api/sales/export` con BOM UTF-8 al inicio + `Content-Disposition: attachment; filename=sales-YYYY-MM-DD.csv` + `Content-Type: text/csv; charset=utf-8`.
 - **L3** (2026-10-17, cierre WU2 web + docs): `salesApi.exportUrl` (URL constante) + helper `triggerDownload(url, filename)` en `web/src/lib/download.ts` (crea `<a>` efímero + click programático). Botón "Exportar CSV" en `SalesListPage` entre los otros dos. Spec E2E Playwright `export-flow.spec.ts` que captura el download event, valida filename + BOM + headers + filas + Content-Disposition directo. **8/8 Playwright verde** (suma el export-flow a los 7 specs previos). AGENTS.md actualizado: sección 4 (`download.ts` en `lib/`), sección 7 (Fase 6 ✅), sección 12 (próximo paso apuntando a Fase 4 o 5).
 - **L4** (Smoke manual — opcional, los E2E ya cubren el flujo):
-    ```powershell
-    # desde la raíz del repo
-    fnm use 20
-    npm install   # solo si hace falta
-    npm run dev   # backend :4000, frontend :5173
+  ```powershell
+  # desde la raíz del repo
+  fnm use 20
+  npm install   # solo si hace falta
+  npm run dev   # backend :4000, frontend :5173
 
-    # Abrir http://localhost:5173, click en "Exportar CSV" arriba a la derecha.
-    # Esperado: download de sales-YYYY-MM-DD.csv (UTF-8 con BOM, headers en español OK,
-    # céntimos literales, fila de cada venta). Roundtrip: el mismo CSV puede re-importarse
-    # desde "Importar CSV" sin tocar datos.
-    ```
-    Si algo falla, anotar como L5 y abrir feature doc de bugfix.
+  # Abrir http://localhost:5173, click en "Exportar CSV" arriba a la derecha.
+  # Esperado: download de sales-YYYY-MM-DD.csv (UTF-8 con BOM, headers en español OK,
+  # céntimos literales, fila de cada venta). Roundtrip: el mismo CSV puede re-importarse
+  # desde "Importar CSV" sin tocar datos.
+  ```
+  Si algo falla, anotar como L5 y abrir feature doc de bugfix.
