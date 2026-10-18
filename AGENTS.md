@@ -9,7 +9,7 @@ App web **local** (React + Node) que registra y mantiene un histórico de ventas
 **Plan por fases** (3 fuentes previstas a futuro, pero el MVP arranca solo con manual):
 
 1. **MVP (Fase 1)**: entrada **manual** únicamente, modelo de datos simplificado.
-2. **Evolución futura**: scraping no oficial de `api.wallapop.com` (riesgo ToS aceptado).
+2. ~~**Evolución futura**: scraping no oficial de `api.wallapop.com` (riesgo ToS aceptado)~~ — **Descartado** por decisión del usuario (Log L6 de `odd/tasks/feature-buys-and-solds.md`). No hay código de scraping/proxy en el repo. Si se reactiva en el futuro, abrir feature doc nuevo.
 3. **Evolución futura**: importación CSV desde el panel de Wallapop.
 
 UI en **español únicamente** (sin i18n), fechas en `dd/MM/yyyy`.
@@ -49,37 +49,59 @@ SaleManteiner/
 │   └── src/
 │       ├── config.ts            ← rutas, puerto, log level
 │       ├── logger.ts
-│       ├── app.ts               ← crea la app Express, registra routers
+│       ├── app.ts               ← crea la app Express, registra routers (buys/solds/customers/dashboard)
 │       ├── index.ts             ← entrypoint (listen + shutdown limpio)
-│       ├── db/                  ← openDb (WAL+FK+mkdir), runMigrations, migrations/001_initial.sql
-│       ├── schemas/             ← common.ts (Cents, RowId, ...) y sales.ts (Create/Update/Sale)
-│       ├── repo/sales-repo.ts   ← CRUD + stats (factory, recibe db para tests)
-│       ├── routes/              ← health.ts, sales.ts
-│       ├── __tests__/sales.test.ts ← 23 tests con BD :memory:
+│       ├── db/
+│       │   ├── index.ts         ← openDb (WAL+FK+mkdir)
+│       │   ├── migrate.ts       ← runMigrations
+│       │   └── migrations/      ← 001_initial.sql (legacy), 002_purchase_date_and_manual_sold_at.sql (legacy), 003_buys_and_solds.sql (nuevo modelo)
+│       ├── lib/
+│       │   └── round.ts         ← round2() helper, mitiga error IEEE 754
+│       ├── schemas/
+│       │   ├── common.ts        ← EuroMoney (z.number().nonnegative().multipleOf(0.01)), RowId, LocalDate, ShortText, LongText
+│       │   ├── buys.ts          ← Buy, CreateBuyInput, UpdateBuyInput
+│       │   ├── solds.ts         ← Sold, CreateSoldInput (con items), UpdateSoldInput, SoldWithItems
+│       │   └── customers.ts     ← Customer, CreateCustomerInput, UpdateCustomerInput
+│       ├── repo/
+│       │   ├── buys-repo.ts     ← CRUD + getWithStock
+│       │   ├── solds-repo.ts    ← CRUD + createManyWithStockCheck (transaccional) + statsDashboard
+│       │   └── customers-repo.ts ← CRUD + search
+│       ├── routes/
+│       │   ├── health.ts
+│       │   ├── buys.ts          ← /api/buys (CRUD + /stock)
+│       │   ├── solds.ts         ← /api/solds (CRUD con validación de stock transaccional en POST)
+│       │   ├── customers.ts     ← /api/customers (CRUD + search)
+│       │   └── dashboard.ts     ← /api/stats/dashboard (KPIs nuevo modelo: compras_total_eur, ventas_total_eur, beneficio_total_eur, stock_pendiente_count + revenueByMonth + topProducts + topBuyers)
+│       ├── __tests__/           ← buys, solds, customers, stock, stats-dashboard (109 tests con BD :memory:)
 │       └── .agents/skills/      ← skills cargadas en server
-└── web/                         ← frontend React + Vite
+└── web/                         ← frontend React + Vite (EN TRANSICION: feature buys-and-solds WU2-WU3 en curso)
     ├── eslint.config.js         ← flat config (ESLint 10)
-    ├── index.html
+    ├── index.html               ← anti-FOUC dark mode script en <head>
     ├── package.json
     ├── tsconfig.json
     ├── tsconfig.node.json
     ├── vite.config.ts           ← integra @tailwindcss/vite
+    ├── playwright.config.ts     ← tests E2E (Playwright)
     └── src/
         ├── main.tsx             ← root + QueryClientProvider
-        ├── App.tsx              ← RouterProvider (createBrowserRouter)
-        ├── index.css            ← @import "tailwindcss" + @theme (paleta brand, font)
+        ├── App.tsx              ← RouterProvider — T13 de WU3: rutas /, /buys/*, /solds/*, /dashboard/*
+        ├── index.css            ← @import "tailwindcss" + @custom-variant dark + @theme (paleta brand, font)
         ├── vite-env.d.ts
-        ├── api/                 ← client.ts (envelope + ApiError) + sales.ts (CRUD/stats + import)
+        ├── api/                 ← WU2: buys.ts, solds.ts, customers.ts (mirror de server, reemplaza sales.ts)
         ├── components/
-        │   ├── ui/              ← Button, Input, Textarea, Card, Badge, Spinner
-        │   ├── sales/           ← KpiCards, SalesTable (TanStack), SaleForm (RHF+Zod), DeleteSaleButton
-        │   ├── import/          ← UploadCSV (papaparse), ImportPreview (tabla verde/rojo)
-        │   └── layout/          ← Layout, NavLink
-        ├── hooks/               ← useStats/useSales/useSale/useCreateSale/useUpdateSale/useDeleteSale/useImportSales
-        ├── lib/                 ← format.ts (formatCents, formatDate, todayLocalDate, localDateToISO), download.ts (triggerDownload), queryClient.ts
-        ├── pages/               ← SalesListPage, SaleNewPage, SaleEditPage, SalesImportPage
-        ├── pages/dashboard/     ← DashboardPage (layout + tabs) + OverviewTab + RevenueTab + ProductsTab
-        ├── schemas/             ← sales.ts, common.ts (duplicado del backend, refactor a shared/ es deuda)
+        │   ├── ui/              ← Button, Input, Textarea, Card, Badge, Spinner (todos con dark:)
+        │   ├── sales/           ← WU2: ProductPickerModal (multi-select), CustomerAutocomplete (con creación inline)
+        │   ├── dashboard/       ← RevenueChart, TopProductsChart, TopBuyersChart (SVG inline)
+        │   └── layout/          ← Layout (con ThemeToggle sol/luna), NavLink
+        ├── hooks/               ← WU2: useBuys, useCreateBuy, useUpdateBuy, useDeleteBuy, useBuy, useBuysStock, useSolds, useCreateSold, useUpdateSold, useDeleteSold, useSold, useCustomers, useCreateCustomer, useStatsDashboard
+        ├── lib/                 ← format.ts (formatEuro, formatDate, todayLocalDate, localDateToISO), round.ts (round2), download.ts, queryClient.ts
+        ├── pages/
+        │   ├── buys/            ← WU2: BuysListPage, BuyNewPage, BuyEditPage
+        │   └── solds/           ← WU2: SoldsListPage, SoldNewPage, SoldEditPage
+        ├── pages/dashboard/     ← WU3: DashboardPage con tab Compradores nueva + OverviewTab + RevenueTab + ProductsTab (adaptados al nuevo modelo)
+        ├── schemas/             ← WU2: buys.ts, solds.ts, customers.ts, common.ts (mirror de server, en euros decimales)
+        ├── test-utils/          ← fixtures.ts, render.tsx
+        ├── e2e/                 ← Playwright specs (incluye buys-and-solds-flow.spec.ts para T14)
         └── .agents/skills/      ← skills cargadas en web
 ```
 
@@ -215,20 +237,20 @@ La estrategia usa `@custom-variant dark` (clase-based), ya configurado en `web/s
 
 **Tokens canónicos** (no inventar variantes):
 
-| Light | Dark | Uso |
-|---|---|---|
-| `bg-white` | `dark:bg-gray-900` | tarjetas, header, sidebar |
-| `bg-gray-50` | `dark:bg-gray-950` | wrapper de página (layout background) |
-| `bg-gray-50` | `dark:bg-gray-800` | filas alternadas, hover de items |
-| `text-gray-900` | `dark:text-gray-100` | texto principal |
-| `text-gray-700` | `dark:text-gray-300` | texto secundario (labels, valores) |
-| `text-gray-500` | `dark:text-gray-400` | texto auxiliar (hints, placeholders) |
-| `border-gray-200` | `dark:border-gray-800` | bordes de cards, header, divider |
-| `border-gray-300` | `dark:border-gray-700` | bordes de inputs, botones secundarios |
-| `bg-red-50` | `dark:bg-red-950/30` | fondo de error (alerts) |
-| `text-red-700` | `dark:text-red-400` | texto de error |
-| `bg-emerald-100` / `bg-green-100` | `dark:bg-emerald-900/30` | fondo badge success |
-| `text-emerald-800` | `dark:text-emerald-300` | texto badge success |
+| Light                             | Dark                     | Uso                                   |
+| --------------------------------- | ------------------------ | ------------------------------------- |
+| `bg-white`                        | `dark:bg-gray-900`       | tarjetas, header, sidebar             |
+| `bg-gray-50`                      | `dark:bg-gray-950`       | wrapper de página (layout background) |
+| `bg-gray-50`                      | `dark:bg-gray-800`       | filas alternadas, hover de items      |
+| `text-gray-900`                   | `dark:text-gray-100`     | texto principal                       |
+| `text-gray-700`                   | `dark:text-gray-300`     | texto secundario (labels, valores)    |
+| `text-gray-500`                   | `dark:text-gray-400`     | texto auxiliar (hints, placeholders)  |
+| `border-gray-200`                 | `dark:border-gray-800`   | bordes de cards, header, divider      |
+| `border-gray-300`                 | `dark:border-gray-700`   | bordes de inputs, botones secundarios |
+| `bg-red-50`                       | `dark:bg-red-950/30`     | fondo de error (alerts)               |
+| `text-red-700`                    | `dark:text-red-400`      | texto de error                        |
+| `bg-emerald-100` / `bg-green-100` | `dark:bg-emerald-900/30` | fondo badge success                   |
+| `text-emerald-800`                | `dark:text-emerald-300`  | texto badge success                   |
 
 **SVG / charts**: los `fill="#..."` y `stroke="#..."` hardcodeados se mantienen como fallback. Agregar `className="dark:fill-... dark:stroke-..."` que Tailwind traduce a `.dark\:fill-... { fill: ... }` con CSS specificity que sobreescribe el atributo. Patrón aplicado en `web/src/components/dashboard/RevenueChart.tsx` y `TopProductsChart.tsx`.
 
