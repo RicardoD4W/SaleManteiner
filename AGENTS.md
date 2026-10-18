@@ -165,10 +165,76 @@ Comandos útiles:
 
 ## 9. Skills cargadas
 
-- **server**: `zod`, `typescript-advanced-types`, `vitest` (metadata only).
-- **web**: `react-best-practices`, `composition-patterns`, `typescript-advanced-types`, `vite`, `tailwind-css-patterns`, `accessibility`, `seo`, `frontend-design`.
+Las skills de cada workspace viven en `<workspace>/.agents/skills/<nombre>/SKILL.md`. Antes de leer o escribir cualquier archivo de un workspace, **SIEMPRE** se carga el `SKILL.md` de cada skill relevante y sus `references/*.md` si la regla general aplica al cambio. Esto NO es opcional.
 
-> **Convención de trabajo**: antes de tocar código de un workspace, leer el `SKILL.md` de las skills relevantes y las `references/*.md` que apliquen al cambio. Esto NO es opcional.
+### Mapeo de skills por workspace
+
+**`server/.agents/skills/`** (cargar antes de tocar `server/**`):
+
+- `zod/SKILL.md` — schemas Zod, validaciones, refinements, parse (`safeParse`, `flatten`, `multipleOf`, `brand`, etc.).
+- `typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics, narrowing.
+- `vitest/SKILL.md` — tests Vitest: fixtures, helpers, mocking, organización.
+
+**`web/.agents/skills/`** (cargar antes de tocar `web/**`):
+
+- `react-best-practices/SKILL.md` — performance de React (Vercel rules: waterfalls, bundle, memo, derived state, hydration).
+- `composition-patterns/SKILL.md` — APIs de componentes, evitar boolean prop proliferation, compound components, state lifting.
+- `typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics.
+- `vite/SKILL.md` — `vite.config.ts`, plugins, build, dev server, env vars.
+- `tailwind-css-patterns/SKILL.md` — utilities, responsive, dark mode (`@custom-variant dark`), `@theme`, accesibilidad visual.
+- `accessibility/SKILL.md` — WCAG 2.2, ARIA, focus management, contraste, target size, lenguaje, labels, errores.
+- `seo/SKILL.md` — meta tags, OG, JSON-LD. NO aplica a esta SPA salvo que se reactive SSR.
+- `frontend-design/SKILL.md` — jerarquía visual, spacing, tipografía, layout, atomic design.
+
+### Reglas duras
+
+1. **SIEMPRE** cargar las skills relevantes **antes** de la primera lectura o edición de un archivo del workspace.
+2. Las skills se leen con `read` apuntando a la ruta del SKILL.md (path relativo al repo, ej: `web/.agents/skills/tailwind-css-patterns/SKILL.md`).
+3. Si la skill tiene `references/*.md` cuya regla general aplica al cambio, leer también las references — no solo el SKILL.md raíz.
+4. Al delegar a un subagent del workspace, el task que se le pasa debe incluir la lista de skills relevantes a leer primero (no asumir que el subagent las descubre solo).
+5. Si una skill contradice la intuición técnica, gana la skill (es la convención del repo).
+
+### Cuándo NO cargar una skill
+
+- Tareas puramente de git (commits, branches, merge).
+- Búsqueda global de strings en el repo (`grep`/`find`), salvo que el resultado requiera editar archivos del workspace.
+- Trabajo en `odd/tasks/` (es un directorio de docs, no toca código de runtime).
+
+### Convención de dark mode (Tailwind 4)
+
+La estrategia usa `@custom-variant dark` (clase-based), ya configurado en `web/src/index.css`. El toggle, el anti-FOUC y la persistencia ya están integrados en el Layout (S1-S5 de `odd/tasks/feature-dark-mode.md`). Los componentes solo necesitan agregar `dark:` a sus clases siguiendo la convención de abajo.
+
+**Reglas**:
+
+- Mobile-first: base = light, agregar `dark:` para el equivalente oscuro.
+- **NUNCA** usar colores hardcodeados sin contraparte dark. Si ves `bg-gray-100` sin `dark:bg-gray-800`, agregá la contraparte.
+- **NO** usar `darkMode: 'media'` (eso desactiva el toggle). Solo `'class'`.
+- **Anti-FOUC**: el script inline en `index.html` aplica la clase `dark` antes del primer paint. Si agregás un nuevo entry point, mantenelo.
+- **Default**: si no hay nada en `localStorage`, respetar `prefers-color-scheme`; si tampoco hay match, arrancar en dark.
+- **Persistencia**: clave `salemanteiner-theme` en `localStorage`, valores `"light"` | `"dark"`.
+
+**Tokens canónicos** (no inventar variantes):
+
+| Light | Dark | Uso |
+|---|---|---|
+| `bg-white` | `dark:bg-gray-900` | tarjetas, header, sidebar |
+| `bg-gray-50` | `dark:bg-gray-950` | wrapper de página (layout background) |
+| `bg-gray-50` | `dark:bg-gray-800` | filas alternadas, hover de items |
+| `text-gray-900` | `dark:text-gray-100` | texto principal |
+| `text-gray-700` | `dark:text-gray-300` | texto secundario (labels, valores) |
+| `text-gray-500` | `dark:text-gray-400` | texto auxiliar (hints, placeholders) |
+| `border-gray-200` | `dark:border-gray-800` | bordes de cards, header, divider |
+| `border-gray-300` | `dark:border-gray-700` | bordes de inputs, botones secundarios |
+| `bg-red-50` | `dark:bg-red-950/30` | fondo de error (alerts) |
+| `text-red-700` | `dark:text-red-400` | texto de error |
+| `bg-emerald-100` / `bg-green-100` | `dark:bg-emerald-900/30` | fondo badge success |
+| `text-emerald-800` | `dark:text-emerald-300` | texto badge success |
+
+**SVG / charts**: los `fill="#..."` y `stroke="#..."` hardcodeados se mantienen como fallback. Agregar `className="dark:fill-... dark:stroke-..."` que Tailwind traduce a `.dark\:fill-... { fill: ... }` con CSS specificity que sobreescribe el atributo. Patrón aplicado en `web/src/components/dashboard/RevenueChart.tsx` y `TopProductsChart.tsx`.
+
+**Focus visible en dark**: el `ring-offset` debe ser sobre el fondo oscuro del contenedor. Ej: `focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`.
+
+Referencia: `odd/tasks/feature-dark-mode.md` (S1-S10) y la skill `web/.agents/skills/tailwind-css-patterns/SKILL.md` (sección "Dark Mode Issues").
 
 Reglas Zod aplicadas al esquema legacy `sales` (se mantienen las mismas reglas en los schemas nuevos `Buy`/`Sold`/`Customer` salvo donde se indica): `schema-use-enums` (no aplica, no hay enums), `schema-string-validations` (ShortText/LongText), `schema-use-unknown-not-any`, `parse-use-safeparse`, `parse-validate-early`, `parse-never-trust-json`, `type-use-z-infer`, `type-export-schemas-and-types`, `error-use-flatten`, `error-custom-messages`, `object-strict-vs-strip` (`.strict()` en inputs), `object-optional-vs-nullable` (`.optional()` en input, `.nullable()` en output), `refine-defaults` (`.default()` solo en create, NO en update — ver "Decisión: defaults en create vs update" abajo), `parse-handle-all-issues` (varios errores, no solo el primero), `perf-cache-schemas` (schemas a nivel de módulo), `type-input-vs-output` (test usa `parse()` para construir el output). El feature nuevo **sustituye `type-branded-types` (Cents/RowId)** por importes en euros decimales sin marca + helper `round2()` para mitigar el error IEEE 754 (Spec S2 del feature).
 
