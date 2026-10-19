@@ -154,6 +154,37 @@ describe('contrato HTTP del borrado de compras', () => {
       expect(get.status).toBe(200);
     });
 
+    it('compra con varias ventas: 409 las lista todas y ninguna se borra', async () => {
+      const buy = seedBuy('Varias ventas', 5);
+      const customer = seedCustomer('Nora');
+      const sale1 = seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }], 100);
+      const sale2 = seedSale(customer.id, [{ buy_id: buy.id, quantity: 2 }], 200);
+
+      const del = await api('DELETE', `/api/buys/${buy.id}`);
+
+      expect(del.status).toBe(409);
+      // Todas las ventas afectadas, de la más reciente a la más vieja.
+      expect(del.body?.associated_sales).toEqual([
+        {
+          id: sale2.id,
+          customer_name: 'Nora',
+          sold_at: '2026-10-19',
+          items_count: 2,
+        },
+        {
+          id: sale1.id,
+          customer_name: 'Nora',
+          sold_at: '2026-10-19',
+          items_count: 1,
+        },
+      ]);
+
+      // Ni la compra ni las ventas se tocan: el 409 no borra nada.
+      expect((await api('GET', `/api/buys/${buy.id}`)).status).toBe(200);
+      expect((await api('GET', `/api/solds/${sale1.id}`)).status).toBe(200);
+      expect((await api('GET', `/api/solds/${sale2.id}`)).status).toBe(200);
+    });
+
     it('items_count cuenta solo las unidades de ESE buy dentro de un pack', async () => {
       const buyA = seedBuy('Pack A', 5);
       const buyB = seedBuy('Pack B', 5);
