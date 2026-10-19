@@ -7,6 +7,12 @@ node_modules/
 
 # Build outputs
 dist/
+# Artefactos de `tsc -b` (tsconfig.node.json): NUNCA deben quedar junto al
+# fuente, porque Vite prioriza vite.config.js sobre vite.config.ts y el
+# config compilado（旧）taparía al real.
+web/vite.config.js
+web/vite.config.d.ts
+web/tsconfig.node.tsbuildinfo
 build/
 .next/
 .cache/

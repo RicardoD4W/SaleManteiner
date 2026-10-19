@@ -61,7 +61,8 @@ const MONTH_LABELS = [
 ];
 
 function monthLabel(yyyymm: string): string {
-  const m = Number(yyyymm.split('-')[1] ?? '0');
+  const [, month] = yyyymm.split('-');
+  const m = Number(month ?? '0');
   return MONTH_LABELS[m - 1] ?? yyyymm;
 }
 
