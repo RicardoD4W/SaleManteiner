@@ -304,6 +304,51 @@ describe('contrato HTTP del borrado de compras', () => {
       ]);
     });
 
+    it('el registro se escribe ANTES del borrado (write-ahead)', async () => {
+      // El audit trail va antes de la mutación: si el proceso muere entre
+      // el commit y el log, el borrado no quedaría registrado. Para
+      // comprobarlo, el spy mira si la compra seguía en la BD al loguear.
+      let existedAtLogTime: boolean | null = null;
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {
+        existedAtLogTime =
+          (db.prepare('SELECT COUNT(*) AS c FROM buys WHERE id = ?').get(buyId) as { c: number })
+            .c > 0;
+      });
+      const buy = seedBuy('Audit write-ahead', 3);
+      const buyId = buy.id;
+      const customer = seedCustomer('Huma');
+      seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
+
+      const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
+
+      expect(del.status).toBe(204);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(existedAtLogTime).toBe(true);
+    });
+
+    it('si el borrado falla, queda registrado que no se completó', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+      const buy = seedBuy('Audit fallo', 3);
+      const customer = seedCustomer('Inés');
+      const sale = seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
+      // Trigger que aborta el DELETE de la venta → la cascada falla.
+      db.exec(
+        `CREATE TRIGGER block_sold_delete BEFORE DELETE ON solds
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
+
+      expect(del.status).toBe(500);
+      // El log de intención está (write-ahead) y además el de error.
+      expect(warn).toHaveBeenCalledTimes(1);
+      const errorPayloads = error.mock.calls.map((c) => c[0] as { buy_id?: number });
+      expect(errorPayloads.some((p) => p.buy_id === buy.id)).toBe(true);
+      // Y nada se borró (la transacción hizo rollback).
+      expect((await api('GET', `/api/solds/${sale.id}`)).status).toBe(200);
+    });
+
     it('no deja registro si el borrado no ocurrió (409 por ventas y 404 por inexistente)', async () => {
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
       const buy = seedBuy('Audit sin borrado', 3);

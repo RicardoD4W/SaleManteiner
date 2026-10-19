@@ -87,7 +87,7 @@ El batch estaba sin feature doc, sin `Log` y sin commits. Este documento es la s
 ### S13 — Higiene del borrado irreversible (H4, review)
 
 - El archivo de hook debe terminar con newline.
-- El borrado en cascada deja **audit trail**: el server lo registra (Pino) con el id de compra y las ventas afectadas, porque la acción no tiene undo.
+- El borrado en cascada deja **audit trail**: el server lo registra (Pino) con el id de compra y las ventas afectadas, porque la acción no tiene undo. El log se escribe **antes** del borrado (write-ahead): si el proceso muere entre el commit y el log, el borrado no quedaría registrado. Si el borrado falla después, un log de error deja asentado que no se completó.
 - "Sin undo" queda documentado como limitación conocida (la modal ya lo dice: "Esta acción no se puede deshacer.").
 
 ## Tasks
@@ -155,11 +155,16 @@ El batch estaba sin feature doc, sin `Log` y sin commits. Este documento es la s
 
 ### Limitaciones conocidas (decisiones, no bugs)
 
-1. **Una BD corrupta puede seguir dando 500 en el delete normal.** `listAssociatedSales` usa INNER JOIN con `customers`: si una venta quedara sin fila en `customers` (solo posible con las FK desactivadas a mano, porque `openDb` las activa siempre), la asociación no se ve, el `remove` intenta borrar la compra y el `RESTRICT` revienta con 500. Con la BD sana no hay camino de negocio al 500.
-2. **El audit trail se escribe después del borrado.** No se loguea un borrado que no ocurrió, pero un crash del proceso entre el commit de la transacción y el log dejaría el borrado sin registro (ventana de microsegundos en una app local). La alternativa (log de intención antes de borrar) registraría borrados que podrían fallar después.
-3. **El log incluye el nombre del cliente** (`customer_name`) porque sin él el registro no dice a quién se le borró la venta. Es una app local; el dato ya está en la BD.
+1. ~~**Una BD corrupta puede seguir dando 500 en el delete normal.**~~ **Resuelto por decisión del usuario: no hacer nada.** El escenario (FK desactivadas a mano + venta sin cliente) no se va a dar: `openDb` activa las FK siempre y no hay endpoint para borrar clientes. El `INNER JOIN` se queda.
+2. ~~**El audit trail se escribe después del borrado.**~~ **Resuelto: ahora es write-ahead** (log antes de borrar + log de error si falla). Ver L14.
+3. **El log incluye el nombre del cliente** (`customer_name`) porque sin él el registro no dice a quién se le borró la venta. Es una app local y el log es de desarrollo: el usuario lo considera irrelevante y lo deja así. Ver L14.
 4. **El cascade no tiene undo ni papelera.** Ver S13 y la decisión L5.
 
 - **L11 (2026-10-19, cierre — riesgo asumido por el usuario)**: al presentar el resultado, el riesgo quedó explícito: _"Risk: item 1 — el cascade borra ventas de forma irreversible (sin undo, con audit trail en el log)"_. El usuario lo **asume** y pide continuar. Con esa aceptación, la limitación 4 deja de ser un riesgo abierto: es una decisión de producto aceptada (borrado explícito con doble confirmación + audit trail, sin undo). No se abre un ticket ni se implementa papelera.
 - **L12 (2026-10-19, cierre — entrega)**: el usuario pide incorporar al commit los dos archivos del actor concurrente (`web/src/pages/dashboard/DashboardPage.tsx`, `web/src/components/layout/NavLink.tsx`) y pushear todo. Cierre: se commitean como WU9 (ajustes visuales del nav y de las tabs del dashboard, ninguno con cambios de comportamiento), la branch `feature/delete-cascade-and-ux-polish` se mergea con fast-forward a `master` y se pushea `master` + la branch del feature a `origin`.
 - **L13 (2026-10-19, cierre — último hueco del verificador)**: el verificador había señalado que faltaba un test HTTP de 409 con **varias** ventas asociadas y otro que compruebe que la venta **sobrevive** al 409 (no solo la compra). Cerrado: `server/src/__tests__/buys-routes.test.ts` ahora cubre el 409 con dos ventas (las lista todas, orden DESC por id, con su `items_count`) y afirma que ni la compra ni ninguna de las ventas se tocan. Verificado por mutación (4 tests en rojo al hacer que el 409 borre).
+- **L14 (2026-10-19, decisiones del usuario sobre los nits y las limitaciones)**:
+  1. **`BuysRepo.list` se borra**: no tenía consumidor de producción (el endpoint `GET /api/buys` va por `listWithStock`). La cobertura de los filtros de fecha se traslada a `listWithStock`, que es el método que sí se usa en producción.
+  2. **La BD corrupta con FK desactivadas a mano → 500**: "nunca va a pasar = no hagas nada". Se deja el `INNER JOIN` como está.
+  3. **El audit trail pasa a write-ahead**: el log se escribe antes del borrado, y si el borrado falla hay un log de error. Motivo: un audit trail no puede perder un registro (un crash entre el commit y el log dejaba el borrado sin registrar).
+  4. **El log con `customer_name` se queda como está**: "es un log de una herramienta de desarrollo, no es importante".

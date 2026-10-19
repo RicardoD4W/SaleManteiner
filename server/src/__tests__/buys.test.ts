@@ -86,11 +86,15 @@ describe('buys repo', () => {
     });
   });
 
-  describe('list', () => {
-    it('lista todas por defecto', () => {
-      repo.create(validCreate({ product_name: 'A' }));
-      repo.create(validCreate({ product_name: 'B' }));
-      expect(repo.list()).toHaveLength(2);
+  describe('listWithStock', () => {
+    it('lista todas con sus unidades disponibles (orden DESC por id)', () => {
+      repo.create(validCreate({ product_name: 'A', quantity: 5 }));
+      repo.create(validCreate({ product_name: 'B', quantity: 1 }));
+      const r = repo.listWithStock();
+      expect(r).toHaveLength(2);
+      expect(r.map((b) => b.product_name)).toEqual(['B', 'A']);
+      expect(r[0]!.disponibles).toBe(1);
+      expect(r[1]!.disponibles).toBe(5);
     });
 
     it('filtra por dateRange', () => {
@@ -98,7 +102,7 @@ describe('buys repo', () => {
       repo.create(validCreate({ product_name: 'B', purchase_date: '2026-06-01' }));
       repo.create(validCreate({ product_name: 'C', purchase_date: '2026-12-01' }));
 
-      const r = repo.list({ dateRange: { from: '2026-01-01', to: '2026-06-30' } });
+      const r = repo.listWithStock({ dateRange: { from: '2026-01-01', to: '2026-06-30' } });
       expect(r).toHaveLength(2);
       expect(r.map((b) => b.product_name)).toEqual(['B', 'A']);
     });
@@ -106,7 +110,7 @@ describe('buys repo', () => {
     it('filtra por from only', () => {
       repo.create(validCreate({ product_name: 'A', purchase_date: '2026-01-01' }));
       repo.create(validCreate({ product_name: 'B', purchase_date: '2026-12-01' }));
-      const r = repo.list({ dateRange: { from: '2026-06-01' } });
+      const r = repo.listWithStock({ dateRange: { from: '2026-06-01' } });
       expect(r).toHaveLength(1);
       expect(r[0]!.product_name).toBe('B');
     });
@@ -117,13 +121,13 @@ describe('buys repo', () => {
       // el valor por interpolación, la tabla 'buys' desaparece.
       repo.create(validCreate({ product_name: 'A', purchase_date: '2026-01-01' }));
 
-      const r = repo.list({
+      const r = repo.listWithStock({
         dateRange: { from: "2026-01-01'; DROP TABLE buys; --" },
       });
 
       expect(r).toHaveLength(0);
       // La tabla sigue en pie: el payload se comparó como texto.
-      expect(repo.list()).toHaveLength(1);
+      expect(repo.listWithStock()).toHaveLength(1);
     });
   });
 

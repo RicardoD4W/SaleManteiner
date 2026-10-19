@@ -124,14 +124,16 @@ export function buysRouter(deps: BuysRouterDeps): Router {
         return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
       }
       const id = parsed.data.id;
-      // Audit trail (S13): la cascada NO tiene undo. Logueamos qué ventas
-      // quedan afectadas ANTES de borrarlas (si el borrado falla, no hay
-      // log, así que el log solo puede corresponder a un borrado real).
-      const affected = repo.listAssociatedSales(id);
-      const removed = repo.removeWithCascade(id);
-      if (!removed) {
+      // Si la compra no existe no hay nada que borrar ni que registrar.
+      if (!repo.getById(id)) {
         return res.status(404).json({ error: 'Compra no encontrada', id });
       }
+      // Audit trail WRITE-AHEAD (S13): la cascada NO tiene undo, así que el
+      // log va ANTES del borrado. Con el log después, un crash entre el
+      // commit de la transacción y el log dejaría un borrado sin registrar
+      // (justo lo que un audit trail no puede pasar). Si el borrado falla
+      // después, el log de error deja asentado que no se completó.
+      const affected = repo.listAssociatedSales(id);
       logger.warn(
         {
           buy_id: id,
@@ -141,8 +143,21 @@ export function buysRouter(deps: BuysRouterDeps): Router {
             items_count: s.items_count,
           })),
         },
-        'Borrado en cascada de compra',
+        'Borrado en cascada de compra (iniciado)',
       );
+      let removed: boolean;
+      try {
+        removed = repo.removeWithCascade(id);
+      } catch (err) {
+        logger.error({ err, buy_id: id }, 'Borrado en cascada fallido: no se completó');
+        throw err;
+      }
+      if (!removed) {
+        // Solo puede pasar si la compra se borró entre el check y el
+        // borrado (otro proceso).
+        logger.error({ buy_id: id }, 'Borrado en cascada sin efecto: la compra ya no existía');
+        return res.status(404).json({ error: 'Compra no encontrada', id });
+      }
       res.status(204).end();
     }),
   );

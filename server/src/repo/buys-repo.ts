@@ -68,11 +68,10 @@ export type RemoveBuyResult =
 export interface BuysRepo {
   create(input: CreateBuyInput): Buy;
   getById(id: number): Buy | null;
-  list(filters?: ListFilters): Buy[];
   /**
    * Devuelve TODAS las compras con su stock disponible calculado
    * (`quantity - SUM(sale_items.quantity)`), incluso las que ya no tienen
-   * stock (disponibles = 0). Respeta los mismos filtros que `list()`.
+   * stock (disponibles = 0). Acepta los filtros de fecha (`dateRange`).
    * Alimenta `GET /api/buys` para que la tabla de /buys pueda mostrar los
    * pendientes en gris como pista visual (S3 del feature
    * dashboard-iteration-1 — decisión: "Todas + disponibles").
@@ -140,34 +139,17 @@ export function createBuysRepo(db: Database): BuysRepo {
     return row ? rowToBuy(row) : null;
   }
 
-  function list(filters?: ListFilters): Buy[] {
-    // El WHERE es FIJO: el filtro viaja como parámetro bindeado y la
-    // condición se activa con `? IS NULL`. Así no hay ningún fragmento de
-    // SQL armado por concatenación (el valor nunca se interpola).
-    // `|| null` (y no `?? null`) a propósito: el filtro anterior usaba un
-    // check de truthiness, así que la cadena vacía significaba "sin
-    // filtro". Con `||` la equivalencia es exacta.
-    const from = filters?.dateRange?.from || null;
-    const to = filters?.dateRange?.to || null;
-    const rows = db
-      .prepare(
-        `SELECT * FROM buys
-         WHERE (? IS NULL OR purchase_date >= ?)
-           AND (? IS NULL OR purchase_date <= ?)
-         ORDER BY id DESC`,
-      )
-      .all(from, from, to, to) as BuyRow[];
-    return rows.map(rowToBuy);
-  }
-
   /**
    * Stock disponible (S8 del feature):
    * unidades compradas - SUM(sale_items.quantity WHERE buy_id = b.id)
    * HAVING disponibles > 0 ORDER BY id DESC
    */
   function listWithStock(filters?: ListFilters): BuyWithStock[] {
-    // Mismo criterio que `list`: WHERE fijo + parámetros bindeados
-    // (mismo `|| null` para preservar la semántica de la cadena vacía).
+    // Filtros de fecha con WHERE fijo + parámetros bindeados: así no hay
+    // ningún fragmento de SQL armado por concatenación (el valor nunca se
+    // interpola). `|| null` (y no `?? null`) a propósito: el filtro
+    // anterior usaba un check de truthiness, así que la cadena vacía
+    // significaba "sin filtro". Con `||` la equivalencia es exacta.
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
     const rows = db
@@ -304,7 +286,6 @@ export function createBuysRepo(db: Database): BuysRepo {
   return {
     create,
     getById,
-    list,
     listWithStock,
     getWithStock,
     update,
