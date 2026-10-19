@@ -1,5 +1,6 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { logger } from '../logger.js';
 import type { BuysRepo } from '../repo/buys-repo.js';
 import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
@@ -104,6 +105,43 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     }),
   );
 
+  // La ruta cascade se registra antes que `/:id` por claridad de lectura.
+  // OJO: en Express 5 el parámetro `:id` NO matchea segmentos con '/'
+  // (path-to-regexp v8 usa `[^/]+`), así que '/5/cascade' nunca matchearía
+  // `/:id`. El orden NO es lo que protege esta ruta — lo que la protege es
+  // que el path tenga dos segmentos. El test de rutas
+  // `server/src/__tests__/buys-routes.test.ts` lo verifica por HTTP.
+  router.delete(
+    '/:id/cascade',
+    asyncHandler(async (req, res) => {
+      const parsed = IdParam.safeParse(req.params);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+      }
+      const id = parsed.data.id;
+      // Audit trail (S13): la cascada NO tiene undo. Logueamos qué ventas
+      // quedan afectadas ANTES de borrarlas (si el borrado falla, no hay
+      // log, así que el log solo puede corresponder a un borrado real).
+      const affected = repo.listAssociatedSales(id);
+      const removed = repo.removeWithCascade(id);
+      if (!removed) {
+        return res.status(404).json({ error: 'Compra no encontrada', id });
+      }
+      logger.warn(
+        {
+          buy_id: id,
+          affected_sales: affected.map((s) => ({
+            id: s.id,
+            customer_name: s.customer_name,
+            items_count: s.items_count,
+          })),
+        },
+        'Borrado en cascada de compra con ventas asociadas',
+      );
+      res.status(204).end();
+    }),
+  );
+
   router.delete(
     '/:id',
     asyncHandler(async (req, res) => {
@@ -111,11 +149,22 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       if (!parsed.success) {
         return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
       }
-      const removed = repo.remove(parsed.data.id);
-      if (!removed) {
-        return res.status(404).json({ error: 'Compra no encontrada', id: parsed.data.id });
+      const result = repo.remove(parsed.data.id);
+      if (result.ok) {
+        return res.status(204).end();
       }
-      res.status(204).end();
+      if (result.code === 'NOT_FOUND') {
+        return res
+          .status(404)
+          .json({ error: 'Compra no encontrada', id: parsed.data.id });
+      }
+      // HAS_ASSOCIATED_SALES: 409 con la lista de ventas para que la UI
+      // pueda mostrar el modal de confirmación cascade.
+      return res.status(409).json({
+        error:
+          'No se puede borrar: la compra tiene ventas asociadas. ¿Querés borrar también las ventas?',
+        associated_sales: result.sales,
+      });
     }),
   );
 
