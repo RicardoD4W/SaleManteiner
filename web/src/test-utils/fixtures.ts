@@ -64,19 +64,22 @@ export const dashboardStatsFixture: DashboardStats = {
     beneficio_total_eur: 8.0,
     stock_pendiente_count: 1,
   },
-  revenueByMonth: [
-    { month: '2025-11', revenue: 0, profit: 0 },
-    { month: '2025-12', revenue: 0, profit: 0 },
-    { month: '2026-01', revenue: 0, profit: 0 },
-    { month: '2026-02', revenue: 0, profit: 0 },
-    { month: '2026-03', revenue: 0, profit: 0 },
-    { month: '2026-04', revenue: 0, profit: 0 },
-    { month: '2026-05', revenue: 0, profit: 0 },
-    { month: '2026-06', revenue: 0, profit: 0 },
-    { month: '2026-07', revenue: 0, profit: 0 },
-    { month: '2026-08', revenue: 0, profit: 0 },
-    { month: '2026-09', revenue: 0, profit: 0 },
-    { month: '2026-10', revenue: 40.0, profit: 8.0 },
+  // 12 meses consecutivos, el último con actividad.
+  // neto = compras - ventas por convención del spec.
+  cashFlowByMonth: [
+    { month: '2025-11', compras: 0, ventas: 0, neto: 0 },
+    { month: '2025-12', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-01', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-02', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-03', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-04', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-05', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-06', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-07', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-08', compras: 0, ventas: 0, neto: 0 },
+    { month: '2026-09', compras: 0, ventas: 0, neto: 0 },
+    // Mes actual: compras 130€, profit 8€ → neto = 122 (positivo = "ganancia" según spec).
+    { month: '2026-10', compras: 130.0, ventas: 8.0, neto: 122.0 },
   ],
   topProducts: [
     { product_name: 'Funda iPhone', times_sold: 2, total_revenue: 20.0, total_profit: 16.0 },
@@ -87,7 +90,7 @@ export const dashboardStatsFixture: DashboardStats = {
 
 export const emptyDashboardStatsFixture: DashboardStats = {
   kpis: { compras_total_eur: 0, ventas_total_eur: 0, beneficio_total_eur: 0, stock_pendiente_count: 0 },
-  revenueByMonth: dashboardStatsFixture.revenueByMonth.map((m) => ({ ...m, revenue: 0, profit: 0 })),
+  cashFlowByMonth: dashboardStatsFixture.cashFlowByMonth.map((m) => ({ ...m, compras: 0, ventas: 0, neto: 0 })),
   topProducts: [],
   topBuyers: [],
 };

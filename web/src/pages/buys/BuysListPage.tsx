@@ -5,8 +5,11 @@
  *  - Producto, Coste, Cantidad, Asociados, Fecha compra, Disponibles, Acciones.
  *  - Disponibles = quantity - SUM(sale_items.quantity).
  *  - Acciones → enlace a /buys/:id (editar).
+ *
+ *  S3 del feature dashboard-iteration-1: el botón "+ Nueva compra" ahora
+ *  abre el `BuyNewModal` en vez de navegar a `/buys/new`.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   createColumnHelper,
@@ -17,9 +20,9 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table';
-import { useState } from 'react';
 import { useBuys } from '../../hooks/useBuys';
 import { Spinner } from '../../components/ui/Spinner';
+import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
 import type { Buy } from '../../schemas/buys';
 
@@ -33,6 +36,7 @@ interface BuyWithStock extends Buy {
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // TODO (T12 del feature): el server devolverá stock en una query separada
   // (`GET /api/buys` con left join a sale_items). Por ahora mostramos quantity.
@@ -167,14 +171,21 @@ export function BuysListPage() {
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
-        <p className="text-sm text-gray-600 dark:text-gray-400">No hay compras todavía.</p>
-        <Link
-          to="/buys/new"
-          className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-        >
-          Crear la primera →
-        </Link>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:hover:bg-brand-400"
+          >
+            + Nueva compra
+          </button>
+        </div>
+        <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-400">No hay compras todavía.</p>
+        </div>
+        {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
       </div>
     );
   }
@@ -184,12 +195,13 @@ export function BuysListPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
-        <Link
-          to="/buys/new"
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:hover:bg-brand-400"
         >
           + Nueva compra
-        </Link>
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -256,6 +268,7 @@ export function BuysListPage() {
           </div>
         </div>
       </div>
+      {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
     </div>
   );
 }

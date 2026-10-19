@@ -1,21 +1,26 @@
 /**
- * E2E: flujo completo buys + solds + dashboard (T14 de feature-buys-and-solds).
+ * E2E: flujo completo buys + solds + dashboard (T14 de feature-buys-and-solds
+ * + S3 y S5 del feature dashboard-iteration-1).
+ *
+ * Cambios del feature dashboard-iteration-1:
+ *  - S3: las pantallas de creación de buys y solds ahora son modales
+ *    (BuyNewModal / SaleNewModal), no rutas. El botón "+ Nueva compra" en
+ *    /buys y el botón "+ Nueva venta" en /solds abren el modal.
+ *  - S5: el chart del dashboard ahora es CashFlowChart (`data-testid="cashflow-chart"`)
+ *    en lugar de RevenueChart (`data-testid="revenue-chart"`).
  *
  * Cubre:
  *  1. BD vacía (clear buys/solds en beforeEach via API).
  *  2. Crear una compra con cantidad 20 via API.
- *  3. Abrir /solds/new → el ProductPickerModal muestra la compra con "20 disponibles".
+ *  3. Abrir /solds y click en "+ Nueva venta" → el SaleNewModal muestra el
+ *     ProductPickerModal con la compra y "20 disponibles".
  *  4. Seleccionar la compra, pedir 5 unidades.
  *  5. Crear un customer inline en el CustomerAutocomplete.
- *  6. Submit → redirige a /solds/:id, la venta aparece con sus items.
- *  7. Volver a /buys → la compra aparece (la columna "Disponibles" usa un
- *     placeholder hasta T12: muestra `quantity` sin restar ventas).
+ *  6. Submit → modal cierra, la lista refresca.
+ *  7. Volver a /buys → la compra aparece.
  *  8. Ir a /dashboard → KPIs actualizados: ventas_total=precio, beneficio=precio - COGS - asociados.
  *  9. Pack multi-producto: crear 2 compras, vender 2 items de A + 1 de B en una sola venta.
  *     Verificar topProducts con prorrateo por unidad.
- *
- * Nota: este spec asume que WU3 (T13) ya wired-up las rutas /buys, /solds,
- * /dashboard en App.tsx.
  */
 import { expect } from '@playwright/test';
 import { test, clearAll } from './fixtures';
@@ -60,7 +65,7 @@ test.beforeEach(async ({ request }) => {
   await clearAll(request);
 });
 
-test('compra con cantidad 20 aparece en ProductPickerModal con "20 disponibles"', async ({
+test('compra con cantidad 20 aparece en el ProductPickerModal con "20 disponibles"', async ({
   page,
   request,
 }) => {
@@ -72,8 +77,9 @@ test('compra con cantidad 20 aparece en ProductPickerModal con "20 disponibles"'
   });
   expect(buyId).toBeGreaterThan(0);
 
-  // 2. Ir a /solds/new. La página debería abrir el ProductPickerModal al montar.
-  await page.goto('/solds/new');
+  // 2. Ir a /solds y abrir el modal de nueva venta con el botón.
+  await page.goto('/solds');
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
 
   // 3. Verificar que el modal se muestra con la compra y el stock.
   // El modal es un <div role="dialog"> con aria-modal.
@@ -94,36 +100,33 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
     quantity: 20,
   });
 
-  // 2. Ir a /solds/new.
-  await page.goto('/solds/new');
+  // 2. Ir a /solds y abrir el modal.
+  await page.goto('/solds');
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
 
-  // 3. En el ProductPickerModal, seleccionar la compra (checkbox) y pedir 5 unidades.
-  // El checkbox tiene aria-label="Seleccionar {product_name}" → substring match funciona.
-  // El input de cantidad tiene label "Cantidad para {product_name}" (sr-only).
-  // El botón de confirmar dice "Confirmar (N)" → /confirmar/i matchea.
-  const modal = page.getByRole('dialog');
-  await modal.getByLabel('Funda iPhone').check();
-  await modal.getByLabel('Cantidad').fill('5');
-  await modal.getByRole('button', { name: /confirmar/i }).click();
+  // 3. En el ProductPickerModal (step 1 del SaleNewModal), seleccionar la
+  // compra (checkbox) y pedir 5 unidades.
+  const picker = page.getByRole('dialog');
+  await picker.getByLabel('Funda iPhone').check();
+  await picker.getByLabel('Cantidad').fill('5');
+  await picker.getByRole('button', { name: /confirmar/i }).click();
 
-  // 4. El form de venta aparece con los items pre-rellenados. El modal ya pasa
-  // product_name, así que la lista de items muestra el nombre real del producto.
-  await expect(page.getByText('Funda iPhone')).toBeVisible();
+  // 4. El form de venta (step 2) aparece con los items pre-rellenados.
+  // Usamos .first() porque 'Funda iPhone' también aparece en el sr-only label
+  // "Cantidad para Funda iPhone" del input de cantidad.
+  await expect(page.getByText('Funda iPhone').first()).toBeVisible();
 
   // 5. Seleccionar el cliente via el CustomerAutocomplete.
-  // El input tiene label "Cliente *" y role="combobox". Tipeamos el nombre y
-  // aparece la lista de opciones. Como los customers NO se limpian entre tests
-  // (no hay endpoint DELETE), puede que "Juan Pérez" ya exista de un run previo
-  // (en cuyo caso aparece como opción de selección) o no exista (en cuyo caso
-  // aparece la opción "Crear cliente \"X\""). En ambos casos, la primera opción
-  // del listbox es lo que queremos.
+  // Como los customers NO se limpian entre tests, "Juan Pérez" puede existir
+  // de runs previos (en cuyo caso aparece como opción) o no existir (aparece
+  // la opción "Crear cliente 'X'"). En ambos casos, la primera opción es lo
+  // que queremos.
   await page.getByLabel(/cliente/i).fill('Juan Pérez');
   const customerListbox = page.getByRole('listbox', { name: 'Clientes' });
   await expect(customerListbox).toBeVisible();
   await customerListbox.getByRole('option').first().click();
 
   // 6. Llenar el resto del form: precio, asociados, notas.
-  // Labels reales: "Precio total de venta (€) *", "Gastos asociados (€)", "Notas".
   await page.getByLabel(/precio/i).fill('40');
   await page.getByLabel(/asociados|envío|comisión/i).fill('5');
   await page.getByLabel(/notas/i).fill('Venta de prueba E2E');
@@ -131,10 +134,12 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   // 7. Submit.
   await page.getByRole('button', { name: /crear venta/i }).click();
 
-  // 8. Redirige a /solds/:id (no /solds). Verificamos el patrón del detalle.
-  await page.waitForURL(/\/solds\/\d+/, { timeout: 10_000 });
-  // El SoldEditPage muestra los items del pack con el product_name real.
-  await expect(page.getByText('Funda iPhone')).toBeVisible();
+  // 8. El modal se cierra y la lista de /solds ahora muestra la nueva venta
+  // (cliente + precio). El campo notes no se renderiza en la tabla, así que
+  // verificamos por los datos que sí se muestran.
+  await expect(page.getByRole('dialog')).toBeHidden({ timeout: 5_000 });
+  await expect(page.getByText('Juan Pérez')).toBeVisible();
+  await expect(page.getByText(/40,00/).first()).toBeVisible();
 });
 
 test('después de vender 5 unidades, la compra sigue apareciendo en /buys', async ({
@@ -196,7 +201,7 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
     },
   });
 
-  // 3. Ir a "/" — el index de root renderiza OverviewTab directamente.
+  // 3. Ir a "/" — el index de root renderiza DashboardPage (con OverviewTab).
   await page.goto('/');
   // El OverviewTab tiene un data-testid en el grid de los 4 KPIs.
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
@@ -211,6 +216,9 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
   await expect(page.getByText(/10,00/).first()).toBeVisible();
   // El KPI "Stock pendiente" muestra el número "1" (sin formato de moneda).
   await expect(page.getByText('1').first()).toBeVisible();
+
+  // 5. El chart ahora es CashFlowChart (S5).
+  await expect(page.getByTestId('cashflow-chart')).toBeVisible();
 });
 
 test('pack multi-producto: venta con 2 items de A + 1 de B', async ({
@@ -250,8 +258,8 @@ test('pack multi-producto: venta con 2 items de A + 1 de B', async ({
   await expect(page.getByText('Comprador Pack')).toBeVisible();
   await expect(page.getByText(/30,00/).first()).toBeVisible();
 
-  // 4. Ir a /dashboard/products y verificar que el topProducts muestra ambos
-  // con revenue prorrateado. Producto A: 2/3 de 30 = 20€; Producto B: 1/3 de 30 = 10€.
+  // 4. Ir a /dashboard/products y verificar que el products-table muestra
+  // ambos productos (tabla ordenable en S8).
   await page.goto('/dashboard/products');
   await expect(page.getByTestId('products-table')).toBeVisible({ timeout: 10_000 });
   const table = page.getByTestId('products-table');
@@ -293,4 +301,28 @@ test('error de stock insuficiente: vender más unidades de las disponibles → 4
     disponibles: 3,
     solicitado: 10,
   });
+});
+
+test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', async ({
+  page,
+}) => {
+  await page.goto('/buys');
+  await page.getByRole('button', { name: /\+ Nueva compra/ }).click();
+
+  // El BuyNewModal tiene role="dialog" y los inputs del form.
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByLabel('Producto *')).toBeVisible();
+  await expect(modal.getByLabel('Coste (€) *')).toBeVisible();
+  await expect(modal.getByLabel('Cantidad *')).toBeVisible();
+
+  // Llenar y submit.
+  await modal.getByLabel('Producto *').fill('Funda Test');
+  await modal.getByLabel('Coste (€) *').fill('50');
+  await modal.getByLabel('Cantidad *').fill('3');
+  await modal.getByRole('button', { name: /Crear compra/ }).click();
+
+  // Modal cierra, lista refresca.
+  await expect(modal).toBeHidden({ timeout: 5_000 });
+  await expect(page.getByText('Funda Test')).toBeVisible();
 });

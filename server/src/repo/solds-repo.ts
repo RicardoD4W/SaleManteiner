@@ -67,9 +67,16 @@ export interface SoldsRepo {
   /** Venta con sus items y nombre del cliente (S8 detail query). */
   getByIdWithItems(id: number): SoldWithItems | null;
   list(filters?: ListFilters): Sold[];
+  /** Listado de ventas con el profit calculado (S13) por venta. Alimenta /solds (SoldsListPage). */
+  listWithProfit(filters?: ListFilters): SoldWithProfit[];
   update(id: number, input: UpdateSoldInput): Sold | null;
   remove(id: number): boolean;
   statsDashboard(): DashboardStats;
+}
+
+/** Sold con el profit calculado (S13) — sale_price - associated - COGS - buy.associated. */
+export interface SoldWithProfit extends Sold {
+  profit: number;
 }
 
 export interface DashboardStats {
@@ -79,7 +86,17 @@ export interface DashboardStats {
     beneficio_total_eur: number;
     stock_pendiente_count: number;
   };
-  revenueByMonth: Array<{ month: string; revenue: number; profit: number }>;
+  /**
+   * Cash flow mensual (S5 del feature dashboard-iteration-1).
+   *  - compras = inversión del mes (buys.purchase_cost + buys.associated_costs
+   *    de las compras con purchase_date en el mes, más solds.associated_costs
+   *    de las ventas con sold_at en el mes).
+   *  - ventas = profit realizado por las ventas del mes (fórmula S13).
+   *  - neto = compras - ventas (convención del spec del feature: abajo de cero
+   *    se colorea rojo = "zona de pérdida"; arriba de cero se colorea verde =
+   *    "zona de ganancia").
+   */
+  cashFlowByMonth: Array<{ month: string; compras: number; ventas: number; neto: number }>;
   topProducts: Array<{
     product_name: string;
     times_sold: number;
@@ -265,6 +282,42 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     return rows.map(rowToSold);
   }
 
+  function listWithProfit(filters?: ListFilters): SoldWithProfit[] {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (filters?.customerId !== undefined) {
+      conditions.push('s.customer_id = ?');
+      params.push(filters.customerId);
+    }
+    if (filters?.dateRange?.from) {
+      conditions.push('s.sold_at >= ?');
+      params.push(filters.dateRange.from);
+    }
+    if (filters?.dateRange?.to) {
+      conditions.push('s.sold_at <= ?');
+      params.push(filters.dateRange.to);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const rows = db
+      .prepare(
+        `SELECT s.*,
+          s.sale_price - s.associated_costs - COALESCE((
+            SELECT SUM(si.quantity * (ROUND(b.purchase_cost / b.quantity, 2) + ROUND(b.associated_costs / b.quantity, 2)))
+            FROM sale_items si
+            JOIN buys b ON b.id = si.buy_id
+            WHERE si.sold_id = s.id
+          ), 0) AS profit
+         FROM solds s
+         ${where}
+         ORDER BY s.id DESC
+         LIMIT 200`,
+      )
+      .all(...params) as Array<SoldRow & { profit: number }>;
+    return rows.map((r) => ({ ...rowToSold(r), profit: round2(r.profit) }));
+  }
+
   function update(id: number, input: UpdateSoldInput): Sold | null {
     const existing = getById(id);
     if (!existing) return null;
@@ -359,31 +412,76 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       stock_pendiente_count: stockRow.cnt,
     };
 
-    // ── Revenue by month (últimos 12 meses, incluyendo meses sin ventas) ────
-    const monthRows = db
+    // ── Cash flow by month (últimos 12 meses, S5 del feature) ────────────
+    //
+    // Para cada mes calendario queremos:
+    //   compras = SUM(buys.purchase_cost + buys.associated_costs) +
+    //             SUM(solds.associated_costs) donde las fechas caen en ese mes.
+    //   ventas  = SUM del profit realizado por venta del mes (fórmula S13).
+    //   neto    = compras - ventas (convención del spec: negativo=pérdida,
+    //             positivo=ganancia → el chart colorea rojo bajo cero y verde
+    //             sobre cero).
+    //
+    // Meses sin actividad se rellenan con 0 (no se omiten) para mantener
+    // siempre 12 puntos consecutivos en el eje X.
+
+    // 1) Compras por mes: un UNION ALL entre buys y la parte de asociados de
+    //    solds, agrupado por mes calendario.
+    const comprasRows = db
       .prepare(
-        `SELECT
-           strftime('%Y-%m', sold_at) AS month,
-           SUM(s.sale_price) AS revenue,
-           SUM(s.sale_price - s.associated_costs) AS raw_profit
-         FROM solds s
-         WHERE s.sold_at IS NOT NULL
-           AND s.sold_at >= date('now', '-12 months')
+        `SELECT month,
+                COALESCE(SUM(compras_de_buys), 0) AS compras_de_buys,
+                COALESCE(SUM(asociados_de_solds), 0) AS asociados_de_solds
+         FROM (
+           SELECT strftime('%Y-%m', purchase_date) AS month,
+                  purchase_cost + associated_costs AS compras_de_buys,
+                  0 AS asociados_de_solds
+           FROM buys
+           WHERE purchase_date IS NOT NULL
+           UNION ALL
+           SELECT strftime('%Y-%m', sold_at) AS month,
+                  0 AS compras_de_buys,
+                  associated_costs AS asociados_de_solds
+           FROM solds
+           WHERE sold_at IS NOT NULL
+         )
          GROUP BY month`,
       )
-      .all() as Array<{ month: string; revenue: number; raw_profit: number }>;
+      .all() as Array<{ month: string; compras_de_buys: number; asociados_de_solds: number }>;
 
-    // El profit mensual se calcula sin restar el coste de compra (eso se deduce
-    // del total de inversión). El profit neto mensual = revenue - associated.
-    const monthMap = new Map(monthRows.map((r) => [r.month, r]));
+    // 2) Ventas por mes: profit realizado por cada venta del mes (S13). El
+    //    subquery `cogs_calc` agrupa por sold_id el coste prorrateado de cada
+    //    item, y la query principal suma sale_price - associated_costs - cogs
+    //    agrupando por mes calendario.
+    const ventasRows = db
+      .prepare(
+        `SELECT
+           strftime('%Y-%m', s.sold_at) AS month,
+           COALESCE(SUM(s.sale_price - s.associated_costs - cogs_calc.cogs), 0) AS ventas
+         FROM solds s
+         JOIN (
+           SELECT si.sold_id,
+                  SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2))
+                  + SUM(si.quantity * ROUND(b.associated_costs / b.quantity, 2)) AS cogs
+           FROM sale_items si
+           JOIN buys b ON b.id = si.buy_id
+           GROUP BY si.sold_id
+         ) cogs_calc ON cogs_calc.sold_id = s.id
+         WHERE s.sold_at IS NOT NULL
+         GROUP BY month`,
+      )
+      .all() as Array<{ month: string; ventas: number }>;
+
+    const comprasMap = new Map(comprasRows.map((r) => [r.month, r]));
+    const ventasMap = new Map(ventasRows.map((r) => [r.month, r]));
     const months = lastNMonths(12);
-    const revenueByMonth = months.map((month) => {
-      const r = monthMap.get(month);
-      return {
-        month,
-        revenue: r ? round2(r.revenue) : 0,
-        profit: r ? round2(r.raw_profit) : 0,
-      };
+    const cashFlowByMonth = months.map((month) => {
+      const c = comprasMap.get(month);
+      const v = ventasMap.get(month);
+      const compras = round2((c?.compras_de_buys ?? 0) + (c?.asociados_de_solds ?? 0));
+      const ventas = round2(v?.ventas ?? 0);
+      const neto = round2(compras - ventas);
+      return { month, compras, ventas, neto };
     });
 
     // ── Top products (prorrateo por unidad para packs) ────────────────────
@@ -456,7 +554,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       total_gastado: round2(r.total_gastado),
     }));
 
-    return { kpis, revenueByMonth, topProducts: topProductsFormatted, topBuyers: topBuyersFormatted };
+    return { kpis, cashFlowByMonth, topProducts: topProductsFormatted, topBuyers: topBuyersFormatted };
   }
 
   return {
@@ -465,6 +563,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     getById,
     getByIdWithItems,
     list,
+    listWithProfit,
     update,
     remove,
     statsDashboard,

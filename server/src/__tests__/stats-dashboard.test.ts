@@ -1,13 +1,18 @@
 /**
- * Tests del dashboard stats del nuevo modelo (S11 del feature).
+ * Tests del dashboard stats del nuevo modelo (S11 del feature buys-and-solds
+ * + S5 del feature dashboard-iteration-1).
  *
  * Cobertura:
- *  - BD vacía: KPIs en 0, 12 meses con revenue=0, sin top products/buyers.
- *  - revenueByMonth: últimos 12 meses, formato YYYY-MM, ordenado ascendente.
- *  - Meses sin ventas: relleno con 0 (incluye mes actual).
- *  - topProducts: ordena por total_revenue DESC, top 10, times_sold por buy.
- *  - topBuyers: ordena por total_gastado DESC, top 10.
- *  - KPIs: compras_total_eur, ventas_total_eur, beneficio_total_eur, stock_pendiente_count.
+ *  - BD vacía: KPIs en 0, 12 meses con compras/ventas/neto = 0, sin top
+ *    products/buyers.
+ *  - cashFlowByMonth: últimos 12 meses, formato YYYY-MM, ordenado ascendente.
+ *  - Meses sin actividad: relleno con 0 (incluye mes actual).
+ *  - KPIs: compras_total_eur, ventas_total_eur, beneficio_total_eur,
+ *    stock_pendiente_count.
+ *  - Compras-only (sin ventas): compras > 0, ventas = 0, neto = compras.
+ *  - Ventas-only (sin compras del mes): compras = 0, ventas > 0, neto = -ventas.
+ *  - topProducts / topBuyers: orden, prorrateo, top 10.
+ *  - beneficio_total_eur: no resta stock pendiente; S13 aplicado a packs.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
@@ -22,6 +27,13 @@ import { CreateCustomerInput } from '../schemas/customers.js';
 
 function todayLocalDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** Resta N meses al día actual en formato YYYY-MM-DD (para tests con meses anteriores). */
+function dateMonthsAgo(n: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return d.toISOString().slice(0, 10);
 }
 
 function validBuy(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateBuyInput.parse> {
@@ -65,18 +77,19 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.kpis.ventas_total_eur).toBe(0);
     expect(stats.kpis.beneficio_total_eur).toBe(0);
     expect(stats.kpis.stock_pendiente_count).toBe(0);
-    expect(stats.revenueByMonth).toHaveLength(12);
-    stats.revenueByMonth.forEach((m) => {
-      expect(m.revenue).toBe(0);
-      expect(m.profit).toBe(0);
+    expect(stats.cashFlowByMonth).toHaveLength(12);
+    stats.cashFlowByMonth.forEach((m) => {
+      expect(m.compras).toBe(0);
+      expect(m.ventas).toBe(0);
+      expect(m.neto).toBe(0);
     });
     expect(stats.topProducts).toHaveLength(0);
     expect(stats.topBuyers).toHaveLength(0);
   });
 
-  it('revenueByMonth: formato YYYY-MM, ordenado ascendente, 12 puntos', () => {
+  it('cashFlowByMonth: formato YYYY-MM, ordenado ascendente, 12 puntos', () => {
     const stats = soldsRepo.statsDashboard();
-    const months = stats.revenueByMonth.map((m) => m.month);
+    const months = stats.cashFlowByMonth.map((m) => m.month);
     expect(months).toHaveLength(12);
     for (const month of months) {
       expect(month).toMatch(/^\d{4}-\d{2}$/);
@@ -88,7 +101,9 @@ describe('statsDashboard (nuevo modelo)', () => {
 
   it('una venta del mes actual aparece en el último slot y en topProducts', () => {
     const customer = customersRepo.create(validCustomer({ name: 'Juan' }));
-    const buy = buysRepo.create(validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 10 }));
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 10, purchase_date: todayLocalDate() }),
+    );
 
     soldsRepo.createManyWithStockCheck(
       validSold({
@@ -101,9 +116,13 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
 
     const stats = soldsRepo.statsDashboard();
-    const currentMonth = stats.revenueByMonth[11]!;
-    expect(currentMonth.revenue).toBe(8);
-    expect(currentMonth.profit).toBe(7); // revenue - associated_costs
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    // compras del mes = (5 + 0) de buys + 1 de solds.associated_costs = 6.
+    // profit de la venta = 8 - 1 - (1 * 0.5) - (1 * 0) = 6.5 (cost/unit = 5/10 = 0.5).
+    // neto = 6 - 6.5 = -0.5.
+    expect(currentMonth.compras).toBe(6);
+    expect(currentMonth.ventas).toBe(6.5);
+    expect(currentMonth.neto).toBe(-0.5);
 
     expect(stats.topProducts).toHaveLength(1);
     expect(stats.topProducts[0]).toMatchObject({
@@ -294,5 +313,103 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     expect(stats.kpis.beneficio_total_eur).toBeCloseTo(21.8, 2);
+  });
+
+  // ── S5 del feature dashboard-iteration-1: cash flow por mes ───────────
+
+  it('cashFlowByMonth: solo compras en el mes, sin ventas → compras > 0, ventas = 0, neto = compras', () => {
+    // Compra de 100€ en el mes actual, sin ventas.
+    buysRepo.create(
+      validBuy({ product_name: 'Lote', purchase_cost: 100, associated_costs: 0, purchase_date: todayLocalDate() }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    expect(currentMonth.compras).toBe(100);
+    expect(currentMonth.ventas).toBe(0);
+    expect(currentMonth.neto).toBe(100);
+  });
+
+  it('cashFlowByMonth: solo ventas en el mes (sin buys nuevos) → compras = 0, ventas > 0, neto = -ventas', () => {
+    // Buy de un mes anterior (no cuenta en el mes actual) + venta en el mes actual.
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'Lote', purchase_cost: 50, quantity: 5, purchase_date: dateMonthsAgo(2) }),
+    );
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+
+    // Venta en el mes actual: 80€ - 0 - (1 * 10) = 70€ de profit.
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 80,
+        associated_costs: 0,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    // Sin buys en el mes actual: compras = 0 + asociados de solds (0) = 0.
+    expect(currentMonth.compras).toBe(0);
+    // Profit de la venta = 80 - 0 - 10 = 70.
+    expect(currentMonth.ventas).toBe(70);
+    expect(currentMonth.neto).toBe(-70);
+  });
+
+  it('cashFlowByMonth: mes con buy y venta contabiliza compras (incluye asociados de solds)', () => {
+    // Compra del mes actual: 30€ cost + 5€ asociados.
+    const buy = buysRepo.create(
+      validBuy({
+        product_name: 'Prod',
+        purchase_cost: 30,
+        quantity: 10,
+        associated_costs: 5,
+        purchase_date: todayLocalDate(),
+      }),
+    );
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+
+    // Venta del mes: 50€ - 2€ (asociados) - COGS (1*3 = 3) - buy_assoc (1*0.5) = 44.5€ de profit.
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 50,
+        associated_costs: 2,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    // compras = (30 + 5) + 2 = 37 (buy.total + solds.associated_costs).
+    expect(currentMonth.compras).toBe(37);
+    // ventas = 50 - 2 - 3 - 0.5 = 44.5 (cost/unit=3, buy_assoc/unit=0.5).
+    expect(currentMonth.ventas).toBe(44.5);
+    // neto = 37 - 44.5 = -7.5.
+    expect(currentMonth.neto).toBe(-7.5);
+  });
+
+  it('cashFlowByMonth: meses sin actividad se rellenan con 0', () => {
+    // Actividad en el mes actual únicamente; los 11 meses anteriores deben ser 0/0/0.
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'X', purchase_cost: 10, quantity: 5, purchase_date: todayLocalDate() }),
+    );
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 15,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    // 11 meses anteriores al actual: todos en 0.
+    for (let i = 0; i < 11; i++) {
+      expect(stats.cashFlowByMonth[i]).toMatchObject({ compras: 0, ventas: 0, neto: 0 });
+    }
   });
 });

@@ -20,7 +20,8 @@ interface DashboardStatsResponse {
 }
 
 /**
- * Payload de GET /api/stats/dashboard (S11 del feature buys-and-solds).
+ * Payload de GET /api/stats/dashboard (S11 del feature buys-and-solds, S5 del
+ * feature dashboard-iteration-1).
  * Importes en euros decimales (no céntimos) — la BD guarda REAL y el server
  * ya hace el prorrateo por unidad.
  */
@@ -31,7 +32,18 @@ export interface DashboardStats {
     beneficio_total_eur: number;
     stock_pendiente_count: number;
   };
-  revenueByMonth: Array<{ month: string; revenue: number; profit: number }>;
+  /**
+   * Cash flow mensual (S5 del feature dashboard-iteration-1).
+   *  - compras = inversión del mes (suma de buys.purchase_cost + buys.associated_costs
+   *    de compras con purchase_date en el mes, más solds.associated_costs de
+   *    ventas con sold_at en el mes).
+   *  - ventas = profit realizado por ventas del mes (sale_price - associated_costs
+   *    - COGS prorrateado - buy_assoc prorrateado, fórmula S13).
+   *  - neto = compras - ventas. Convención del spec: negativo=pérdida, positivo=ganancia.
+   *    El chart colorea rojo bajo cero y verde sobre cero.
+   * 12 meses consecutivos, meses sin actividad con 0.
+   */
+  cashFlowByMonth: Array<{ month: string; compras: number; ventas: number; neto: number }>;
   topProducts: Array<{
     product_name: string;
     times_sold: number;

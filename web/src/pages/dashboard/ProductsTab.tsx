@@ -1,15 +1,67 @@
+/**
+ * Tab Productos (T12 de feature-buys-and-solds + S8 del feature
+ * dashboard-iteration-1).
+ *
+ * Cambios del feature:
+ *  - S8: se elimina el `TopProductsChart` (bar chart horizontal). La página
+ *    ahora muestra solo la tabla detalle con ordenamiento de 3 estados
+ *    (neutral → ascendente → descendente → neutral) usando el hook
+ *    `useSortable`.
+ */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { TopProductsChart } from '../../components/dashboard/TopProductsChart';
+import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
 
-/**
- * Tab Productos (T12): TopProductsChart + tabla detalle.
- * Importes en EUROS.
- */
+type ProductRow = {
+  product_name: string;
+  times_sold: number;
+  total_revenue: number;
+  total_profit: number;
+};
+
+function SortHeader({
+  label,
+  sortKey,
+  currentKey,
+  currentDir,
+  align = 'left',
+  onSort,
+}: {
+  label: string;
+  sortKey: keyof ProductRow;
+  currentKey: keyof ProductRow | null;
+  currentDir: 'asc' | 'desc' | null;
+  align?: 'left' | 'right';
+  onSort: (key: keyof ProductRow) => void;
+}) {
+  const isActive = currentKey === sortKey;
+  const indicator = isActive ? (currentDir === 'asc' ? '▲' : '▼') : '';
+  return (
+    <th
+      scope="col"
+      onClick={() => onSort(sortKey)}
+      className={[
+        'cursor-pointer select-none px-3 py-2 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+        align === 'right' ? 'text-right' : 'text-left',
+      ].join(' ')}
+      aria-sort={
+        isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'
+      }
+    >
+      {label}
+      {indicator ? <span className="ml-1">{indicator}</span> : null}
+    </th>
+  );
+}
+
 export function ProductsTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
+
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable<ProductRow>(
+    (data?.topProducts ?? []) as ProductRow[],
+  );
 
   if (isLoading) {
     return (
@@ -41,21 +93,14 @@ export function ProductsTab() {
     <div className="space-y-6">
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Top 10 productos por revenue</h3>
-          {data.topProducts.length === 0 ? (
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
+            Productos vendidos
+          </h3>
+          {sortedItems.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay ventas vendidas para armar el ranking.
             </p>
           ) : (
-            <TopProductsChart data={data.topProducts} />
-          )}
-        </CardBody>
-      </Card>
-
-      {data.topProducts.length > 0 ? (
-        <Card>
-          <CardBody>
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Detalle</h3>
             <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
               <table
                 className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800"
@@ -63,22 +108,41 @@ export function ProductsTab() {
               >
                 <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">
-                      Producto
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
-                      Veces vendido
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
-                      Revenue
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
-                      Profit
-                    </th>
+                    <SortHeader
+                      label="Producto"
+                      sortKey="product_name"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      onSort={onSort}
+                    />
+                    <SortHeader
+                      label="Veces vendido"
+                      sortKey="times_sold"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      align="right"
+                      onSort={onSort}
+                    />
+                    <SortHeader
+                      label="Revenue"
+                      sortKey="total_revenue"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      align="right"
+                      onSort={onSort}
+                    />
+                    <SortHeader
+                      label="Profit"
+                      sortKey="total_profit"
+                      currentKey={sortKey}
+                      currentDir={sortDir}
+                      align="right"
+                      onSort={onSort}
+                    />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  {data.topProducts.map((p) => (
+                  {sortedItems.map((p) => (
                     <tr key={p.product_name}>
                       <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{p.product_name}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
@@ -100,9 +164,9 @@ export function ProductsTab() {
                 </tbody>
               </table>
             </div>
-          </CardBody>
-        </Card>
-      ) : null}
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

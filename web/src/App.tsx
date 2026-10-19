@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { OverviewTab } from './pages/dashboard/OverviewTab';
@@ -6,46 +6,52 @@ import { RevenueTab } from './pages/dashboard/RevenueTab';
 import { ProductsTab } from './pages/dashboard/ProductsTab';
 import { BuyersTab } from './pages/dashboard/BuyersTab';
 import { BuysListPage } from './pages/buys/BuysListPage';
-import { BuyNewPage } from './pages/buys/BuyNewPage';
 import { BuyEditPage } from './pages/buys/BuyEditPage';
 import { SoldsListPage } from './pages/solds/SoldsListPage';
-import { SoldNewPage } from './pages/solds/SoldNewPage';
 import { SoldEditPage } from './pages/solds/SoldEditPage';
 
 /**
- * Router de la app (S10 de feature-buys-and-solds).
+ * Tabs anidadas del Dashboard. Compartidas entre la ruta `/` y la ruta
+ * `/dashboard` (S4 del feature dashboard-iteration-1): ambas renderizan
+ * `<DashboardPage>` con las mismas children, de modo que `/` y
+ * `/dashboard` muestran exactamente la misma vista.
+ */
+const dashboardChildren: RouteObject[] = [
+  { index: true, element: <OverviewTab /> },
+  { path: 'revenue', element: <RevenueTab /> },
+  { path: 'products', element: <ProductsTab /> },
+  { path: 'buyers', element: <BuyersTab /> },
+];
+
+/**
+ * Router de la app (S10 de feature-buys-and-solds + S3-S4 de
+ * dashboard-iteration-1).
  *
- *  - `/`              → Dashboard (con tabs anidadas en `/dashboard/*`).
- *  - `/buys`          → lista de compras.
- *  - `/buys/new`      → form de nueva compra.
- *  - `/buys/:id`      → form de edición de compra.
- *  - `/solds`         → lista de ventas.
- *  - `/solds/new`     → form de nueva venta (con ProductPickerModal).
- *  - `/solds/:id`     → form de edición de venta.
- *  - `/dashboard`     → tab default (Overview) — alias de `/`.
+ *  - `/`              → Dashboard (mismo componente que `/dashboard`).
+ *  - `/dashboard`     → Dashboard (mismo componente que `/`).
  *  - `/dashboard/{revenue,products,buyers}` → tabs con deep-link.
+ *  - `/buys`          → lista de compras (el "+ Nueva compra" abre modal).
+ *  - `/buys/:id`      → form de edición de compra.
+ *  - `/solds`         → lista de ventas (el "+ Nueva venta" abre modal).
+ *  - `/solds/:id`     → form de edición de venta.
+ *
+ *  Las rutas `/buys/new` y `/solds/new` se eliminaron (S3): la creación
+ *  se hace en modales (BuyNewModal / SaleNewModal).
  */
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
     children: [
-      { index: true, element: <OverviewTab /> },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
-        children: [
-          { index: true, element: <OverviewTab /> },
-          { path: 'revenue', element: <RevenueTab /> },
-          { path: 'products', element: <ProductsTab /> },
-          { path: 'buyers', element: <BuyersTab /> },
-        ],
-      },
+      // `/` y `/dashboard` muestran el mismo componente (S4 del feature).
+      // Usamos `path: ''` en vez de `index: true` para que el type de
+      // react-router v7 (que prohibe `children` en index routes) no se queje.
+      // `path: ''` matchea el index de `/` igual que `index: true` lo haría.
+      { path: '', element: <DashboardPage />, children: dashboardChildren },
+      { path: 'dashboard', element: <DashboardPage />, children: dashboardChildren },
       { path: 'buys', element: <BuysListPage /> },
-      { path: 'buys/new', element: <BuyNewPage /> },
       { path: 'buys/:id', element: <BuyEditPage /> },
       { path: 'solds', element: <SoldsListPage /> },
-      { path: 'solds/new', element: <SoldNewPage /> },
       { path: 'solds/:id', element: <SoldEditPage /> },
     ],
   },

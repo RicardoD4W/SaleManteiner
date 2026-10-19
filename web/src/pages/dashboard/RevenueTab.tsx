@@ -1,20 +1,27 @@
+/**
+ * Tab Ingresos (S7 del feature dashboard-iteration-1):
+ *  - Todas las labels y hints en español.
+ *  - El chart ahora muestra `cashFlowByMonth` (S5): la línea de neto con
+ *    áreas verde (ganancia) / rojo (pérdida). El header del chart pasa a
+ *    "Cash flow por mes" para reflejar el nuevo contenido.
+ *
+ * Cálculo de YTD: revenue YTD = suma de `ventas` (profit realizado) de los
+ * últimos 12 meses, profit YTD = suma de `neto`. "Mejor mes" se mantiene
+ * como el mes con mayor `ventas` (profit realizado).
+ */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { RevenueChart } from '../../components/dashboard/RevenueChart';
+import { CashFlowChart } from '../../components/dashboard/CashFlowChart';
 import { formatEuro } from '../../lib/format';
 
-/**
- * Tab Ingresos (T12): revenue + profit mensual con YTD y mejor mes.
- * Importes en EUROS.
- */
 export function RevenueTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-        <Spinner size="sm" /> Cargando revenue…
+        <Spinner size="sm" /> Cargando ingresos…
       </div>
     );
   }
@@ -37,12 +44,12 @@ export function RevenueTab() {
 
   if (!data) return null;
 
-  const ytdRevenue = data.revenueByMonth.reduce((acc, m) => acc + m.revenue, 0);
-  const ytdProfit = data.revenueByMonth.reduce((acc, m) => acc + m.profit, 0);
-  const monthsWithSales = data.revenueByMonth.filter((m) => m.revenue > 0);
-  const bestMonth = monthsWithSales.reduce(
-    (best, m) => (m.revenue > best.revenue ? m : best),
-    monthsWithSales[0] ?? null,
+  const ytdIngresos = data.cashFlowByMonth.reduce((acc, m) => acc + m.ventas, 0);
+  const ytdBeneficio = data.cashFlowByMonth.reduce((acc, m) => acc + m.neto, 0);
+  const monthsWithVentas = data.cashFlowByMonth.filter((m) => m.ventas > 0);
+  const bestMonth = monthsWithVentas.reduce(
+    (best, m) => (m.ventas > best.ventas ? m : best),
+    monthsWithVentas[0] ?? null,
   );
 
   return (
@@ -51,10 +58,10 @@ export function RevenueTab() {
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Revenue YTD
+              Ingresos YTD
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {formatEuro(ytdRevenue)}
+              {formatEuro(ytdIngresos)}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">últimos 12 meses</p>
           </CardBody>
@@ -62,18 +69,18 @@ export function RevenueTab() {
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Profit YTD
+              Beneficio YTD
             </p>
             <p
               className={[
                 'mt-1 text-2xl font-semibold tabular-nums',
-                ytdProfit >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400',
+                ytdBeneficio >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400',
               ].join(' ')}
             >
-              {formatEuro(ytdProfit)}
+              {formatEuro(ytdBeneficio)}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              revenue − COGS − gastos
+              ingresos − COGS − gastos
             </p>
           </CardBody>
         </Card>
@@ -83,7 +90,7 @@ export function RevenueTab() {
               Mejor mes
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {bestMonth ? formatEuro(bestMonth.revenue) : '—'}
+              {bestMonth ? formatEuro(bestMonth.ventas) : '—'}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {bestMonth ? bestMonth.month : 'sin ventas registradas'}
@@ -94,8 +101,8 @@ export function RevenueTab() {
 
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Revenue y profit por mes</h3>
-          <RevenueChart data={data.revenueByMonth} />
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Cash flow por mes</h3>
+          <CashFlowChart data={data.cashFlowByMonth} />
         </CardBody>
       </Card>
     </div>

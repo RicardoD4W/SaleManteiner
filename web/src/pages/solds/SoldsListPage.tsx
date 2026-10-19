@@ -10,8 +10,12 @@
  *
  * Por ahora mostramos el listado plano; la info de items viene de
  * `GET /api/solds` sin items (T12 traerá el detalle enriquecido).
+ *
+ * S3 del feature dashboard-iteration-1: el botón "+ Nueva venta" ahora
+ * abre el `SaleNewModal` (multi-step con ProductPicker) en vez de
+ * navegar a `/solds/new`.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   createColumnHelper,
@@ -22,10 +26,10 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table';
-import { useState } from 'react';
 import { useSolds } from '../../hooks/useSolds';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
+import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
 import type { Sold } from '../../schemas/solds';
 
@@ -40,6 +44,7 @@ export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
   const { data: customers } = useCustomers();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
   const customerMap = useMemo(() => {
@@ -166,14 +171,21 @@ export function SoldsListPage() {
 
   if (!solds || solds.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
-        <p className="text-sm text-gray-600 dark:text-gray-400">No hay ventas todavía.</p>
-        <Link
-          to="/solds/new"
-          className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-        >
-          Crear la primera →
-        </Link>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Ventas</h2>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:hover:bg-brand-400"
+          >
+            + Nueva venta
+          </button>
+        </div>
+        <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-400">No hay ventas todavía.</p>
+        </div>
+        {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
       </div>
     );
   }
@@ -183,12 +195,13 @@ export function SoldsListPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Ventas</h2>
-        <Link
-          to="/solds/new"
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:hover:bg-brand-400"
         >
           + Nueva venta
-        </Link>
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -255,6 +268,7 @@ export function SoldsListPage() {
           </div>
         </div>
       </div>
+      {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
     </div>
   );
 }
