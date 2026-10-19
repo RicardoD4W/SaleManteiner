@@ -325,3 +325,209 @@ test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', asy
   await expect(modal).toBeHidden({ timeout: 5_000 });
   await expect(page.getByText('Funda Test')).toBeVisible();
 });
+
+// ---------------------------------------------------------------------------
+// Tests del feature `phase-8-polish-e2e-docs` (Fase 8 — pulido + e2e + docs):
+// S3-S8 agregan cobertura de flujos no testeados en el feature buys-and-solds.
+// ---------------------------------------------------------------------------
+
+test('editar compra: cambiar coste en /buys/:id refleja en la lista', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear compra via API con valores conocidos.
+  await createBuyViaApi(request, {
+    product_name: 'Funda iPhone',
+    purchase_cost: 100,
+    quantity: 20,
+  });
+
+  // 2. Obtener el id de la compra recién creada.
+  const buysRes = await request.get('/api/buys');
+  const buysBody = (await buysRes.json()) as { data: Array<{ id: number }> };
+  const buyId = buysBody.data[0]!.id;
+
+  // 3. Navegar a /buys/:id y editar el coste de 100 a 150.
+  await page.goto(`/buys/${buyId}`);
+  await expect(page.getByRole('heading', { name: /Editar compra/ })).toBeVisible();
+
+  const costInput = page.getByLabel('Coste (€) *');
+  await expect(costInput).toHaveValue('100');
+  await costInput.fill('150');
+  await page.getByRole('button', { name: /Guardar cambios/ }).click();
+
+  // 4. Navega a /buys y verifica que el coste actualizado aparece en la fila.
+  await expect(page).toHaveURL(/\/buys$/);
+  await expect(page.getByText('150,00 €').first()).toBeVisible();
+});
+
+test('editar venta: cambiar precio en /solds/:id refleja en la lista', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear compra + cliente + venta via API.
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Funda iPhone',
+    purchase_cost: 100,
+    quantity: 20,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Comprador Edit' });
+
+  const soldRes = await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 40,
+      associated_costs: 5,
+      items: [{ buy_id: buyId, quantity: 5 }],
+    },
+  });
+  const soldBody = (await soldRes.json()) as { data: { id: number } };
+  const soldId = soldBody.data.id;
+
+  // 2. Navegar a /solds/:id y editar el precio de 40 a 60.
+  await page.goto(`/solds/${soldId}`);
+  await expect(page.getByRole('heading', { name: /Editar venta/ })).toBeVisible();
+
+  const priceInput = page.getByLabel(/Precio total de venta/);
+  await expect(priceInput).toHaveValue('40');
+  await priceInput.fill('60');
+  await page.getByRole('button', { name: /Guardar cambios/ }).click();
+
+  // 3. Verificar que la lista de /solds muestra el precio actualizado.
+  await expect(page).toHaveURL(/\/solds$/);
+  await expect(page.getByText('60,00 €').first()).toBeVisible();
+});
+
+test('borrar compra: /buys/:id "Eliminar compra" + "Sí, eliminar" la quita de la lista', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear compra via API.
+  await createBuyViaApi(request, {
+    product_name: 'Para Borrar',
+    purchase_cost: 50,
+    quantity: 5,
+  });
+  const buysRes = await request.get('/api/buys');
+  const buysBody = (await buysRes.json()) as { data: Array<{ id: number }> };
+  const buyId = buysBody.data[0]!.id;
+
+  // 2. Navegar a /buys/:id y abrir el dialog de confirmación.
+  await page.goto(`/buys/${buyId}`);
+  await page.getByRole('button', { name: /Eliminar compra/ }).click();
+
+  // 3. Confirmar el borrado en el dialog inline.
+  await expect(page.getByText(/No se puede deshacer/)).toBeVisible();
+  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+
+  // 4. Vuelve a /buys y la fila ya no aparece.
+  await expect(page).toHaveURL(/\/buys$/);
+  await expect(page.getByText('Para Borrar')).not.toBeVisible();
+});
+
+test('borrar venta: /solds/:id "Eliminar venta" + "Sí, eliminar" libera el stock del buy', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear compra (10 unidades) + cliente + venta (5 unidades).
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Con Stock',
+    purchase_cost: 100,
+    quantity: 10,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Comprador Delete' });
+  const soldRes = await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 40,
+      items: [{ buy_id: buyId, quantity: 5 }],
+    },
+  });
+  const soldBody = (await soldRes.json()) as { data: { id: number } };
+  const soldId = soldBody.data.id;
+
+  // 2. Navegar a /solds/:id y borrar la venta.
+  await page.goto(`/solds/${soldId}`);
+  await page.getByRole('button', { name: /Eliminar venta/ }).click();
+  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+
+  // 3. Verificar: /solds no muestra la venta, y /buys muestra el stock
+  // completo (10 disponibles, no 5).
+  await expect(page).toHaveURL(/\/solds$/);
+  await expect(page.getByText('Comprador Delete')).not.toBeVisible();
+
+  await page.goto('/buys');
+  const tbody = page.locator('tbody');
+  await expect(tbody.getByText('10').first()).toBeVisible(); // Disponibles liberados
+});
+
+test('dark mode toggle persiste en reload', async ({ page }) => {
+  // 1. Cargar / y leer el tema inicial desde localStorage.
+  await page.goto('/');
+  const initialTheme = await page.evaluate(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+
+  // 2. Click en el toggle.
+  await page.getByTestId('theme-toggle').click();
+
+  // 3. Verificar que el atributo class="dark" en <html> cambió.
+  const newTheme = await page.evaluate(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+  expect(newTheme).not.toBe(initialTheme);
+
+  // 4. Verificar que localStorage también cambió.
+  const storedTheme = await page.evaluate(() =>
+    window.localStorage.getItem('salemanteiner-theme'),
+  );
+  expect(storedTheme).toBe(newTheme);
+
+  // 5. Reload y verificar que el tema se mantiene (persiste via localStorage
+  // + el script anti-FOUC inline en index.html que aplica la clase antes del
+  // primer paint).
+  await page.reload();
+  const reloadedTheme = await page.evaluate(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+  expect(reloadedTheme).toBe(newTheme);
+});
+
+test('tabs del dashboard navegan entre Resumen / Ingresos / Productos', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear compra + cliente + venta para que el dashboard tenga datos en
+  // todos los tabs (OverviewTab muestra KPIs siempre; ProductsTab necesita
+  // al menos 1 venta para renderizar la products-table; ver ProductsTab.tsx
+  // L86 "if sortedItems.length === 0 → mensaje 'sin ventas'").
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Para Dashboard',
+    purchase_cost: 50,
+    quantity: 3,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Cliente Dashboard' });
+  await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 30,
+      items: [{ buy_id: buyId, quantity: 1 }],
+    },
+  });
+
+  // 2. Ir a /dashboard (Resumen por default).
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('dashboard-tab-resumen')).toBeVisible();
+
+  // 3. Click en "Ingresos" → debe aparecer el cash flow chart (S5 del
+  // feature dashboard-iteration-1).
+  await page.getByTestId('dashboard-tab-ingresos').click();
+  await expect(page.getByTestId('cashflow-chart')).toBeVisible();
+
+  // 4. Click en "Productos" → debe aparecer la products-table (S8 del
+  // feature dashboard-iteration-1). Solo se renderiza cuando hay ventas
+  // (sortedItems.length > 0).
+  await page.getByTestId('dashboard-tab-productos').click();
+  await expect(page.getByTestId('products-table')).toBeVisible({ timeout: 10_000 });
+});
