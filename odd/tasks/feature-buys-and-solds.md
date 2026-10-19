@@ -158,9 +158,9 @@
 
   **Slice boundary (L9)**: el commit WU2 + cleanup tiene ~73 archivos cambiados (21 archivos fuente + tests eliminados, 27 archivos nuevos, 8 modificados, 2 docs, 1 e2e spec). Muy por encima del ~400 line slice recomendado. Es esperado: es un rewrite completo del frontend (legacy \u2192 buys/solds). Partir en commits m\u00e1s chicos habr\u00eda generado commits intermedios con c\u00f3digo inconsistente (p\u00e1ginas sin rutas, dashboard sin datos, refs legacy rotas). El reviewer detect\u00f3 que el worker no hab\u00eda borrado los legacy antes de mergear; sin ese gate de revisi\u00f3n, el commit habr\u00eda dejado refs rotas. **L10 y L11 del feature doc ya est\u00e1n implementados como parte de este cleanup** (dashboard + routes); el spec Playwright de T14 ya est\u00e1 escrito y se puede correr cuando las rutas est\u00e9n wired-up (que es el caso ahora). **Pendiente real**: smoke manual (L12) y cierre final de docs (T15 AGENTS.md secci\u00f3n 4 quitar "EN TRANSICION" + secci\u00f3n 6 actualizar modelo).
 
-- **L10** (cierre WU3 dashboard + navegación + E2E — pendiente hasta ejecución): `DashboardPage` con KPIs del nuevo modelo (`compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur`, `stock_pendiente_count`). Nueva tab "Compradores" en `/dashboard/buyers` con `TopBuyersChart`. `Layout` con links Dashboard · Compras · Ventas · + Nueva (atajo a `/solds/new` por defecto). `App.tsx` actualizado con las rutas nuevas. Spec Playwright `buys-and-solds-flow.spec.ts` cubriendo: crear compra con cantidad 20 → modal muestra 20 disponibles → crear venta con pack 2 items distintos → ver KPIs en dashboard con beneficio coherente → verificar descuadre de stock en `/buys`.
+- **L10** (cierre WU3 dashboard + navegación + E2E — **completado como parte del cleanup de WU2**): `DashboardPage` con KPIs del nuevo modelo (`compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur`, `stock_pendiente_count`). Nueva tab "Compradores" en `/dashboard/buyers` con `TopBuyersChart`. `Layout` con links Dashboard · Compras · Ventas · + Nueva (atajo a `/solds/new` por defecto). `App.tsx` actualizado con las rutas nuevas. Spec Playwright `buys-and-solds-flow.spec.ts` (6 tests originales + 1 agregado en `feature-dashboard-iteration-1`) cubriendo: crear compra con cantidad 20 → modal muestra 20 disponibles → crear venta con pack 2 items distintos → ver KPIs en dashboard con beneficio coherente → verificar descuadre de stock en `/buys` → error 422 stock insuficiente → crear compra desde modal. Commits: `4203bf4 feat(web): buys + solds + customers frontend (WU2 + cleanup + T12-T13)` y `69bb95a test(web): e2e suite limpia para el modelo buys/solds`.
 
-- **L11** (cierre WU4 docs + smoke — pendiente hasta ejecución): `AGENTS.md` actualizado: sección 4 (árbol con `pages/buys/`, `pages/solds/`, schema/migrations 003); sección 6 (modelo de datos nuevo); sección 7 (fases 1/2/3/5/6 sustituidas por este feature; Fase 4 retirada; pendiente real: Fase 7 settings+cifrado si se reactiva); sección 12 (próximo paso). Verificaciones automáticas todas verdes: `npm run typecheck`, `npm run lint`, `npm run build`, `npm test -w server`, `web e2e`.
+- **L11** (cierre WU4 docs + smoke — **código cerrado en WU2**; cierre formal de docs en **L13**, sesión 2026-10-19): AGENTS.md ya reflejaba la estructura nueva del repo y el modelo de datos en sus §4 y §6 (re-hecho en el cleanup de WU2). La única pieza de cierre formal de docs que quedaba —AGENTS.md §12 ("próximo paso") apuntando a WU1 backend cuando WU1 ya estaba mergeado— se corrigió en L13 (esta sesión). Verificaciones automáticas todas verdes en `master`: `npm run typecheck` 0 errores; `npm run lint` 0 warnings; `npm test --workspaces -- --run` 113 server + 70 web passing; `npm run e2e -w web` 7/7 passing.
 
 - **L12** (Smoke manual — opcional, los E2E ya cubren el flujo):
   ```powershell
@@ -196,4 +196,19 @@
   # - Tab Compradores: ver "Juan Pérez" en el ranking
   # - Tab Ingresos: ver revenue y profit mensuales con los decimales correctos (8€ y 20€)
   ```
-  Si algo falla, anotar como L13 y abrir feature doc de bugfix.
+  Si algo falla, anotar como L14 y abrir feature doc de bugfix.
+
+- **L13** (cierre formal T15 + T16 — 2026-10-19, sesión "de la anterior sesión nos hemos dejado algo en el tintero?"): el usuario pidió cerrar T15 (AGENTS.md desactualizado) antes de cerrar el feature formalmente. Acciones aplicadas en la sesión:
+
+  - **AGENTS.md §12** ("Próximo paso inmediato"): ya no apunta a "arrancar WU1 backend". Ahora dice que el modelo `buys/solds` está activo y commiteado en `master`, los features `buys-and-solds` y `dashboard-iteration-1` están cerrados (refs a sus feature docs), y el próximo paso real es el **push a `origin/master`** (13 commits ahead al momento de la edición; 14 después de aplicar L13).
+  - **AGENTS.md §13** ("Notas recientes"): actualizadas a fecha 2026-10-19. Removida la nota "Schemas Zod duplicados server/web — el form convierte a céntimos antes de llamar a la API" (era del modelo `sales` legacy; el feature `buys-and-solds` usa euros decimales en ambos lados). Aclarada la nota de "decisión pendiente" sobre persistir BD en `~/.salemanteiner/`: cerrada por código en `server/src/config.ts` (usa `os.homedir()` por defecto). Aclarada la nota de tests Vitest del frontend: 70 tests en 11 archivos (no 99 — la nota anterior era de la era `sales`). Agregada nota de cierre documentando este L13.
+  - **AGENTS.md §8** (Cómo arrancar): URLs formateadas con `<>` para cumplir markdownlint MD034 (bare URL).
+  - **AGENTS.md §4** (Estructura): fenced code block del árbol con `text` (markdownlint MD040 fenced code sin language).
+
+  **Estado al cierre del feature (formal):**
+  - `master` 14 commits ahead de `origin/master` (push pendiente, decisión del usuario).
+  - Tests: 113 server + 70 web + 7/7 e2e — todos verdes.
+  - Typecheck: 0 errores (server + web).
+  - Lint: 0 warnings (server + web).
+  - Sin features vivos en curso. Smoke manual (L12) opcional.
+  - Limpieza opcional de branches mergeadas (`feature/buys-and-solds`, `feature/dashboard-iteration-1`, `feature/dark-mode`) con `git branch -d` — decisión del usuario.

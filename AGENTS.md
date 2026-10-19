@@ -34,7 +34,7 @@ UI en **español únicamente** (sin i18n), fechas en `dd/MM/yyyy`.
 
 ## 4. Estructura
 
-```
+```text
 SaleManteiner/
 ├── package.json                 ← workspaces npm (root)
 ├── package-lock.json
@@ -217,8 +217,8 @@ npm run dev
 
 URLs:
 
-- Frontend → http://localhost:5173
-- Backend → http://localhost:4000/api/health
+- Frontend → <http://localhost:5173>
+- Backend → <http://localhost:4000/api/health>
 
 Comandos útiles:
 
@@ -328,18 +328,19 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Estado actual**: en transición del modelo `sales` (legacy) al modelo `buys + solds + sale_items + customers` definido en `odd/tasks/feature-buys-and-solds.md`. Fases 1, 2, 3, 5 y 6 marcadas como sustituidas o descartadas arriba; Fase 4 (scraping) retirada del plan; CSV import/export fuera del feature actual.
+**Estado actual**: el modelo `buys + solds + sale_items + customers` está activo y commiteado en `master` (ramas `feature/buys-and-solds` y `feature/dashboard-iteration-1` mergeadas). El modelo legacy `sales` se dropeó en la migración 003. Sin Features vivos en curso. Verificación consolidada al cierre de los features: 113 server + 70 web tests + 7/7 e2e + 0 typecheck/lint. Refs: `odd/tasks/feature-buys-and-solds.md` (T1-T16 cerrados) + `odd/tasks/feature-dashboard-iteration-1.md` (T1-T21 cerrados).
 
-**Próximo paso en curso**: arrancar **WU1 backend** del feature (`feature-buys-and-solds.md` T1-T7): migración 003 con `DROP TABLE sales`, schemas Zod nuevos (`Buy`, `Sold`, `Customer`), helper `round2()`, repos, endpoints REST con validación de stock transaccional, endpoint `/api/stats/dashboard` migrado, tests server. Cuando WU1 esté verde, siguen WU2 (frontend estructural) → WU3 (dashboard + E2E) → WU4 (docs finales + smoke manual).
+**Próximo paso inmediato**: **push a `origin/master`** — la rama local está 13 commits ahead de `origin/master`. Cuando quieras: `git push origin master` (o PR si preferís review antes). Cleanup opcional después: borrar las branches locales mergeadas (`feature/buys-and-solds`, `feature/dashboard-iteration-1`, `feature/dark-mode`) con `git branch -d`.
 
-Decisiones que quedaron pendientes (no bloquean T1):
+Decisiones que quedaron pendientes (no bloquean nada):
 
-1. Decidir si querés persistir la BD en `~/.salemanteiner/` por defecto (ahora el server usa el cwd del proceso si no se setea `SALEMANTEINER_DIR`).
-2. Al cerrar WU4, smoke manual opcional de los flujos nuevos en `localhost:5173` (los E2E ya cubren el flujo principal).
+1. **Smoke manual opcional** de los flujos en `localhost:5173` cuando se quiera validar UX de los features cerrados (los 7 e2e ya cubren el flujo principal; el smoke es redundante salvo para probar interacciones no cubiertas como dark mode toggle o Responsive behavior en mobile). Sin fecha límite.
 
-## 13. Notas recientes (2026-10-16)
+## 13. Notas recientes
 
-- **`openDb` crea el directorio padre de la BD** si no existe (`mkdirSync({ recursive: true })`). Antes crasheaba con `TypeError: Cannot open database because the directory does not exist` cuando `SALEMANTEINER_DIR` apuntaba a un directorio nuevo. Cubierto por 3 tests en `server/src/__tests__/sales.test.ts`. El feature doc de Fase 2 ahora usa `$env:TEMP\salemanteiner-smoke` como ejemplo portable.
-- **Schemas Zod duplicados** server/web (front, actual). El form trabaja en euros y convierte a céntimos antes de llamar a la API; el backend recibe céntimos. Refactor a `shared/` queda como deuda.
-- **Sin tests automatizados de frontend**. SaleManteiner asume que el smoke E2E manual cubre la regresión; para Fase 8 se puede añadir Playwright/Vitest Browser.
-- **Pivote del MVP**: el plan original tenía scraping + CSV + manual; el usuario simplificó el MVP a manual únicamente. El scraping queda como evolución futura (Fase 4).
+- **(2026-10-19) Cierre de features `buys-and-solds` + `dashboard-iteration-1`.** T15 del feature doc formalizado: AGENTS.md §12 deja de apuntar a "arrancar WU1 backend" (WU1-WU4 ya commiteados) y pasa a apuntar al push pendiente + cleanup opcional. El estado del proyecto es: features cerradas, tests verdes, working tree limpio.
+- **(2026-10-16) `openDb` crea el directorio padre de la BD** si no existe (`mkdirSync({ recursive: true })`). Antes crasheaba con `TypeError: Cannot open database because the directory does not exist` cuando `SALEMANTEINER_DIR` apuntaba a un directorio nuevo. Cubierto por 3 tests en `server/src/db/index.test.ts` (cubren `:memory:` + file-based + creación recursiva del dir). El feature doc de Fase 2 ahora usa `$env:TEMP\salemanteiner-smoke` como ejemplo portable.
+- **(2026-10-19) Persistencia BD en `~/.salemanteiner/` por defecto.** El server usa `~/.salemanteiner/data.db` via `os.homedir()` (configurable con `SALEMANTEINER_DIR` / `SALEMANTEINER_DB`). La "decisión pendiente" que figuraba en §12 quedó cerrada por código: `server/src/config.ts` ya implementa este path default. `openDb` crea el directorio padre si no existe.
+- **(2026-10-19) Schemas Zod sin duplicación server/web en el feature `buys-and-solds`.** Ambos lados usan **euros decimales** (`EuroMoney = z.number().nonnegative().multipleOf(0.01)`). El form ya no convierte a céntimos — esa nota era del modelo legacy `sales`. La duplicación del schema (mismo Zod en server y web) sigue siendo deliberada: defensa en profundidad + evitar un monorepo `shared/` que complique el build. Si surge la voluntad de unificar, el refactor es bounded (los schemas están en `server/src/schemas/` y `web/src/schemas/` y son archivos chicos).
+- **(2026-10-19) Tests Vitest del frontend web.** 70 tests en 11 archivos (no los 99 que figuran en notas previas — se ajustaron al modelo `buys/solds`). Cubren schemas/formatters/api-client/api-wrapper/hooks-de-mutación/Button+Badge/SalesTable/KpiCards. La "Fase 8 (Pulido + E2E + docs)" sigue pendiente: añadir más E2E con Playwright o Vitest Browser cuando haya cambios UX nuevos. Hoy los 7 e2e cubren el flujo principal.
+- **(2026-10-16) Pivote del MVP**: el plan original tenía scraping + CSV + manual; el usuario simplificó el MVP a manual únicamente. El scraping queda como evolución futura (Fase 4, retirada).
