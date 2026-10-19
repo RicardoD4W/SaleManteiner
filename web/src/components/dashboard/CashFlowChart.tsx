@@ -58,18 +58,18 @@ export function CashFlowChart({ data }: Props) {
   const innerW = VIEW_W - PAD_LEFT - PAD_RIGHT;
   const innerH = VIEW_H - PAD_TOP - PAD_BOTTOM;
 
-  // Dominio Y: de 0 al máximo entre compras y ventas. Sin negativos (no
-  // aplican: compras y ventas siempre son >= 0 por construcción).
-  const maxValue = Math.max(
-    1,
-    ...data.map((d) => Math.max(d.compras, d.ventas)),
-  );
-  const yDomain = maxValue;
+  // Dominio Y: incluye el cero siempre, y se extiende hacia abajo si hay
+  // ventas negativas (profit < 0 cuando se vendió por debajo del COGS) y
+  // hacia arriba para el máximo de compras. Línea de cero siempre visible
+  // como referencia; el rango se ajusta dinámicamente.
+  const yMin = Math.min(0, ...data.map((d) => d.ventas));
+  const yMax = Math.max(1, ...data.map((d) => d.compras));
+  const yDomain = yMax - yMin;
 
-  // Posición Y de un valor: el cero queda en PAD_BOTTOM (abajo) y el máximo
-  // en PAD_TOP (arriba). Crece hacia abajo: valor más alto = más arriba.
+  // Posición Y de un valor: el cero queda en PAD_BOTTOM si yMin === 0,
+  // o más arriba (proporcional) si yMin < 0. El máximo se eleva.
   const yAt = (v: number): number =>
-    PAD_BOTTOM + (innerH * (1 - v / yDomain));
+    PAD_BOTTOM - (innerH * (v - yMin)) / yDomain;
 
   const xAt = (i: number): number => {
     if (data.length === 1) return PAD_LEFT + innerW / 2;

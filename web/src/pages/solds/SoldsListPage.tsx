@@ -39,7 +39,7 @@ interface SoldWithCustomer extends SoldWithProfit {
 export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
   const { data: customers } = useCustomers();
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'sold_at', desc: true }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */

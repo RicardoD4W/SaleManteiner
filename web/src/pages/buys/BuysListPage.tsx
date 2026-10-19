@@ -30,7 +30,7 @@ const columnHelper = createColumnHelper<BuyWithStock>();
 
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'product_name', desc: false }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
