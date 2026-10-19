@@ -223,3 +223,28 @@ Implementación: crear un hook `useSortable<T>(items, defaultKey?)` en `web/src/
 
   **Decisión del usuario pendiente** (preguntar antes de commitear):
   1. ¿La convención de `neto` es `compras - ventas` (worker) o `ventas - compras` (natural)?
+
+- **L9** (cierre — 2026-10-19, sesión "continuamos con lo que dejamos a medio gas"):
+  - Decisiones del usuario:
+    1. `neto = compras - ventas` (literal spec, no se invierte).
+    2. `/buys` muestra TODAS las compras con disponibles reales (las ya vendidas con `disponibles=0` en gris).
+  - Cambios aplicados en la sesión (commit `fb0e561` "fix: stock and profit on lists match real inventory"):
+    - `server/src/repo/buys-repo.ts`: nuevo método `listWithStock(filters)` que devuelve TODAS las compras + disponibles (sin filtrar `WHERE > 0`).
+    - `server/src/routes/buys.ts`: `GET /api/buys` usa `listWithStock(filters)`. `GET /api/buys/stock` sigue con `getWithStock()` (sin cambios).
+    - `server/src/routes/solds.ts`: `GET /api/solds` usa `listWithProfit(filters)`.
+    - `web/src/api/buys.ts`: `BuyWithStock extends Buy` (antes declaraba campos propios); `ListResponse.data` pasa a `BuyWithStock[]`.
+    - `web/src/api/solds.ts`: nuevo `SoldWithProfit extends Sold` con `profit`; `ListResponse.data` pasa a `SoldWithProfit[]`.
+    - `web/src/pages/buys/BuysListPage.tsx`: usa `BuyWithStock` del API directo (sin placeholder); interfaz local + `useMemo` placeholder eliminados.
+    - `web/src/pages/solds/SoldsListPage.tsx`: usa `SoldWithProfit` del API directo; columna "Beneficio" muestra profit real con color dinámico (verde/rojo/gris).
+    - `web/e2e/buys-and-solds-flow.spec.ts`: test 3 ahora verifica `20` (Cantidad) + `15` (Disponibles reales) en vez de buscar solo `20` (workaround).
+    - `server/src/repo/solds-repo.ts`: removido `eslint-disable-next-line security/detect-non-literal-sql` huérfano (la regla no existe en la config del server; la interpolación de `${where}` es segura — solo literales de columna, valores como parámetros `?`). Cleanup incluido en el commit 1 junto al cambio del worker.
+  - Verificación al cierre:
+    - `npm run typecheck` — 0 errores (server + web).
+    - `npm run lint` — 0 warnings (server + web).
+    - `npm test --workspaces -- --run` — 113 server + 70 web passing.
+    - `npm run e2e -w web` — 7/7 passing (test 3 con `15` reales).
+  - Estructura de commits:
+    1. `103ff15 feat: dashboard iteration 1 (8 UI changes)` — 24 archivos (worker + cleanup del eslint-disable).
+    2. `fb0e561 fix: stock and profit on lists match real inventory` — 8 archivos (wiring final de stock/profit).
+  - Pendiente que sigue abierto (no resuelto aquí):
+    - Push a origin (decisión del usuario; rama `master` local está 12 commits ahead).
