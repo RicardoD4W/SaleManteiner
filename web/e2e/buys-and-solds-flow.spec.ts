@@ -585,11 +585,18 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   page,
   request,
 }) => {
+  // OJO: la fecha tiene que ir explícita. El server guarda `sold_at = NULL`
+  // si el cliente no la manda, y el chart agrupa por mes de `sold_at`: una
+  // venta sin fecha NO entra en `cashFlowByMonth` y el caso negativo
+  // nunca llega a dibujarse (esto ya pasaba con el SVG inline).
+  const today = new Date().toISOString().slice(0, 10);
+
   // 1. Crear una compra cara (100€ / 5 unidades → COGS unitario = 20€).
   const buyId = await createBuyViaApi(request, {
     product_name: 'Caro',
     purchase_cost: 100,
     quantity: 5,
+    purchase_date: today,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Cliente Pérdida' });
 
@@ -601,6 +608,7 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
     data: {
       customer_id: customerId,
       sale_price: 10,
+      sold_at: today,
       items: [{ buy_id: buyId, quantity: 1 }],
     },
   });
@@ -610,9 +618,17 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('cashflow-chart')).toBeVisible();
 
-  // 4. Verificar que el SVG tiene al menos 2 paths (uno por serie). Las 2
-  // series son: Compras (gastos) y Ventas (ingresos). Con el fix, ambos
-  // se renderizan dentro del viewBox aunque ventas sea negativo.
-  const svgPaths = page.locator('[data-testid="cashflow-chart"] svg path');
-  await expect(svgPaths).toHaveCount(2); // compras + ventas
+  // 4. Verificar que se dibujan las 2 series (Compras y Ventas). Con
+  // recharts cada serie es una curva (`.recharts-line-curve`); antes (SVG
+  // inline) eran 2 `path`. Con el fix, ambas se renderizan dentro del área
+  // de dibujo aunque las ventas sean negativas.
+  const series = page.locator('[data-testid="cashflow-chart"] .recharts-line-curve');
+  await expect(series).toHaveCount(2); // compras + ventas
+
+  // 5. El dominio del eje Y incluye el valor negativo: hay un tick que
+  // empieza con "-".
+  const negativeTick = page
+    .locator('[data-testid="cashflow-chart"] .recharts-yAxis-tick-labels text')
+    .filter({ hasText: /^-/ });
+  await expect(negativeTick.first()).toBeVisible();
 });

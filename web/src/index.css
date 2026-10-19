@@ -18,4 +18,18 @@
   --font-sans:
     system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+
+  /* Colores de los charts (recharts escribe atributos stroke/fill, así que
+     el theming va por variables CSS y no por clases en el SVG). */
+  --color-chart-compras: #ef4444; /* rojo: gasto */
+  --color-chart-ventas: #10b981; /* verde: ingreso */
+  --color-chart-dot: #ffffff; /* relleno de los puntos */
+}
+
+/* Dark mode: los charts pasan a tonos más claros para mantener el contraste
+   sobre el fondo oscuro (mismo criterio que el resto de la paleta). */
+.dark {
+  --color-chart-compras: #f87171;
+  --color-chart-ventas: #34d399;
+  --color-chart-dot: #111827;
 }

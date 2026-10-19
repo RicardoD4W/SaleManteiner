@@ -1,5 +1,5 @@
 /**
- * Chart de flujo de caja mensual (reemplaza al antiguo cash-flow de neto).
+ * Chart de flujo de caja mensual (recharts).
  *
  * Muestra **dos series separadas** por mes:
  *  - **Compras** (lo que gasté): inversión del mes = SUM(buys.purchase_cost
@@ -15,21 +15,35 @@
  * rediseño a dos series separadas hace visible el flujo real: incluso si
  * neto ≈ 0, las dos líneas muestran cuánto entró y cuánto salió.
  *
- * SVG inline (mismo motivo que el antiguo RevenueChart: evitar la dependencia
- * de recharts para una serie de 12 puntos).
+ * Implementado con **recharts** (feature `recharts-charts`): antes era SVG
+ * inline, que obligaba a mantener a mano el dominio, los ticks y las
+ * escalas. El dominio del eje Y se sigue calculando a mano (no交给 recharts)
+ * para garantizar que el cero esté siempre visible y que las ventas
+ * negativas (profit < 0) no se salgan del área de dibujo.
+ *
+ * Theming: recharts escribe atributos `stroke`/`fill` en el SVG que
+ * genera, así que el dark mode se resuelve con variables CSS
+ * (`--color-chart-*` en `index.css`) y con variantes arbitrarias de
+ * Tailwind 4 sobre los elementos internos de recharts.
  *
  * Importes en EUROS.
  */
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  type TooltipContentProps,
+} from 'recharts';
+import { formatEuro } from '../../lib/format';
+
 interface Props {
   data: Array<{ month: string; compras: number; ventas: number; neto: number }>;
 }
-
-const VIEW_W = 800;
-const VIEW_H = 240;
-const PAD_LEFT = 56;
-const PAD_RIGHT = 16;
-const PAD_TOP = 16;
-const PAD_BOTTOM = 32;
 
 const MONTH_LABELS = [
   'ene', 'feb', 'mar', 'abr', 'may', 'jun',
@@ -46,6 +60,44 @@ function formatEurosShort(euros: number): string {
   return `${euros.toFixed(0)} €`;
 }
 
+/** Tooltip propio: recharts no se puede tematizar por clases, y el default
+ *  trae fondo blanco (ilegible en dark mode).
+ *
+ *  Los props van como `Partial` porque recharts los inyecta al renderizar
+ *  (y `TooltipContentProps` los declara obligatorios, lo que impide pasar el
+ *  componente como elemento vacío). */
+type CashFlowTooltipProps = Partial<TooltipContentProps<number, string>>;
+
+function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs shadow-md dark:border-gray-700 dark:bg-gray-900">
+      <p className="mb-1 font-medium text-gray-900 dark:text-gray-100">
+        {monthLabel(String(label))}
+      </p>
+      <ul className="space-y-0.5">
+        {payload.map((entry) => (
+          <li key={String(entry.dataKey)} className="flex items-center gap-2">
+            <span
+              className={[
+                'h-2 w-2 shrink-0 rounded-full',
+                entry.dataKey === 'compras'
+                  ? 'bg-[var(--color-chart-compras)]'
+                  : 'bg-[var(--color-chart-ventas)]',
+              ].join(' ')}
+              aria-hidden="true"
+            />
+            <span className="text-gray-600 dark:text-gray-400">{entry.name}</span>
+            <span className="ml-auto font-medium tabular-nums text-gray-900 dark:text-gray-100">
+              {formatEuro(Number(entry.value))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function CashFlowChart({ data }: Props) {
   if (data.length === 0) {
     return (
@@ -55,168 +107,67 @@ export function CashFlowChart({ data }: Props) {
     );
   }
 
-  const innerW = VIEW_W - PAD_LEFT - PAD_RIGHT;
-  const innerH = VIEW_H - PAD_TOP - PAD_BOTTOM;
-
   // Dominio Y: incluye el cero siempre, y se extiende hacia abajo si hay
   // ventas negativas (profit < 0 cuando se vendió por debajo del COGS) y
-  // hacia arriba para el máximo de compras. Línea de cero siempre visible
-  // como referencia; el rango se ajusta dinámicamente.
+  // hacia arriba para el máximo de compras.
   const yMin = Math.min(0, ...data.map((d) => d.ventas));
   const yMax = Math.max(1, ...data.map((d) => d.compras));
-  const yDomain = yMax - yMin;
-
-  // Posición Y de un valor: el cero queda en PAD_BOTTOM si yMin === 0,
-  // o más arriba (proporcional) si yMin < 0. El máximo se eleva.
-  const yAt = (v: number): number =>
-    PAD_BOTTOM - (innerH * (v - yMin)) / yDomain;
-
-  const xAt = (i: number): number => {
-    if (data.length === 1) return PAD_LEFT + innerW / 2;
-    return PAD_LEFT + (innerW * i) / (data.length - 1);
-  };
-
-  // Ticks del eje Y: 0, 0.25, 0.5, 0.75, 1 (en fracciones de yDomain).
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yDomain);
-
-  // Paths de las dos series.
-  const comprasPath = data
-    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d.compras).toFixed(1)}`)
-    .join(' ');
-  const ventasPath = data
-    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d.ventas).toFixed(1)}`)
-    .join(' ');
 
   return (
-    <div className="h-64 w-full" data-testid="cashflow-chart">
-      <svg
-        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-        preserveAspectRatio="none"
-        className="h-full w-full"
-        role="img"
-        aria-label="Flujo de caja por mes (compras vs ventas)"
-      >
-        {/* Grid horizontal + línea base (y=0). */}
-        {yTicks.map((t, i) => (
-          <line
-            key={`yt-${i}`}
-            x1={PAD_LEFT}
-            x2={VIEW_W - PAD_RIGHT}
-            y1={yAt(t)}
-            y2={yAt(t)}
-            stroke="#e5e7eb"
-            className="dark:stroke-gray-800"
-            strokeDasharray={t === 0 ? '0' : '3 3'}
-            strokeWidth={t === 0 ? 1.5 : 1}
+    <div
+      className={[
+        'h-64 w-full',
+        // Grid y ejes: gris claro en light, gris oscuro en dark.
+        '[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-200',
+        'dark:[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-800',
+        '[&_.recharts-cartesian-axis-line]:stroke-gray-300',
+        'dark:[&_.recharts-cartesian-axis-line]:stroke-gray-700',
+        '[&_.recharts-cartesian-axis-tick-line]:stroke-gray-300',
+        'dark:[&_.recharts-cartesian-axis-tick-line]:stroke-gray-700',
+        '[&_.recharts-cartesian-axis-tick-value]:fill-gray-500',
+        'dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-400',
+        // Leyenda.
+        '[&_.recharts-legend-item-text]:fill-gray-700',
+        'dark:[&_.recharts-legend-item-text]:fill-gray-300',
+      ].join(' ')}
+      data-testid="cashflow-chart"
+      role="img"
+      aria-label="Flujo de caja por mes (compras vs ventas)"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="month" tickFormatter={monthLabel} tickMargin={8} />
+          <YAxis
+            tickFormatter={formatEurosShort}
+            domain={[yMin, yMax]}
+            width={56}
+            tickMargin={4}
           />
-        ))}
-
-        {/* Etiquetas del eje Y. */}
-        {yTicks.map((t, i) => (
-          <text
-            key={`ytl-${i}`}
-            x={PAD_LEFT - 8}
-            y={yAt(t) + 3}
-            textAnchor="end"
-            fontSize={11}
-            fill="#6b7280"
-            className="dark:fill-gray-400"
-          >
-            {formatEurosShort(t)}
-          </text>
-        ))}
-
-        {/* Etiquetas del eje X (meses). */}
-        {data.map((d, i) => (
-          <text
-            key={`xl-${i}`}
-            x={xAt(i)}
-            y={VIEW_H - 12}
-            textAnchor="middle"
-            fontSize={11}
-            fill="#6b7280"
-            className="dark:fill-gray-400"
-          >
-            {monthLabel(d.month)}
-          </text>
-        ))}
-
-        {/* Línea de COMPRAS (rojo/naranja: gasto). */}
-        <path
-          d={comprasPath}
-          stroke="#ef4444"
-          className="dark:stroke-red-400"
-          strokeWidth={2.5}
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {/* Puntos de COMPRAS. */}
-        {data.map((d, i) => (
-          <circle
-            key={`ptc-${i}`}
-            cx={xAt(i)}
-            cy={yAt(d.compras)}
-            r={3}
-            fill="#ffffff"
-            stroke="#ef4444"
-            className="dark:fill-gray-900 dark:stroke-red-400"
-            strokeWidth={2}
+          <Tooltip content={<CashFlowTooltip />} />
+          <Legend verticalAlign="top" align="left" height={24} />
+          <Line
+            type="linear"
+            dataKey="compras"
+            name="Compras (gastos)"
+            stroke="var(--color-chart-compras)"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
+            activeDot={{ r: 4 }}
+            isAnimationActive={false}
           />
-        ))}
-
-        {/* Línea de VENTAS (verde: ingreso). */}
-        <path
-          d={ventasPath}
-          stroke="#10b981"
-          className="dark:stroke-emerald-400"
-          strokeWidth={2.5}
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {/* Puntos de VENTAS. */}
-        {data.map((d, i) => (
-          <circle
-            key={`ptv-${i}`}
-            cx={xAt(i)}
-            cy={yAt(d.ventas)}
-            r={3}
-            fill="#ffffff"
-            stroke="#10b981"
-            className="dark:fill-gray-900 dark:stroke-emerald-400"
-            strokeWidth={2}
+          <Line
+            type="linear"
+            dataKey="ventas"
+            name="Ventas (ingresos)"
+            stroke="var(--color-chart-ventas)"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
+            activeDot={{ r: 4 }}
+            isAnimationActive={false}
           />
-        ))}
-
-        {/* Leyenda: Compras (rojo) + Ventas (verde). */}
-        <g transform={`translate(${PAD_LEFT + 8} ${PAD_TOP + 8})`}>
-          {/* Compras */}
-          <rect
-            width="12"
-            height="3"
-            y="2"
-            fill="#ef4444"
-            className="dark:fill-red-400"
-          />
-          <text x="18" y="9" fontSize={11} fill="#374151" className="dark:fill-gray-300">
-            Compras (gastos)
-          </text>
-          {/* Ventas */}
-          <rect
-            width="12"
-            height="3"
-            y="16"
-            fill="#10b981"
-            className="dark:fill-emerald-400"
-          />
-          <text x="18" y="23" fontSize={11} fill="#374151" className="dark:fill-gray-300">
-            Ventas (ingresos)
-          </text>
-        </g>
-      </svg>
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
