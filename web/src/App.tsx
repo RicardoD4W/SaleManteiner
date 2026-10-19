@@ -11,10 +11,8 @@ import { SoldsListPage } from './pages/solds/SoldsListPage';
 import { SoldEditPage } from './pages/solds/SoldEditPage';
 
 /**
- * Tabs anidadas del Dashboard. Compartidas entre la ruta `/` y la ruta
- * `/dashboard` (S4 del feature dashboard-iteration-1): ambas renderizan
- * `<DashboardPage>` con las mismas children, de modo que `/` y
- * `/dashboard` muestran exactamente la misma vista.
+ * Tabs anidadas bajo `/` (raíz). La ruta `/dashboard` se eliminó: el
+ * dashboard vive solo en `/` (con sus sub-tabs como rutas top-level).
  */
 const dashboardChildren: RouteObject[] = [
   { index: true, element: <OverviewTab /> },
@@ -25,11 +23,10 @@ const dashboardChildren: RouteObject[] = [
 
 /**
  * Router de la app (S10 de feature-buys-and-solds + S3-S4 de
- * dashboard-iteration-1).
+ * dashboard-iteration-1; simplificado: `/dashboard` → `/`).
  *
- *  - `/`              → Dashboard (mismo componente que `/dashboard`).
- *  - `/dashboard`     → Dashboard (mismo componente que `/`).
- *  - `/dashboard/{revenue,products,buyers}` → tabs con deep-link.
+ *  - `/`              → Dashboard (Overview por default).
+ *  - `/{revenue,products,buyers}` → tabs del dashboard (deep-link).
  *  - `/buys`          → lista de compras (el "+ Nueva compra" abre modal).
  *  - `/buys/:id`      → form de edición de compra.
  *  - `/solds`         → lista de ventas (el "+ Nueva venta" abre modal).
@@ -43,12 +40,9 @@ const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
-      // `/` y `/dashboard` muestran el mismo componente (S4 del feature).
-      // Usamos `path: ''` en vez de `index: true` para que el type de
-      // react-router v7 (que prohibe `children` en index routes) no se queje.
-      // `path: ''` matchea el index de `/` igual que `index: true` lo haría.
+      // Dashboard en la raíz. `path: ''` matchea el index de `/` (igual que
+      // `index: true` pero compatible con `children` en react-router v7).
       { path: '', element: <DashboardPage />, children: dashboardChildren },
-      { path: 'dashboard', element: <DashboardPage />, children: dashboardChildren },
       { path: 'buys', element: <BuysListPage /> },
       { path: 'buys/:id', element: <BuyEditPage /> },
       { path: 'solds', element: <SoldsListPage /> },

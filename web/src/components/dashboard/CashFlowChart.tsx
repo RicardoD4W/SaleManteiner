@@ -1,13 +1,19 @@
 /**
- * Chart de cash flow mensual (S5 del feature dashboard-iteration-1).
+ * Chart de flujo de caja mensual (reemplaza al antiguo cash-flow de neto).
  *
- * Reemplaza al antiguo RevenueChart. Muestra la línea de `neto` (compras -
- * ventas) por mes, con un área coloreada:
- *  - Bajo cero (zona de pérdida) en `bg-red-50/30` (dark `bg-red-950/20`).
- *  - Sobre cero (zona de ganancia) en `bg-emerald-50/30` (dark `bg-emerald-950/20`).
+ * Muestra **dos series separadas** por mes:
+ *  - **Compras** (lo que gasté): inversión del mes = SUM(buys.purchase_cost
+ *    + buys.associated_costs) + SUM(solds.associated_costs).
+ *  - **Ventas** (lo que generé): profit realizado por las ventas del mes
+ *    (sale_price - associated_costs - COGS prorrateado - buy.assoc
+ *    prorrateado, fórmula S13 del feature buys-and-solds).
  *
- * Convención del spec: `neto = compras - ventas`. Negativo = "zona de
- * pérdida" (rojo), positivo = "zona de ganancia" (verde).
+ * Decisión del feature phase-8-polish-e2e-docs: el chart anterior mostraba
+ * una sola línea de `neto = compras - ventas`. Cuando el negocio estaba
+ * cerca del punto de equilibrio (compras ≈ ventas), la línea quedaba casi
+ * pegada al eje cero y daba la sensación de que "no había datos". El
+ * rediseño a dos series separadas hace visible el flujo real: incluso si
+ * neto ≈ 0, las dos líneas muestran cuánto entró y cuánto salió.
  *
  * SVG inline (mismo motivo que el antiguo RevenueChart: evitar la dependencia
  * de recharts para una serie de 12 puntos).
@@ -52,67 +58,34 @@ export function CashFlowChart({ data }: Props) {
   const innerW = VIEW_W - PAD_LEFT - PAD_RIGHT;
   const innerH = VIEW_H - PAD_TOP - PAD_BOTTOM;
 
-  // Dominio Y: el más alto entre |max| y |min| para que la línea de cero
-  // quede centrada verticalmente.
-  const maxAbs = Math.max(1, ...data.map((d) => Math.abs(d.neto)));
-  const yDomain = maxAbs;
+  // Dominio Y: de 0 al máximo entre compras y ventas. Sin negativos (no
+  // aplican: compras y ventas siempre son >= 0 por construcción).
+  const maxValue = Math.max(
+    1,
+    ...data.map((d) => Math.max(d.compras, d.ventas)),
+  );
+  const yDomain = maxValue;
 
-  // Posición de la línea de cero en el viewBox.
-  const yAt = (v: number): number => PAD_TOP + innerH / 2 - (innerH * v) / (2 * yDomain);
-  const yZero = yAt(0);
+  // Posición Y de un valor: el cero queda en PAD_BOTTOM (abajo) y el máximo
+  // en PAD_TOP (arriba). Crece hacia abajo: valor más alto = más arriba.
+  const yAt = (v: number): number =>
+    PAD_BOTTOM + (innerH * (1 - v / yDomain));
+
   const xAt = (i: number): number => {
     if (data.length === 1) return PAD_LEFT + innerW / 2;
     return PAD_LEFT + (innerW * i) / (data.length - 1);
   };
 
-  const yTicks = [-1, -0.5, 0, 0.5, 1].map((f) => f * yDomain);
+  // Ticks del eje Y: 0, 0.25, 0.5, 0.75, 1 (en fracciones de yDomain).
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yDomain);
 
-  // Path de la línea de neto.
-  const linePath = data
-    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d.neto).toFixed(1)}`)
+  // Paths de las dos series.
+  const comprasPath = data
+    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d.compras).toFixed(1)}`)
     .join(' ');
-
-  // Paths de las dos áreas (sobre cero y bajo cero). Cada área cierra con
-  // la línea de cero (y=yZero) y los bordes laterales x=PAD_LEFT / x=end.
-  function buildAreaPath(filter: (v: number) => boolean): string {
-    const segments: string[] = [];
-    for (let i = 0; i < data.length; i++) {
-      const d = data[i]!;
-      const next = data[i + 1];
-      if (!next) break;
-      const dFilter = filter(d.neto);
-      const nFilter = filter(next.neto);
-      if (dFilter && nFilter) {
-        // Tramo completo: linea entre los dos puntos.
-        if (segments.length === 0) {
-          segments.push(`M ${xAt(i).toFixed(1)} ${yZero.toFixed(1)}`);
-          segments.push(`L ${xAt(i).toFixed(1)} ${yAt(d.neto).toFixed(1)}`);
-        }
-        segments.push(`L ${xAt(i + 1).toFixed(1)} ${yAt(next.neto).toFixed(1)}`);
-      } else if (dFilter && !nFilter) {
-        // Cruce de cero: interpolar el punto exacto en y=yZero.
-        const ratio = (d.neto - 0) / (d.neto - next.neto);
-        const crossX = xAt(i) + ratio * (xAt(i + 1) - xAt(i));
-        segments.push(`L ${crossX.toFixed(1)} ${yZero.toFixed(1)}`);
-        segments.push(`Z`);
-      } else if (!dFilter && nFilter) {
-        // Cruce inverso: arrancar nuevo subpath.
-        const ratio = (next.neto - 0) / (next.neto - d.neto);
-        const crossX = xAt(i) + ratio * (xAt(i + 1) - xAt(i));
-        segments.push(`M ${crossX.toFixed(1)} ${yZero.toFixed(1)}`);
-        segments.push(`L ${xAt(i + 1).toFixed(1)} ${yAt(next.neto).toFixed(1)}`);
-      }
-    }
-    // Cerrar el último segmento abierto.
-    if (segments.length > 0 && !segments[segments.length - 1]!.endsWith('Z')) {
-      segments.push(`L ${xAt(data.length - 1).toFixed(1)} ${yZero.toFixed(1)}`);
-      segments.push('Z');
-    }
-    return segments.join(' ');
-  }
-
-  const gainAreaPath = buildAreaPath((v) => v > 0);
-  const lossAreaPath = buildAreaPath((v) => v < 0);
+  const ventasPath = data
+    .map((d, i) => `${i === 0 ? 'M' : 'L'} ${xAt(i).toFixed(1)} ${yAt(d.ventas).toFixed(1)}`)
+    .join(' ');
 
   return (
     <div className="h-64 w-full" data-testid="cashflow-chart">
@@ -121,8 +94,9 @@ export function CashFlowChart({ data }: Props) {
         preserveAspectRatio="none"
         className="h-full w-full"
         role="img"
-        aria-label="Cash flow por mes"
+        aria-label="Flujo de caja por mes (compras vs ventas)"
       >
+        {/* Grid horizontal + línea base (y=0). */}
         {yTicks.map((t, i) => (
           <line
             key={`yt-${i}`}
@@ -137,6 +111,7 @@ export function CashFlowChart({ data }: Props) {
           />
         ))}
 
+        {/* Etiquetas del eje Y. */}
         {yTicks.map((t, i) => (
           <text
             key={`ytl-${i}`}
@@ -151,6 +126,7 @@ export function CashFlowChart({ data }: Props) {
           </text>
         ))}
 
+        {/* Etiquetas del eje X (meses). */}
         {data.map((d, i) => (
           <text
             key={`xl-${i}`}
@@ -165,27 +141,34 @@ export function CashFlowChart({ data }: Props) {
           </text>
         ))}
 
-        {/* Áreas coloreadas. fill-opacity permite que el color del tema (light/dark) mande.
-            Usamos las clases Tailwind que el spec fija: bg-emerald-50/30 y bg-red-50/30 (light),
-            bg-emerald-950/20 y bg-red-950/20 (dark). */}
-        {gainAreaPath ? (
-          <path
-            d={gainAreaPath}
-            fill="rgb(16 185 129 / 0.18)"
-            className="dark:fill-emerald-500/15"
-          />
-        ) : null}
-        {lossAreaPath ? (
-          <path
-            d={lossAreaPath}
-            fill="rgb(239 68 68 / 0.18)"
-            className="dark:fill-red-500/15"
-          />
-        ) : null}
-
-        {/* Línea de neto. */}
+        {/* Línea de COMPRAS (rojo/naranja: gasto). */}
         <path
-          d={linePath}
+          d={comprasPath}
+          stroke="#ef4444"
+          className="dark:stroke-red-400"
+          strokeWidth={2.5}
+          fill="none"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Puntos de COMPRAS. */}
+        {data.map((d, i) => (
+          <circle
+            key={`ptc-${i}`}
+            cx={xAt(i)}
+            cy={yAt(d.compras)}
+            r={3}
+            fill="#ffffff"
+            stroke="#ef4444"
+            className="dark:fill-gray-900 dark:stroke-red-400"
+            strokeWidth={2}
+          />
+        ))}
+
+        {/* Línea de VENTAS (verde: ingreso). */}
+        <path
+          d={ventasPath}
           stroke="#10b981"
           className="dark:stroke-emerald-400"
           strokeWidth={2.5}
@@ -194,12 +177,12 @@ export function CashFlowChart({ data }: Props) {
           strokeLinecap="round"
         />
 
-        {/* Puntos por mes. */}
+        {/* Puntos de VENTAS. */}
         {data.map((d, i) => (
           <circle
-            key={`pt-${i}`}
+            key={`ptv-${i}`}
             cx={xAt(i)}
-            cy={yAt(d.neto)}
+            cy={yAt(d.ventas)}
             r={3}
             fill="#ffffff"
             stroke="#10b981"
@@ -208,11 +191,29 @@ export function CashFlowChart({ data }: Props) {
           />
         ))}
 
-        {/* Leyenda. */}
+        {/* Leyenda: Compras (rojo) + Ventas (verde). */}
         <g transform={`translate(${PAD_LEFT + 8} ${PAD_TOP + 8})`}>
-          <rect width="12" height="3" y="6" fill="#10b981" className="dark:fill-emerald-400" />
+          {/* Compras */}
+          <rect
+            width="12"
+            height="3"
+            y="2"
+            fill="#ef4444"
+            className="dark:fill-red-400"
+          />
           <text x="18" y="9" fontSize={11} fill="#374151" className="dark:fill-gray-300">
-            Neto (compras − ventas)
+            Compras (gastos)
+          </text>
+          {/* Ventas */}
+          <rect
+            width="12"
+            height="3"
+            y="16"
+            fill="#10b981"
+            className="dark:fill-emerald-400"
+          />
+          <text x="18" y="23" fontSize={11} fill="#374151" className="dark:fill-gray-300">
+            Ventas (ingresos)
           </text>
         </g>
       </svg>

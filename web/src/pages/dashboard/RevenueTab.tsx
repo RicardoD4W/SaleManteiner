@@ -101,7 +101,7 @@ export function RevenueTab() {
 
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Cash flow por mes</h3>
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Flujo de caja por mes</h3>
           <CashFlowChart data={data.cashFlowByMonth} />
         </CardBody>
       </Card>
