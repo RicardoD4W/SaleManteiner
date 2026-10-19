@@ -26,9 +26,9 @@ export function DashboardPage() {
       <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h2>
 
       <nav className="border-b border-gray-200" aria-label="Tabs del dashboard">
-        <ul className="-mb-px flex">
+        <ul className="-mb-px flex overflow-x-auto">
           {TABS.map((tab) => (
-            <li key={tab.to}>
+            <li key={tab.to} className="shrink-0">
               <NavLink
                 to={tab.to}
                 end={tab.end}
