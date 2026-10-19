@@ -100,7 +100,7 @@ export function SoldEditPage() {
 
     try {
       await update.mutateAsync({ id: soldId, input: payload });
-      navigate('/solds');
+      navigate('/solds', { viewTransition: true });
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -116,7 +116,7 @@ export function SoldEditPage() {
     setDeleteError(null);
     try {
       await remove.mutateAsync(soldId);
-      navigate('/solds');
+      navigate('/solds', { viewTransition: true });
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Error al eliminar');
     }
@@ -126,7 +126,7 @@ export function SoldEditPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
-        <Link to="/solds" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link to="/solds" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -147,7 +147,7 @@ export function SoldEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">
           No se pudo cargar la venta: {error.message}
         </p>
-        <Link to="/solds" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link to="/solds" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -160,7 +160,7 @@ export function SoldEditPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
-        <Link to="/solds" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link to="/solds" viewTransition className="text-sm text-gray-500 hover:underline dark:text-gray-400">
           ← Volver
         </Link>
       </div>
@@ -261,7 +261,7 @@ export function SoldEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => navigate('/solds')}>
+              <Button type="button" variant="ghost" onClick={() => navigate('/solds', { viewTransition: true })}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

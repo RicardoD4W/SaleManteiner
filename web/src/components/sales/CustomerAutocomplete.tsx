@@ -162,6 +162,10 @@ export function CustomerAutocomplete({
           value={inputValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
+          // Cierra la lista al perder el foco (click fuera, tab, etc.).
+          // El `onMouseDown={preventDefault}` en la <ul> evita que el click
+          // sobre un item robe el foco antes de que se ejecute su onClick.
+          onBlur={() => setIsOpen(false)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={[
@@ -202,6 +206,9 @@ export function CustomerAutocomplete({
           id={listboxId}
           role="listbox"
           aria-label="Clientes"
+          // preventDefault en mousedown evita que el click sobre un item
+          // haga blur del input (lo que cerraría la lista antes del onClick).
+          onMouseDown={(e) => e.preventDefault()}
           className={[
             'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border',
             'bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',

@@ -30,7 +30,9 @@ const columnHelper = createColumnHelper<BuyWithStock>();
 
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'product_name', desc: false }]);
+  // Sin sort por defecto: el user pide explícitamente el estado idle (ni asc ni desc).
+  // El server ya devuelve los buys en id DESC, así que sin sort se ve lo más nuevo arriba.
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
@@ -41,14 +43,16 @@ export function BuysListPage() {
     () => [
       columnHelper.accessor('product_name', {
         header: 'Producto',
+        // El nombre NO es link — el user pidió que no se pueda editar
+        // haciendo click en el nombre. La edición sigue disponible vía
+        // la columna "Acciones" → "Editar". El color brand-700 se
+        // mantiene como tratamiento visual, no como hint de clickable.
         cell: (info) => (
-          <Link
-            to={`/buys/${info.row.original.id}`}
-            className="font-medium text-brand-700 dark:text-brand-400 hover:underline"
-          >
+          <span className="font-medium text-brand-700 dark:text-brand-400">
             {info.getValue()}
-          </Link>
+          </span>
         ),
+        sortingFn: 'basic',
       }),
       columnHelper.accessor('purchase_cost', {
         header: 'Coste (€)',
@@ -112,6 +116,10 @@ export function BuysListPage() {
         cell: (info) => (
           <Link
             to={`/buys/${info.row.original.id}`}
+            // viewTransition (RR 7+) usa la View Transitions API del browser
+            // para animar la navegación /buys → /buys/:id. Default = cross-fade.
+            // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+            viewTransition
             className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Editar

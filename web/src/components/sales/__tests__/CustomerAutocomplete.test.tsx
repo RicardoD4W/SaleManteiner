@@ -8,7 +8,7 @@
  *  - Opción "Crear cliente" cuando no hay exact match.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useCustomers', () => ({
@@ -180,6 +180,48 @@ describe('CustomerAutocomplete', () => {
 
     await waitFor(() => {
       // La lista ya no está visible.
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+  });
+
+  it('cierra la lista al perder el foco del input (click fuera)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
+    );
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'juan');
+    await waitFor(() => {
+      expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+    });
+    // Click fuera → blur del input → la lista se cierra.
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+  });
+
+  it('seleccionar un item de la lista con click no se pierde por el blur', async () => {
+    // El `onMouseDown={preventDefault}` en la <ul> evita que el click sobre
+    // un item haga blur del input antes de que se ejecute el onClick.
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithProviders(
+      <CustomerAutocomplete value={null} onChange={onChange} />,
+    );
+
+    await user.type(screen.getByRole('combobox'), 'juan');
+    await waitFor(() => {
+      expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Juan Pérez'));
+
+    // Si el blur hubiera cerrado la lista antes del click, onChange no se llamaría.
+    expect(onChange).toHaveBeenCalledWith(mockCustomers[0]);
+    await waitFor(() => {
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
   });

@@ -9,19 +9,17 @@ export function Layout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-baseline gap-3">
             <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400">SaleManteiner</h1>
-            <span className="hidden text-xs text-gray-400 sm:inline">
-              tracker de ventas
-            </span>
+            <span className="hidden text-xs text-gray-400 sm:inline">tracker de ventas</span>
           </div>
           <div className="flex items-center gap-2">
             <nav className="flex items-center gap-1" aria-label="Principal">
-              <NavLink to="/" end className={cn}>
+              <NavLink to="/" end viewTransition className={cn}>
                 Dashboard
               </NavLink>
-              <NavLink to="/buys" className={cn}>
+              <NavLink to="/buys" viewTransition className={cn}>
                 Compras
               </NavLink>
-              <NavLink to="/solds" className={cn}>
+              <NavLink to="/solds" viewTransition className={cn}>
                 Ventas
               </NavLink>
             </nav>

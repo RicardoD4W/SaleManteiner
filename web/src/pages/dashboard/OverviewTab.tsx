@@ -26,11 +26,13 @@ interface StatCardProps {
   hint?: string;
   /** Color de énfasis (por defecto gris neutro; admite variantes dinámicas). */
   valueClassName?: string;
+  /** Clases extra para el Card (ej: bg temático para KPIs Compras/Ventas). */
+  cardClassName?: string;
 }
 
-function StatCard({ label, value, hint, valueClassName }: StatCardProps) {
+function StatCard({ label, value, hint, valueClassName, cardClassName }: StatCardProps) {
   return (
-    <Card>
+    <Card className={cardClassName}>
       <CardBody>
         <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
           {label}
@@ -96,23 +98,26 @@ export function OverviewTab() {
         <StatCard
           label="Compras totales"
           value={formatEuro(k.compras_total_eur)}
-          hint="inversión acumulada"
+          hint="Gastos en compras acumulados"
+          valueClassName="dark:text-red-200 text-red-400"
         />
         <StatCard
           label="Ventas totales"
           value={formatEuro(k.ventas_total_eur)}
-          hint="revenue acumulado"
+          hint="Beneficios de ventas"
+          valueClassName="dark:text-green-200 text-green-400"
         />
         <StatCard
           label="Beneficio"
           value={`${netSign}${formatEuro(k.beneficio_total_eur)}`}
-          hint="ventas − COGS − gastos"
+          hint="Beneficio - compras - costes asociados"
           valueClassName={beneficioColorClass(k.beneficio_total_eur)}
         />
         <StatCard
           label="Stock pendiente"
           value={String(k.stock_pendiente_count)}
-          hint="compras con stock"
+          hint={k.stock_pendiente_count > 1 ? 'Productos en el almacén' : 'Producto en el almacén'}
+          valueClassName="dark:text-blue-300 text-blue-400"
         />
       </div>
 
@@ -170,8 +175,10 @@ export function OverviewTab() {
                   >
                     <span className="text-gray-800 dark:text-gray-200">{b.customer_name}</span>
                     <span className="tabular-nums text-gray-600 dark:text-gray-400">
-                      {formatEuro(b.total_gastado)}
-                      <span className="ml-2 text-xs text-gray-400">· {b.ventas}×</span>
+                      <span className="font-semibold">{formatEuro(b.total_gastado)}</span>
+                      <span className="ml-2 text-xs text-gray-400">
+                        en {b.ventas > 1 ? `${b.ventas} ventas` : `${b.ventas} venta`}
+                      </span>
                     </span>
                   </li>
                 ))}
