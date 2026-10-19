@@ -36,7 +36,10 @@ function compare(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b), 'es', { numeric: true });
 }
 
-export function useSortable<T>(items: T[], defaultKey?: keyof T): {
+export function useSortable<T>(
+  items: T[],
+  defaultKey?: keyof T,
+): {
   sortedItems: T[];
   sortKey: keyof T | null;
   sortDir: SortDir;

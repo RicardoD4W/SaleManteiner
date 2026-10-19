@@ -91,11 +91,9 @@ describe('useTheme', () => {
   });
 
   it('no rompe si localStorage.setItem lanza (modo privado): la clase SÍ se actualiza', () => {
-    const setItemSpy = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('localStorage bloqueado');
-      });
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('localStorage bloqueado');
+    });
 
     document.documentElement.classList.add('dark');
     const { result } = renderHook(() => useTheme());

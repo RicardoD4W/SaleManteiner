@@ -10,13 +10,17 @@ export interface SoldsRouterDeps {
 const IdParam = z.object({ id: z.coerce.number().int().positive() });
 const ListQuery = z.object({
   customerId: z.coerce.number().int().positive().optional(),
-  from: z.coerce.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.coerce.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  from: z.coerce
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z.coerce
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
-function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
-) {
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     fn(req, res, next).catch(next);
   };
@@ -42,9 +46,7 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
           ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
           : {}),
       };
-      const data = repo.listWithProfit(
-        Object.keys(filters).length > 0 ? filters : undefined,
-      );
+      const data = repo.listWithProfit(Object.keys(filters).length > 0 ? filters : undefined);
       res.json({ data });
     }),
   );

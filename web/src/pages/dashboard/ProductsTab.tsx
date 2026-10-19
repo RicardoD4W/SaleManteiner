@@ -46,9 +46,7 @@ function SortHeader({
         'cursor-pointer select-none px-3 py-2 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
         align === 'right' ? 'text-right' : 'text-left',
       ].join(' ')}
-      aria-sort={
-        isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'
-      }
+      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       {label}
       {indicator ? <span className="ml-1">{indicator}</span> : null}
@@ -144,7 +142,9 @@ export function ProductsTab() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {sortedItems.map((p) => (
                     <tr key={p.product_name}>
-                      <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{p.product_name}</td>
+                      <td className="px-3 py-2 text-gray-800 dark:text-gray-200">
+                        {p.product_name}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
                         {p.times_sold}
                       </td>
@@ -154,7 +154,9 @@ export function ProductsTab() {
                       <td
                         className={[
                           'px-3 py-2 text-right tabular-nums',
-                          p.total_profit >= 0 ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400',
+                          p.total_profit >= 0
+                            ? 'text-gray-700 dark:text-gray-300'
+                            : 'text-red-600 dark:text-red-400',
                         ].join(' ')}
                       >
                         {formatEuro(p.total_profit)}

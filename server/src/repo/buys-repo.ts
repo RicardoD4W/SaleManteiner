@@ -27,7 +27,7 @@ function rowToBuy(row: BuyRow): Buy {
 
 export interface DateRange {
   from?: string; // YYYY-MM-DD
-  to?: string;   // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
 }
 
 export interface ListFilters {
@@ -212,10 +212,10 @@ export function createBuysRepo(db: Database): BuysRepo {
       // purchase_cost y associated_costs se redondean al actualizar
       // definedPatch values are already typed from UpdateBuyInput
       purchase_cost: round2(
-        ((definedPatch.purchase_cost as number | undefined) ?? existing.purchase_cost),
+        (definedPatch.purchase_cost as number | undefined) ?? existing.purchase_cost,
       ),
       associated_costs: round2(
-        ((definedPatch.associated_costs as number | undefined) ?? existing.associated_costs),
+        (definedPatch.associated_costs as number | undefined) ?? existing.associated_costs,
       ),
       // No se pisa id ni created_at
       id: existing.id,
@@ -289,12 +289,8 @@ export function createBuysRepo(db: Database): BuysRepo {
       const soldIds = db
         .prepare(`SELECT DISTINCT sold_id FROM sale_items WHERE buy_id = ?`)
         .all(id) as Array<{ sold_id: number }>;
-      const deleteItemStmt = db.prepare(
-        `DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`,
-      );
-      const countItemsStmt = db.prepare(
-        `SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?`,
-      );
+      const deleteItemStmt = db.prepare(`DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`);
+      const countItemsStmt = db.prepare(`SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?`);
       const deleteSoldStmt = db.prepare(`DELETE FROM solds WHERE id = ?`);
       for (const { sold_id } of soldIds) {
         deleteItemStmt.run(sold_id, id);

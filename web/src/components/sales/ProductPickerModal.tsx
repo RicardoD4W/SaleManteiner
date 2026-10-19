@@ -17,7 +17,6 @@ import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import type { BuyWithStock } from '../../api/buys';
 
-
 interface ProductPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -61,12 +60,8 @@ function ProductRow({
 
       {/* Info del producto */}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {item.product_name}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {item.disponibles} disponibles
-        </p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.product_name}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{item.disponibles} disponibles</p>
       </div>
 
       {/* Selector de cantidad (solo si está tildado y max > 1) */}
@@ -81,7 +76,12 @@ function ProductRow({
             min={1}
             max={item.disponibles}
             value={quantity}
-            onChange={(e) => onQuantityChange(item.id, Math.min(item.disponibles, Math.max(1, Number(e.target.value))))}
+            onChange={(e) =>
+              onQuantityChange(
+                item.id,
+                Math.min(item.disponibles, Math.max(1, Number(e.target.value))),
+              )
+            }
             className="w-16 rounded-md border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
@@ -159,20 +159,19 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
 
   const handleConfirm = () => {
     const buys = buysWithStock ?? [];
-    const selected: Array<{ buy_id: number; product_name: string; quantity: number }> = Object.entries(
-      checked,
-    )
-      .filter(([, v]) => v)
-      .map(([buy_id, _v]) => {
-        void _v;
-        const id = Number(buy_id);
-        const buy = buys.find((b) => b.id === id);
-        return {
-          buy_id: id,
-          product_name: buy?.product_name ?? `Producto #${id}`,
-          quantity: quantities[id] ?? 1,
-        };
-      });
+    const selected: Array<{ buy_id: number; product_name: string; quantity: number }> =
+      Object.entries(checked)
+        .filter(([, v]) => v)
+        .map(([buy_id, _v]) => {
+          void _v;
+          const id = Number(buy_id);
+          const buy = buys.find((b) => b.id === id);
+          return {
+            buy_id: id,
+            product_name: buy?.product_name ?? `Producto #${id}`,
+            quantity: quantities[id] ?? 1,
+          };
+        });
     onConfirm(selected);
   };
 
@@ -260,7 +259,9 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
             </div>
           ) : filteredBuys.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              {filter ? 'No hay productos que coincidan.' : 'No hay productos con stock disponible.'}
+              {filter
+                ? 'No hay productos que coincidan.'
+                : 'No hay productos con stock disponible.'}
             </div>
           ) : (
             <ul>
@@ -291,11 +292,7 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
             <Button variant="ghost" size="sm" onClick={onClose}>
               Cancelar
             </Button>
-            <Button
-              size="sm"
-              onClick={handleConfirm}
-              disabled={selectedCount === 0}
-            >
+            <Button size="sm" onClick={handleConfirm} disabled={selectedCount === 0}>
               Confirmar ({selectedCount})
             </Button>
           </div>

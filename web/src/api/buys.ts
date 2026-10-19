@@ -22,23 +22,18 @@ interface StockResponse {
 }
 
 export const buysApi = {
-  list: () =>
-    apiFetch<ListResponse>('/api/buys').then((r) => r.data),
+  list: () => apiFetch<ListResponse>('/api/buys').then((r) => r.data),
 
-  getById: (id: number) =>
-    apiFetch<ItemResponse>(`/api/buys/${id}`).then((r) => r.data),
+  getById: (id: number) => apiFetch<ItemResponse>(`/api/buys/${id}`).then((r) => r.data),
 
   /** Compras con stock disponible (disponibles > 0). Alimenta la modal de venta (S5). */
-  getStock: () =>
-    apiFetch<StockResponse>('/api/buys/stock').then((r) => r.data),
+  getStock: () => apiFetch<StockResponse>('/api/buys/stock').then((r) => r.data),
 
   create: (input: CreateBuyInput) =>
     apiFetch<ItemResponse>('/api/buys', { method: 'POST', body: input }).then((r) => r.data),
 
   update: (id: number, input: UpdateBuyInput) =>
-    apiFetch<ItemResponse>(`/api/buys/${id}`, { method: 'PATCH', body: input }).then(
-      (r) => r.data,
-    ),
+    apiFetch<ItemResponse>(`/api/buys/${id}`, { method: 'PATCH', body: input }).then((r) => r.data),
 
   remove: (id: number) => apiFetch<void>(`/api/buys/${id}`, { method: 'DELETE' }),
 
@@ -49,6 +44,5 @@ export const buysApi = {
    * `remove` normal porque el `remove` devuelve 409 cuando hay ventas
    * para pedir confirmación al usuario (no es silencioso).
    */
-  removeCascade: (id: number) =>
-    apiFetch<void>(`/api/buys/${id}/cascade`, { method: 'DELETE' }),
+  removeCascade: (id: number) => apiFetch<void>(`/api/buys/${id}/cascade`, { method: 'DELETE' }),
 };

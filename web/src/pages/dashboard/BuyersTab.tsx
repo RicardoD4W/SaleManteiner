@@ -44,9 +44,7 @@ function SortHeader({
         'cursor-pointer select-none px-3 py-2 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
         align === 'right' ? 'text-right' : 'text-left',
       ].join(' ')}
-      aria-sort={
-        isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'
-      }
+      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       {label}
       {indicator ? <span className="ml-1">{indicator}</span> : null}
@@ -91,9 +89,7 @@ export function BuyersTab() {
     <div className="space-y-6">
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
-            Compradores
-          </h3>
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Compradores</h3>
           {sortedItems.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay ventas registradas para armar el ranking.

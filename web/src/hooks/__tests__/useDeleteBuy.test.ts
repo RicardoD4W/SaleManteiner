@@ -19,7 +19,8 @@ const SALES: AssociatedSale[] = [
 describe('isDeleteBuy409', () => {
   it('true: 409 con associated_sales no vacío', () => {
     const body = {
-      error: 'No se puede borrar: la compra tiene ventas asociadas. ¿Querés borrar también las ventas?',
+      error:
+        'No se puede borrar: la compra tiene ventas asociadas. ¿Querés borrar también las ventas?',
       associated_sales: SALES,
     };
     expect(isDeleteBuy409(new ApiError(409, body))).toBe(true);

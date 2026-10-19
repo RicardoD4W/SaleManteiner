@@ -166,8 +166,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
              FROM buys b WHERE b.id = ?`,
           )
           .get(item.buy_id) as
-          | { buy_id: number; product_name: string; disponibles: number }
-          | undefined;
+          { buy_id: number; product_name: string; disponibles: number } | undefined;
 
         if (!rows) {
           // El buy_id no existe → tratar como stock 0
@@ -377,11 +376,9 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const next = {
       ...existing,
       ...definedPatch,
-      sale_price: round2(
-        ((definedPatch.sale_price as number | undefined) ?? existing.sale_price),
-      ),
+      sale_price: round2((definedPatch.sale_price as number | undefined) ?? existing.sale_price),
       associated_costs: round2(
-        ((definedPatch.associated_costs as number | undefined) ?? existing.associated_costs),
+        (definedPatch.associated_costs as number | undefined) ?? existing.associated_costs,
       ),
       id: existing.id,
       created_at: existing.created_at,
@@ -601,7 +598,12 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       total_gastado: round2(r.total_gastado),
     }));
 
-    return { kpis, cashFlowByMonth, topProducts: topProductsFormatted, topBuyers: topBuyersFormatted };
+    return {
+      kpis,
+      cashFlowByMonth,
+      topProducts: topProductsFormatted,
+      topBuyers: topBuyersFormatted,
+    };
   }
 
   return {

@@ -74,7 +74,11 @@ export function SoldEditPage() {
       .getByIdWithItems(soldId)
       .then((detailed) => {
         setSoldWithItems(detailed);
-        setSelectedCustomer({ id: detailed.customer_id, name: detailed.customer_name, created_at: '' });
+        setSelectedCustomer({
+          id: detailed.customer_id,
+          name: detailed.customer_name,
+          created_at: '',
+        });
         reset({
           customer_id: detailed.customer_id,
           sale_price: detailed.sale_price,
@@ -86,7 +90,7 @@ export function SoldEditPage() {
       .catch(() => {
         // Silenciar error de items; el form sigue funcionando sin el detalle.
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo se ejecuta cuando cambia `sold`
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo se ejecuta cuando cambia `sold`
   }, [sold]);
 
   const onSubmit: SubmitHandler<SoldEditFormOutput> = async (values) => {
@@ -126,7 +130,11 @@ export function SoldEditPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
-        <Link to="/solds" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link
+          to="/solds"
+          viewTransition
+          className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -147,7 +155,11 @@ export function SoldEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">
           No se pudo cargar la venta: {error.message}
         </p>
-        <Link to="/solds" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link
+          to="/solds"
+          viewTransition
+          className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -160,7 +172,11 @@ export function SoldEditPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
-        <Link to="/solds" viewTransition className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link
+          to="/solds"
+          viewTransition
+          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -261,7 +277,11 @@ export function SoldEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => navigate('/solds', { viewTransition: true })}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate('/solds', { viewTransition: true })}
+              >
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

@@ -16,22 +16,16 @@ interface SearchResponse {
 }
 
 export const customersApi = {
-  list: () =>
-    apiFetch<ListResponse>('/api/customers').then((r) => r.data),
+  list: () => apiFetch<ListResponse>('/api/customers').then((r) => r.data),
 
-  getById: (id: number) =>
-    apiFetch<ItemResponse>(`/api/customers/${id}`).then((r) => r.data),
+  getById: (id: number) => apiFetch<ItemResponse>(`/api/customers/${id}`).then((r) => r.data),
 
   /** Búsqueda por nombre (prefijo). */
   search: (q: string) =>
-    apiFetch<SearchResponse>(`/api/customers?q=${encodeURIComponent(q)}`).then(
-      (r) => r.data,
-    ),
+    apiFetch<SearchResponse>(`/api/customers?q=${encodeURIComponent(q)}`).then((r) => r.data),
 
   create: (input: CreateCustomerInput) =>
-    apiFetch<ItemResponse>('/api/customers', { method: 'POST', body: input }).then(
-      (r) => r.data,
-    ),
+    apiFetch<ItemResponse>('/api/customers', { method: 'POST', body: input }).then((r) => r.data),
 
   update: (id: number, input: UpdateCustomerInput) =>
     apiFetch<ItemResponse>(`/api/customers/${id}`, {

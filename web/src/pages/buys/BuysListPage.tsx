@@ -48,9 +48,7 @@ export function BuysListPage() {
         // la columna "Acciones" → "Editar". El color brand-700 se
         // mantiene como tratamiento visual, no como hint de clickable.
         cell: (info) => (
-          <span className="font-medium text-brand-700 dark:text-brand-400">
-            {info.getValue()}
-          </span>
+          <span className="font-medium text-brand-700 dark:text-brand-400">{info.getValue()}</span>
         ),
         sortingFn: 'basic',
       }),
@@ -66,9 +64,7 @@ export function BuysListPage() {
       columnHelper.accessor('quantity', {
         header: 'Cantidad',
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">
-            {info.getValue()}
-          </span>
+          <span className="tabular-nums text-gray-700 dark:text-gray-300">{info.getValue()}</span>
         ),
         sortingFn: 'basic',
       }),

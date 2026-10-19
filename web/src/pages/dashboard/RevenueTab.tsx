@@ -74,7 +74,9 @@ export function RevenueTab() {
             <p
               className={[
                 'mt-1 text-2xl font-semibold tabular-nums',
-                ytdBeneficio >= 0 ? 'text-gray-900 dark:text-gray-100' : 'text-red-600 dark:text-red-400',
+                ytdBeneficio >= 0
+                  ? 'text-gray-900 dark:text-gray-100'
+                  : 'text-red-600 dark:text-red-400',
               ].join(' ')}
             >
               {formatEuro(ytdBeneficio)}
@@ -101,7 +103,9 @@ export function RevenueTab() {
 
       <Card>
         <CardBody>
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Flujo de caja por mes</h3>
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
+            Flujo de caja por mes
+          </h3>
           <CashFlowChart data={data.cashFlowByMonth} />
         </CardBody>
       </Card>

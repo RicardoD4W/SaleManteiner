@@ -25,11 +25,7 @@ function makeCustomer(repo: ReturnType<typeof createCustomersRepo>, name = 'Test
   return repo.create(CreateCustomerSchema.parse({ name }));
 }
 
-function validSold(
-  customerId: number,
-  buyId: number,
-  overrides: Record<string, unknown> = {},
-) {
+function validSold(customerId: number, buyId: number, overrides: Record<string, unknown> = {}) {
   return CreateSoldSchema.parse({
     customer_id: customerId,
     sale_price: 0,
@@ -66,7 +62,10 @@ describe('solds repo', () => {
       const buy = makeBuy(buysRepo, { product_name: 'Funda', purchase_cost: 10, quantity: 5 });
 
       const sold = soldsRepo.createManyWithStockCheck(
-        validSold(customer.id, buy.id, { sale_price: 20, items: [{ buy_id: buy.id, quantity: 2 }] }),
+        validSold(customer.id, buy.id, {
+          sale_price: 20,
+          items: [{ buy_id: buy.id, quantity: 2 }],
+        }),
       );
 
       expect(sold.id).toBeGreaterThan(0);
@@ -114,7 +113,10 @@ describe('solds repo', () => {
       const customer = makeCustomer(customersRepo);
       const buy = makeBuy(buysRepo);
       const created = soldsRepo.createManyWithStockCheck(
-        validSold(customer.id, buy.id, { sale_price: 100, items: [{ buy_id: buy.id, quantity: 1 }] }),
+        validSold(customer.id, buy.id, {
+          sale_price: 100,
+          items: [{ buy_id: buy.id, quantity: 1 }],
+        }),
       );
       const found = soldsRepo.getById(created.id);
       expect(found).toEqual(created);
@@ -154,7 +156,11 @@ describe('solds repo', () => {
   describe('listWithProfit', () => {
     it('incluye los items vendidos en cada fila (S de UI: mostrar qué se vendió)', () => {
       const c = makeCustomer(customersRepo, 'Pepe');
-      const b1 = makeBuy(buysRepo, { product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 });
+      const b1 = makeBuy(buysRepo, {
+        product_name: 'sobre pokemon',
+        purchase_cost: 10,
+        quantity: 10,
+      });
       const b2 = makeBuy(buysRepo, { product_name: 'carta magic', purchase_cost: 5, quantity: 3 });
 
       // Venta 1: 2 unidades de b1
@@ -195,7 +201,11 @@ describe('solds repo', () => {
       const c = makeCustomer(customersRepo);
       const b = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 5 });
       const s = soldsRepo.createManyWithStockCheck(
-        validSold(c.id, b.id, { sale_price: 100, associated_costs: 0, items: [{ buy_id: b.id, quantity: 1 }] }),
+        validSold(c.id, b.id, {
+          sale_price: 100,
+          associated_costs: 0,
+          items: [{ buy_id: b.id, quantity: 1 }],
+        }),
       );
       const list = soldsRepo.listWithProfit();
       expect(list[0].id).toBe(s.id);
@@ -210,8 +220,12 @@ describe('solds repo', () => {
       const c = makeCustomer(customersRepo);
       const b1 = makeBuy(buysRepo);
       const b2 = makeBuy(buysRepo);
-      soldsRepo.createManyWithStockCheck(validSold(c.id, b1.id, { items: [{ buy_id: b1.id, quantity: 1 }] }));
-      soldsRepo.createManyWithStockCheck(validSold(c.id, b2.id, { items: [{ buy_id: b2.id, quantity: 1 }] }));
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b1.id, { items: [{ buy_id: b1.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b2.id, { items: [{ buy_id: b2.id, quantity: 1 }] }),
+      );
       expect(soldsRepo.list()).toHaveLength(2);
     });
 
@@ -222,9 +236,15 @@ describe('solds repo', () => {
       const b2 = makeBuy(buysRepo);
       const b3 = makeBuy(buysRepo);
 
-      soldsRepo.createManyWithStockCheck(validSold(c1.id, b1.id, { items: [{ buy_id: b1.id, quantity: 1 }] }));
-      soldsRepo.createManyWithStockCheck(validSold(c1.id, b2.id, { items: [{ buy_id: b2.id, quantity: 1 }] }));
-      soldsRepo.createManyWithStockCheck(validSold(c2.id, b3.id, { items: [{ buy_id: b3.id, quantity: 1 }] }));
+      soldsRepo.createManyWithStockCheck(
+        validSold(c1.id, b1.id, { items: [{ buy_id: b1.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c1.id, b2.id, { items: [{ buy_id: b2.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c2.id, b3.id, { items: [{ buy_id: b3.id, quantity: 1 }] }),
+      );
 
       expect(soldsRepo.list({ customerId: c1.id })).toHaveLength(2);
       expect(soldsRepo.list({ customerId: c2.id })).toHaveLength(1);
@@ -242,7 +262,10 @@ describe('solds repo', () => {
       const created = soldsRepo.createManyWithStockCheck(
         validSold(c.id, b.id, { sale_price: 10, items: [{ buy_id: b.id, quantity: 1 }] }),
       );
-      const updated = soldsRepo.update(created.id, validUpdate({ sale_price: 200, associated_costs: 5 }));
+      const updated = soldsRepo.update(
+        created.id,
+        validUpdate({ sale_price: 200, associated_costs: 5 }),
+      );
       expect(updated!.sale_price).toBe(200);
       expect(updated!.associated_costs).toBe(5);
     });

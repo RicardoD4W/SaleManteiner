@@ -36,11 +36,15 @@ function dateMonthsAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function validBuy(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateBuyInput.parse> {
+function validBuy(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof CreateBuyInput.parse> {
   return CreateBuyInput.parse({ product_name: 'X', purchase_cost: 0, quantity: 1, ...overrides });
 }
 
-function validSold(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateSoldInput.parse> {
+function validSold(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof CreateSoldInput.parse> {
   return CreateSoldInput.parse({
     customer_id: 1,
     sale_price: 0,
@@ -49,7 +53,9 @@ function validSold(overrides: Record<string, unknown> = {}): ReturnType<typeof C
   });
 }
 
-function validCustomer(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateCustomerInput.parse> {
+function validCustomer(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof CreateCustomerInput.parse> {
   return CreateCustomerInput.parse({ name: 'Test', ...overrides });
 }
 
@@ -102,7 +108,12 @@ describe('statsDashboard (nuevo modelo)', () => {
   it('una venta del mes actual aparece en el último slot y en topProducts', () => {
     const customer = customersRepo.create(validCustomer({ name: 'Juan' }));
     const buy = buysRepo.create(
-      validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 10, purchase_date: todayLocalDate() }),
+      validBuy({
+        product_name: 'Funda',
+        purchase_cost: 5,
+        quantity: 10,
+        purchase_date: todayLocalDate(),
+      }),
     );
 
     soldsRepo.createManyWithStockCheck(
@@ -221,11 +232,19 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     // Vender 1 unidad
     soldsRepo.createManyWithStockCheck(
-      validSold({ customer_id: customer.id, sale_price: 20, items: [{ buy_id: buy.id, quantity: 1 }] }),
+      validSold({
+        customer_id: customer.id,
+        sale_price: 20,
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
     );
     // Vender 1 unidad más
     soldsRepo.createManyWithStockCheck(
-      validSold({ customer_id: customer.id, sale_price: 22, items: [{ buy_id: buy.id, quantity: 1 }] }),
+      validSold({
+        customer_id: customer.id,
+        sale_price: 22,
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
     );
 
     const stats = soldsRepo.statsDashboard();
@@ -241,7 +260,9 @@ describe('statsDashboard (nuevo modelo)', () => {
     // COUNT(*) sobre sale_items (cuenta filas del pack) en vez de SUM(quantity)
     // (suma las unidades). Tras el fix, una sola fila de sale_items con
     // quantity=2 debe contar como times_sold=2.
-    const buy = buysRepo.create(validBuy({ product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 }));
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 }),
+    );
     const customer = customersRepo.create(validCustomer({ name: 'Pepe' }));
 
     soldsRepo.createManyWithStockCheck(
@@ -262,7 +283,9 @@ describe('statsDashboard (nuevo modelo)', () => {
 
   it('beneficio_total_eur: NO resta el coste de compras sin vender (solo COGS)', () => {
     // Buy 20 unidades por 100€ (cost/unit = 5€). Vender solo 5 unidades.
-    const buy = buysRepo.create(validBuy({ product_name: 'Funda', purchase_cost: 100, quantity: 20 }));
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'Funda', purchase_cost: 100, quantity: 20 }),
+    );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
     soldsRepo.createManyWithStockCheck(
@@ -344,7 +367,12 @@ describe('statsDashboard (nuevo modelo)', () => {
   it('cashFlowByMonth: solo compras en el mes, sin ventas → compras > 0, ventas = 0, neto = compras', () => {
     // Compra de 100€ en el mes actual, sin ventas.
     buysRepo.create(
-      validBuy({ product_name: 'Lote', purchase_cost: 100, associated_costs: 0, purchase_date: todayLocalDate() }),
+      validBuy({
+        product_name: 'Lote',
+        purchase_cost: 100,
+        associated_costs: 0,
+        purchase_date: todayLocalDate(),
+      }),
     );
 
     const stats = soldsRepo.statsDashboard();
@@ -357,7 +385,12 @@ describe('statsDashboard (nuevo modelo)', () => {
   it('cashFlowByMonth: solo ventas en el mes (sin buys nuevos) → compras = 0, ventas > 0, neto = -ventas', () => {
     // Buy de un mes anterior (no cuenta en el mes actual) + venta en el mes actual.
     const buy = buysRepo.create(
-      validBuy({ product_name: 'Lote', purchase_cost: 50, quantity: 5, purchase_date: dateMonthsAgo(2) }),
+      validBuy({
+        product_name: 'Lote',
+        purchase_cost: 50,
+        quantity: 5,
+        purchase_date: dateMonthsAgo(2),
+      }),
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
@@ -418,7 +451,12 @@ describe('statsDashboard (nuevo modelo)', () => {
   it('cashFlowByMonth: meses sin actividad se rellenan con 0', () => {
     // Actividad en el mes actual únicamente; los 11 meses anteriores deben ser 0/0/0.
     const buy = buysRepo.create(
-      validBuy({ product_name: 'X', purchase_cost: 10, quantity: 5, purchase_date: todayLocalDate() }),
+      validBuy({
+        product_name: 'X',
+        purchase_cost: 10,
+        quantity: 5,
+        purchase_date: todayLocalDate(),
+      }),
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
     soldsRepo.createManyWithStockCheck(

@@ -385,8 +385,8 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               <ul className="mt-1 list-disc pl-4">
                 {stockError.items.map((item) => (
                   <li key={item.buy_id}>
-                    <strong>{item.product_name}</strong>: {item.disponibles} disponibles,
-                    intentaste vender {item.solicitado}
+                    <strong>{item.product_name}</strong>: {item.disponibles} disponibles, intentaste
+                    vender {item.solicitado}
                   </li>
                 ))}
               </ul>

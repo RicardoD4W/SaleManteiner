@@ -10,9 +10,7 @@ export interface CustomersRouterDeps {
 const IdParam = z.object({ id: z.coerce.number().int().positive() });
 const SearchQuery = z.object({ name: z.string().min(1).optional() });
 
-function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
-) {
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     fn(req, res, next).catch(next);
   };

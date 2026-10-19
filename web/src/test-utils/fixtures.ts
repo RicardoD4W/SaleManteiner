@@ -89,8 +89,18 @@ export const dashboardStatsFixture: DashboardStats = {
 };
 
 export const emptyDashboardStatsFixture: DashboardStats = {
-  kpis: { compras_total_eur: 0, ventas_total_eur: 0, beneficio_total_eur: 0, stock_pendiente_count: 0 },
-  cashFlowByMonth: dashboardStatsFixture.cashFlowByMonth.map((m) => ({ ...m, compras: 0, ventas: 0, neto: 0 })),
+  kpis: {
+    compras_total_eur: 0,
+    ventas_total_eur: 0,
+    beneficio_total_eur: 0,
+    stock_pendiente_count: 0,
+  },
+  cashFlowByMonth: dashboardStatsFixture.cashFlowByMonth.map((m) => ({
+    ...m,
+    compras: 0,
+    ventas: 0,
+    neto: 0,
+  })),
   topProducts: [],
   topBuyers: [],
 };

@@ -11,11 +11,15 @@ import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 const CreateSchema = CreateBuyInput;
 const UpdateSchema = UpdateBuyInput;
 
-function validCreate(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateSchema.parse> {
+function validCreate(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof CreateSchema.parse> {
   return CreateSchema.parse({ product_name: 'X', ...overrides });
 }
 
-function validUpdate(overrides: Record<string, unknown> = {}): ReturnType<typeof UpdateSchema.parse> {
+function validUpdate(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof UpdateSchema.parse> {
   return UpdateSchema.parse(overrides);
 }
 
@@ -376,14 +380,30 @@ describe('buys repo', () => {
 
     it('devuelve buy parcialmente vendido con stock = quantity - vendidos', () => {
       // Insertar un customer + sold para poder insertar en sale_items (FK constraint)
-      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(1, 'Test', new Date().toISOString());
-      db.prepare('INSERT INTO solds (id, customer_id, sale_price, associated_costs, created_at) VALUES (?, ?, ?, ?, ?)').run(1, 1, 0, 0, new Date().toISOString());
-      db.prepare('INSERT INTO solds (id, customer_id, sale_price, associated_costs, created_at) VALUES (?, ?, ?, ?, ?)').run(2, 1, 0, 0, new Date().toISOString());
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, created_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(1, 1, 0, 0, new Date().toISOString());
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, created_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(2, 1, 0, 0, new Date().toISOString());
 
       const b = repo.create(validCreate({ product_name: 'X', quantity: 10 }));
       // Simular que hay 3 vendidos en sale_items (con FK a solds)
-      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(1, b.id, 3);
-      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(2, b.id, 4);
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        b.id,
+        3,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        2,
+        b.id,
+        4,
+      );
       const result = repo.getWithStock();
       expect(result).toHaveLength(1);
       expect(result[0]!.disponibles).toBe(3); // 10 - 3 - 4 = 3

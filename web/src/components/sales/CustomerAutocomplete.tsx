@@ -67,9 +67,7 @@ export function CustomerAutocomplete({
   );
 
   // ¿Exact match? (case-insensitive).
-  const exactMatch = filtered.find(
-    (c) => c.name.toLowerCase() === inputValue.toLowerCase(),
-  );
+  const exactMatch = filtered.find((c) => c.name.toLowerCase() === inputValue.toLowerCase());
 
   // Si no hay exact match y el usuario tipeó algo, mostrar opción de crear.
   const showCreateOption =
@@ -193,7 +191,12 @@ export function CustomerAutocomplete({
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </span>
         )}
@@ -227,9 +230,7 @@ export function CustomerAutocomplete({
                 activeIndex === idx
                   ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
                   : 'text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700',
-                value?.id === customer.id
-                  ? 'font-medium text-brand-700 dark:text-brand-300'
-                  : '',
+                value?.id === customer.id ? 'font-medium text-brand-700 dark:text-brand-300' : '',
               ].join(' ')}
             >
               {customer.name}
@@ -257,7 +258,12 @@ export function CustomerAutocomplete({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               <span className="font-medium text-brand-700 dark:text-brand-300">
                 Crear cliente &quot;{inputValue.trim()}&quot;
@@ -280,9 +286,7 @@ export function CustomerAutocomplete({
 
       {/* Loading create customer */}
       {createCustomer.isPending && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Creando cliente…
-        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Creando cliente…</p>
       )}
     </div>
   );

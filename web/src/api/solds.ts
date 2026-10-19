@@ -74,11 +74,9 @@ export interface DashboardStats {
 }
 
 export const soldsApi = {
-  list: () =>
-    apiFetch<ListResponse>('/api/solds').then((r) => r.data),
+  list: () => apiFetch<ListResponse>('/api/solds').then((r) => r.data),
 
-  getById: (id: number) =>
-    apiFetch<ItemResponse>(`/api/solds/${id}`).then((r) => r.data),
+  getById: (id: number) => apiFetch<ItemResponse>(`/api/solds/${id}`).then((r) => r.data),
 
   /** Detalle con items (para GET /solds/:id con pack info). */
   getByIdWithItems: (id: number) =>

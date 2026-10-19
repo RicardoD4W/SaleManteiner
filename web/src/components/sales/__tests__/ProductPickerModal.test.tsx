@@ -30,7 +30,13 @@ describe('ProductPickerModal', () => {
   });
 
   it('no renderiza nada si isOpen=false', () => {
-    vi.mocked(useBuysStock).mockReturnValue({ data: [], isLoading: false, isError: false, error: null, refetch: vi.fn() } as never);
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
     renderWithProviders(
       <ProductPickerModal isOpen={false} onClose={vi.fn()} onConfirm={vi.fn()} />,
     );
@@ -45,9 +51,7 @@ describe('ProductPickerModal', () => {
       error: null,
       refetch: vi.fn(),
     } as never);
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
     expect(screen.getByText(/Cargando productos/)).toBeInTheDocument();
   });
 
@@ -59,9 +63,7 @@ describe('ProductPickerModal', () => {
       error: null,
       refetch: vi.fn(),
     } as never);
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
     expect(screen.getByText(/No hay productos con stock disponible/)).toBeInTheDocument();
   });
 
@@ -74,9 +76,7 @@ describe('ProductPickerModal', () => {
       refetch: vi.fn(),
     } as never);
 
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
@@ -96,9 +96,7 @@ describe('ProductPickerModal', () => {
       refetch: vi.fn(),
     } as never);
 
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
@@ -166,9 +164,7 @@ describe('ProductPickerModal', () => {
       refetch: vi.fn(),
     } as never);
 
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={onClose} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={onClose} onConfirm={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
@@ -188,9 +184,7 @@ describe('ProductPickerModal', () => {
       refetch: vi.fn(),
     } as never);
 
-    renderWithProviders(
-      <ProductPickerModal isOpen={true} onClose={onClose} onConfirm={vi.fn()} />,
-    );
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={onClose} onConfirm={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();

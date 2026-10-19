@@ -46,8 +46,18 @@ interface Props {
 }
 
 const MONTH_LABELS = [
-  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-  'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
 ];
 
 function monthLabel(yyyymm: string): string {
@@ -138,12 +148,7 @@ export function CashFlowChart({ data }: Props) {
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="month" tickFormatter={monthLabel} tickMargin={8} />
-          <YAxis
-            tickFormatter={formatEurosShort}
-            domain={[yMin, yMax]}
-            width={56}
-            tickMargin={4}
-          />
+          <YAxis tickFormatter={formatEurosShort} domain={[yMin, yMax]} width={56} tickMargin={4} />
           <Tooltip content={<CashFlowTooltip />} />
           <Legend verticalAlign="top" align="left" height={24} />
           <Line

@@ -45,13 +45,13 @@ Los 15 e2e cubren el flujo principal, pero el dark mode toggle y el responsive q
 
 ## Tasks
 
-| ID  | Título                                                           | Specs | Ruta                                                                     | Commit |
-| --- | ---------------------------------------------------------------- | ----- | ------------------------------------------------------------------------ | ------ |
-| T1  | Feature doc + tracking                                            | —     | `odd/tasks/feature-recharts-charts.md`                                   | WU0    |
-| T2  | `CashFlowChart` con recharts + test unitario + borrar el chart muerto | S1, S2 | `web/src/components/dashboard/CashFlowChart.tsx`, `web/src/components/dashboard/TopProductsChart.tsx`, `web/src/components/dashboard/__tests__/CashFlowChart.test.tsx` | WU1 |
-| T3  | e2e actualizado al DOM de recharts + verificación en Chromium    | S3    | `web/e2e/buys-and-solds-flow.spec.ts`                                   | WU1    |
-| T4  | Normalización Prettier del repo + `format:check` como gate       | S4    | repo-wide                                                                | WU2    |
-| T5  | Smoke manual en navegador real + Log de cierre                    | S5    | —                                                                        | WU3    |
+| ID  | Título                                                                | Specs  | Ruta                                                                                                                                                                   | Commit |
+| --- | --------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| T1  | Feature doc + tracking                                                | —      | `odd/tasks/feature-recharts-charts.md`                                                                                                                                 | WU0    |
+| T2  | `CashFlowChart` con recharts + test unitario + borrar el chart muerto | S1, S2 | `web/src/components/dashboard/CashFlowChart.tsx`, `web/src/components/dashboard/TopProductsChart.tsx`, `web/src/components/dashboard/__tests__/CashFlowChart.test.tsx` | WU1    |
+| T3  | e2e actualizado al DOM de recharts + verificación en Chromium         | S3     | `web/e2e/buys-and-solds-flow.spec.ts`                                                                                                                                  | WU1    |
+| T4  | Normalización Prettier del repo + `format:check` como gate            | S4     | repo-wide                                                                                                                                                              | WU2    |
+| T5  | Smoke manual en navegador real + Log de cierre                        | S5     | —                                                                                                                                                                      | WU3    |
 
 **Work units**:
 

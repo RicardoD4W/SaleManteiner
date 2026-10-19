@@ -58,9 +58,7 @@ describe('CustomerAutocomplete', () => {
   });
 
   it('renderiza el label y el input', () => {
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     expect(screen.getByText('Cliente *')).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -68,9 +66,7 @@ describe('CustomerAutocomplete', () => {
 
   it('al tipear muestra la lista filtrada por nombre', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     await user.type(screen.getByRole('combobox'), 'juan');
 
@@ -84,9 +80,7 @@ describe('CustomerAutocomplete', () => {
 
   it('al tipear un nombre inexacto muestra opción "Crear cliente"', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     await user.type(screen.getByRole('combobox'), 'Pedro');
 
@@ -98,9 +92,7 @@ describe('CustomerAutocomplete', () => {
   it('al hacer click en un cliente llama a onChange', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={onChange} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={onChange} />);
 
     await user.type(screen.getByRole('combobox'), 'juan');
     await waitFor(() => {
@@ -116,9 +108,7 @@ describe('CustomerAutocomplete', () => {
     // El exact match es case-insensitive: "Juan Pérez".toLowerCase() === "Juan Pérez".toLowerCase().
     // Si tipeamos "Juan Pérez" (full name), no debe aparecer "Crear cliente".
     const user = userEvent.setup();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     await user.type(screen.getByRole('combobox'), 'Juan Pérez');
     await waitFor(() => {
@@ -150,9 +140,7 @@ describe('CustomerAutocomplete', () => {
     } as never);
 
     const onChange = vi.fn();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={onChange} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={onChange} />);
 
     await user.type(screen.getByRole('combobox'), 'Pedro');
     await waitFor(() => {
@@ -168,9 +156,7 @@ describe('CustomerAutocomplete', () => {
 
   it('al seleccionar un cliente cierra la lista', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     await user.type(screen.getByRole('combobox'), 'juan');
     await waitFor(() => {
@@ -186,9 +172,7 @@ describe('CustomerAutocomplete', () => {
 
   it('cierra la lista al perder el foco del input (click fuera)', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={vi.fn()} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     const input = screen.getByRole('combobox');
     await user.click(input);
@@ -209,9 +193,7 @@ describe('CustomerAutocomplete', () => {
     // un item haga blur del input antes de que se ejecute el onClick.
     const user = userEvent.setup();
     const onChange = vi.fn();
-    renderWithProviders(
-      <CustomerAutocomplete value={null} onChange={onChange} />,
-    );
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={onChange} />);
 
     await user.type(screen.getByRole('combobox'), 'juan');
     await waitFor(() => {

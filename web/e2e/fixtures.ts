@@ -49,9 +49,7 @@ export async function clearAll(request: APIRequestContext): Promise<void> {
 export async function gotoHome(page: Page): Promise<void> {
   await page.goto('/');
   // Espera a que termine el estado loading (desaparece el spinner).
-  await page.waitForFunction(
-    () => !document.body.textContent?.includes('Cargando'),
-    null,
-    { timeout: 10_000 },
-  );
+  await page.waitForFunction(() => !document.body.textContent?.includes('Cargando'), null, {
+    timeout: 10_000,
+  });
 }

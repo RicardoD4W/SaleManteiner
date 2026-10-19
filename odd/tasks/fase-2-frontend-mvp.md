@@ -14,11 +14,11 @@
 
 ## Vistas
 
-| Ruta | Página | Componentes |
-|---|---|---|
-| `/` | `SalesListPage` | `<KpiCards>`, `<SalesTable>`, botón "Nueva venta" |
-| `/sales/new` | `SaleNewPage` | `<SaleForm mode="create">` |
-| `/sales/:id` | `SaleEditPage` | `<SaleForm mode="edit" saleId={id}>` + `<DeleteSaleButton>` |
+| Ruta         | Página          | Componentes                                                 |
+| ------------ | --------------- | ----------------------------------------------------------- |
+| `/`          | `SalesListPage` | `<KpiCards>`, `<SalesTable>`, botón "Nueva venta"           |
+| `/sales/new` | `SaleNewPage`   | `<SaleForm mode="create">`                                  |
+| `/sales/:id` | `SaleEditPage`  | `<SaleForm mode="edit" saleId={id}>` + `<DeleteSaleButton>` |
 
 ## API client
 
@@ -26,14 +26,14 @@
 
 ## Hooks (TanStack Query)
 
-| Hook | Query / Mutation | Invalida |
-|---|---|---|
-| `useStats()` | `['stats']` | — |
-| `useSales(filters)` | `['sales', filters]` | — |
-| `useSale(id)` | `['sales', id]` | — |
-| `useCreateSale()` | mutation POST | `['sales']`, `['stats']` |
-| `useUpdateSale()` | mutation PATCH | `['sales']`, `['stats']`, `['sales', id]` |
-| `useDeleteSale()` | mutation DELETE | `['sales']`, `['stats']` |
+| Hook                | Query / Mutation     | Invalida                                  |
+| ------------------- | -------------------- | ----------------------------------------- |
+| `useStats()`        | `['stats']`          | —                                         |
+| `useSales(filters)` | `['sales', filters]` | —                                         |
+| `useSale(id)`       | `['sales', id]`      | —                                         |
+| `useCreateSale()`   | mutation POST        | `['sales']`, `['stats']`                  |
+| `useUpdateSale()`   | mutation PATCH       | `['sales']`, `['stats']`, `['sales', id]` |
+| `useDeleteSale()`   | mutation DELETE      | `['sales']`, `['stats']`                  |
 
 ## Form pattern (composition-patterns)
 
@@ -92,6 +92,7 @@ npm run dev
 ```
 
 Pruebas manuales:
+
 1. Cargar ventas de ejemplo vía curl (3-4 ventas, una vendida, una con coste alto, etc.)
 2. Navegar a `/` y ver la tabla + KPIs.
 3. Click "Nueva venta", llenar, guardar → vuelve a la lista, aparece.

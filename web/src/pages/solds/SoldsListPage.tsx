@@ -67,9 +67,7 @@ export function SoldsListPage() {
       columnHelper.accessor('sold_at', {
         header: 'Fecha',
         cell: (info) => (
-          <span className="text-gray-700 dark:text-gray-300">
-            {formatDate(info.getValue())}
-          </span>
+          <span className="text-gray-700 dark:text-gray-300">{formatDate(info.getValue())}</span>
         ),
         sortingFn: 'basic',
       }),
@@ -90,20 +88,13 @@ export function SoldsListPage() {
         cell: (info) => {
           const items = info.getValue() as SaleItemOutput[];
           if (items.length === 0) {
-            return (
-              <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
-            );
+            return <span className="text-xs text-gray-400 dark:text-gray-500">—</span>;
           }
           return (
             <ul className="space-y-0.5">
               {items.map((item) => (
-                <li
-                  key={item.buy_id}
-                  className="flex items-baseline gap-1.5 text-sm leading-tight"
-                >
-                  <span className="text-gray-800 dark:text-gray-200">
-                    {item.product_name}
-                  </span>
+                <li key={item.buy_id} className="flex items-baseline gap-1.5 text-sm leading-tight">
+                  <span className="text-gray-800 dark:text-gray-200">{item.product_name}</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     × {item.quantity}
                   </span>
@@ -147,9 +138,7 @@ export function SoldsListPage() {
                 ? 'text-red-600 dark:text-red-400'
                 : 'text-gray-500 dark:text-gray-400';
           return (
-            <span className={`tabular-nums font-medium ${colorClass}`}>
-              {formatEuro(profit)}
-            </span>
+            <span className={`tabular-nums font-medium ${colorClass}`}>{formatEuro(profit)}</span>
           );
         },
         sortingFn: 'basic',

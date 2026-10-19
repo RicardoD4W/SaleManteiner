@@ -10,13 +10,17 @@ export interface BuysRouterDeps {
 
 const IdParam = z.object({ id: z.coerce.number().int().positive() });
 const ListQuery = z.object({
-  from: z.coerce.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.coerce.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  from: z.coerce
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z.coerce
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
-function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
-) {
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     fn(req, res, next).catch(next);
   };
@@ -45,9 +49,10 @@ export function buysRouter(deps: BuysRouterDeps): Router {
           issues: parsed.error.flatten(),
         });
       }
-      const filters = parsed.data.from || parsed.data.to
-        ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
-        : undefined;
+      const filters =
+        parsed.data.from || parsed.data.to
+          ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
+          : undefined;
       const data = repo.listWithStock(filters);
       res.json({ data });
     }),
@@ -154,9 +159,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
         return res.status(204).end();
       }
       if (result.code === 'NOT_FOUND') {
-        return res
-          .status(404)
-          .json({ error: 'Compra no encontrada', id: parsed.data.id });
+        return res.status(404).json({ error: 'Compra no encontrada', id: parsed.data.id });
       }
       // HAS_ASSOCIATED_SALES: 409 con la lista de ventas para que la UI
       // pueda mostrar el modal de confirmación cascade.

@@ -7,13 +7,7 @@
  * `TZ=UTC` vía cross-env (ver web/package.json).
  */
 import { describe, expect, it } from 'vitest';
-import {
-  centsToEuros,
-  eurosToCents,
-  formatCents,
-  formatDate,
-  formatDateTime,
-} from '../format.js';
+import { centsToEuros, eurosToCents, formatCents, formatDate, formatDateTime } from '../format.js';
 
 describe('formatCents', () => {
   it('formatea 0 como "0,00\u00A0€"', () => {

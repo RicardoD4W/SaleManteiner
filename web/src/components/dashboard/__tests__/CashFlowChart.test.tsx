@@ -19,7 +19,9 @@ vi.mock('recharts', async (importOriginal) => {
   return {
     ...actual,
     ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
-      <Real width={800} height={240}>{children}</Real>
+      <Real width={800} height={240}>
+        {children}
+      </Real>
     ),
   };
 });
@@ -40,10 +42,7 @@ describe('CashFlowChart (recharts)', () => {
     const root = container.querySelector('[data-testid="cashflow-chart"]');
     expect(root).toBeInTheDocument();
     expect(root).toHaveAttribute('role', 'img');
-    expect(root).toHaveAttribute(
-      'aria-label',
-      'Flujo de caja por mes (compras vs ventas)',
-    );
+    expect(root).toHaveAttribute('aria-label', 'Flujo de caja por mes (compras vs ventas)');
 
     // Dos curvas: Compras (gastos) y Ventas (ingresos).
     expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(2);
@@ -77,9 +76,7 @@ describe('CashFlowChart (recharts)', () => {
     );
 
     const tickValues = Array.from(
-      container.querySelectorAll(
-        '.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value',
-      ),
+      container.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
     ).map((el) => el.textContent ?? '');
 
     // El cero siempre está (referencia) y hay al menos un tick negativo:

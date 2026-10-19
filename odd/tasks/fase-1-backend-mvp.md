@@ -4,31 +4,31 @@
 
 ## Schema final (acordado con el usuario)
 
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | INTEGER PK AUTOINCREMENT | — |
-| `product_name` | TEXT NOT NULL | nombre del producto (obligatorio) |
-| `buyer_name` | TEXT NULL | nombre del comprador (opcional) |
-| `cost_cents` | INTEGER NOT NULL DEFAULT 0 | lo que costó el producto |
-| `price_cents` | INTEGER NOT NULL DEFAULT 0 | por cuánto se vendió |
-| `associated_costs_cents` | INTEGER NOT NULL DEFAULT 0 | costes extra (cartón, burbuja…) |
-| `sold` | INTEGER NOT NULL DEFAULT 0 (CHECK 0/1) | booleano |
-| `notes` | TEXT NULL | notas libres (opcional) |
-| `created_at` | TEXT NOT NULL | ISO 8601, automático al insert |
-| `sold_at` | TEXT NULL | ISO 8601, manejado por el repo |
+| Campo                    | Tipo                                   | Notas                             |
+| ------------------------ | -------------------------------------- | --------------------------------- |
+| `id`                     | INTEGER PK AUTOINCREMENT               | —                                 |
+| `product_name`           | TEXT NOT NULL                          | nombre del producto (obligatorio) |
+| `buyer_name`             | TEXT NULL                              | nombre del comprador (opcional)   |
+| `cost_cents`             | INTEGER NOT NULL DEFAULT 0             | lo que costó el producto          |
+| `price_cents`            | INTEGER NOT NULL DEFAULT 0             | por cuánto se vendió              |
+| `associated_costs_cents` | INTEGER NOT NULL DEFAULT 0             | costes extra (cartón, burbuja…)   |
+| `sold`                   | INTEGER NOT NULL DEFAULT 0 (CHECK 0/1) | booleano                          |
+| `notes`                  | TEXT NULL                              | notas libres (opcional)           |
+| `created_at`             | TEXT NOT NULL                          | ISO 8601, automático al insert    |
+| `sold_at`                | TEXT NULL                              | ISO 8601, manejado por el repo    |
 
 Índices: `idx_sales_sold`, `idx_sales_sold_at`.
 
 ## Endpoints REST
 
-| Método | Path | Body / Query | Respuesta |
-|---|---|---|---|
-| GET | `/api/sales` | `?sold=true\|false`, `?limit=N`, `?offset=N` | `{ data: Sale[] }` |
-| GET | `/api/sales/stats` | — | `{ data: { total, sold, not_sold, revenue_cents, cost_cents, associated_costs_cents, net_profit_cents } }` |
-| GET | `/api/sales/:id` | — | `{ data: Sale }` o 404 |
-| POST | `/api/sales` | `CreateSaleInput` | 201 + `{ data: Sale }` |
-| PATCH | `/api/sales/:id` | `UpdateSaleInput` (partial) | `{ data: Sale }` o 404 |
-| DELETE | `/api/sales/:id` | — | 204 o 404 |
+| Método | Path               | Body / Query                                 | Respuesta                                                                                                  |
+| ------ | ------------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/sales`       | `?sold=true\|false`, `?limit=N`, `?offset=N` | `{ data: Sale[] }`                                                                                         |
+| GET    | `/api/sales/stats` | —                                            | `{ data: { total, sold, not_sold, revenue_cents, cost_cents, associated_costs_cents, net_profit_cents } }` |
+| GET    | `/api/sales/:id`   | —                                            | `{ data: Sale }` o 404                                                                                     |
+| POST   | `/api/sales`       | `CreateSaleInput`                            | 201 + `{ data: Sale }`                                                                                     |
+| PATCH  | `/api/sales/:id`   | `UpdateSaleInput` (partial)                  | `{ data: Sale }` o 404                                                                                     |
+| DELETE | `/api/sales/:id`   | —                                            | 204 o 404                                                                                                  |
 
 ## Reglas de comportamiento
 

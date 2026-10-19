@@ -220,10 +220,7 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
   await expect(page.getByTestId('cashflow-chart')).toBeVisible();
 });
 
-test('pack multi-producto: venta con 2 items de A + 1 de B', async ({
-  page,
-  request,
-}) => {
+test('pack multi-producto: venta con 2 items de A + 1 de B', async ({ page, request }) => {
   // 1. Crear 2 compras.
   const buyA = await createBuyViaApi(request, {
     product_name: 'Producto A',
@@ -303,9 +300,7 @@ test('error de stock insuficiente: vender más unidades de las disponibles → 4
   });
 });
 
-test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', async ({
-  page,
-}) => {
+test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', async ({ page }) => {
   await page.goto('/buys');
   await page.getByRole('button', { name: /\+ Nueva compra/ }).click();
 
@@ -332,10 +327,7 @@ test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', asy
 // S3-S8 agregan cobertura de flujos no testeados en el feature buys-and-solds.
 // ---------------------------------------------------------------------------
 
-test('editar compra: cambiar coste en /buys/:id refleja en la lista', async ({
-  page,
-  request,
-}) => {
+test('editar compra: cambiar coste en /buys/:id refleja en la lista', async ({ page, request }) => {
   // 1. Crear compra via API con valores conocidos.
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
@@ -479,9 +471,7 @@ test('dark mode toggle persiste en reload', async ({ page }) => {
   expect(newTheme).not.toBe(initialTheme);
 
   // 4. Verificar que localStorage también cambió.
-  const storedTheme = await page.evaluate(() =>
-    window.localStorage.getItem('salemanteiner-theme'),
-  );
+  const storedTheme = await page.evaluate(() => window.localStorage.getItem('salemanteiner-theme'));
   expect(storedTheme).toBe(newTheme);
 
   // 5. Reload y verificar que el tema se mantiene (persiste via localStorage

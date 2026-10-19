@@ -22,11 +22,7 @@ interface Options extends Omit<RenderOptions, 'wrapper'> {
   withQueryClient?: boolean;
 }
 
-function makeWrapper({
-  route,
-  withRouter = true,
-  withQueryClient = true,
-}: Options) {
+function makeWrapper({ route, withRouter = true, withQueryClient = true }: Options) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -46,9 +42,6 @@ function makeWrapper({
   };
 }
 
-export function renderWithProviders(
-  ui: ReactElement,
-  options: Options = {},
-): RenderResult {
+export function renderWithProviders(ui: ReactElement, options: Options = {}): RenderResult {
   return render(ui, { wrapper: makeWrapper(options), ...options });
 }

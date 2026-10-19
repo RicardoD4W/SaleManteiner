@@ -1,9 +1,5 @@
 import type { Database } from 'better-sqlite3';
-import type {
-  CreateCustomerInput,
-  Customer,
-  UpdateCustomerInput,
-} from '../schemas/customers.js';
+import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '../schemas/customers.js';
 
 interface CustomerRow {
   id: number;

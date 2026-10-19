@@ -26,10 +26,7 @@ import { todayLocalDate } from '../../lib/format';
 import { ApiError } from '../../api/client';
 
 const BuyFormSchema = z.object({
-  product_name: z
-    .string()
-    .min(1, 'El producto es obligatorio')
-    .max(200, 'Máximo 200 caracteres'),
+  product_name: z.string().min(1, 'El producto es obligatorio').max(200, 'Máximo 200 caracteres'),
   purchase_cost: z
     .number({ error: 'Introduce un número' })
     .nonnegative('No puede ser negativo')

@@ -22,10 +22,7 @@ import { ApiError } from '../../api/client';
 import { formatDate } from '../../lib/format';
 
 const BuyFormSchema = z.object({
-  product_name: z
-    .string()
-    .min(1, 'El producto es obligatorio')
-    .max(200, 'Máximo 200 caracteres'),
+  product_name: z.string().min(1, 'El producto es obligatorio').max(200, 'Máximo 200 caracteres'),
   purchase_cost: z
     .number({ error: 'Introduce un número' })
     .nonnegative('No puede ser negativo')
@@ -159,7 +156,11 @@ export function BuyEditPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-red-600 dark:text-red-400">Id de compra inválido.</p>
-        <Link to="/buys" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link
+          to="/buys"
+          viewTransition
+          className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -180,7 +181,11 @@ export function BuyEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">
           No se pudo cargar la compra: {error.message}
         </p>
-        <Link to="/buys" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link
+          to="/buys"
+          viewTransition
+          className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -193,7 +198,11 @@ export function BuyEditPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar compra</h2>
-        <Link to="/buys" viewTransition className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link
+          to="/buys"
+          viewTransition
+          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -266,7 +275,11 @@ export function BuyEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => navigate('/buys', { viewTransition: true })}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate('/buys', { viewTransition: true })}
+              >
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>
@@ -420,8 +433,8 @@ function DeleteCascadeModal({
             <strong>
               {salesCount} {salesLabel}
             </strong>
-            . Si la borrás también se van a borrar las ventas siguientes. Esta acción
-            no se puede deshacer.
+            . Si la borrás también se van a borrar las ventas siguientes. Esta acción no se puede
+            deshacer.
           </p>
 
           <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">

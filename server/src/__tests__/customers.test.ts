@@ -11,11 +11,15 @@ import { CreateCustomerInput, UpdateCustomerInput } from '../schemas/customers.j
 const CreateSchema = CreateCustomerInput;
 const UpdateSchema = UpdateCustomerInput;
 
-function validCreate(overrides: Record<string, unknown> = {}): ReturnType<typeof CreateSchema.parse> {
+function validCreate(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof CreateSchema.parse> {
   return CreateSchema.parse({ name: 'Test', ...overrides });
 }
 
-function validUpdate(overrides: Record<string, unknown> = {}): ReturnType<typeof UpdateSchema.parse> {
+function validUpdate(
+  overrides: Record<string, unknown> = {},
+): ReturnType<typeof UpdateSchema.parse> {
   return UpdateSchema.parse(overrides);
 }
 
