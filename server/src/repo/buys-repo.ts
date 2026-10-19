@@ -144,10 +144,11 @@ export function createBuysRepo(db: Database): BuysRepo {
     // El WHERE es FIJO: el filtro viaja como parámetro bindeado y la
     // condición se activa con `? IS NULL`. Así no hay ningún fragmento de
     // SQL armado por concatenación (el valor nunca se interpola).
-    // Semántica idéntica a la anterior: si el filtro no viene, la
-    // condición es verdadera; si viene, se compara como texto.
-    const from = filters?.dateRange?.from ?? null;
-    const to = filters?.dateRange?.to ?? null;
+    // `|| null` (y no `?? null`) a propósito: el filtro anterior usaba un
+    // check de truthiness, así que la cadena vacía significaba "sin
+    // filtro". Con `||` la equivalencia es exacta.
+    const from = filters?.dateRange?.from || null;
+    const to = filters?.dateRange?.to || null;
     const rows = db
       .prepare(
         `SELECT * FROM buys
@@ -165,9 +166,10 @@ export function createBuysRepo(db: Database): BuysRepo {
    * HAVING disponibles > 0 ORDER BY id DESC
    */
   function listWithStock(filters?: ListFilters): BuyWithStock[] {
-    // Mismo criterio que `list`: WHERE fijo + parámetros bindeados.
-    const from = filters?.dateRange?.from ?? null;
-    const to = filters?.dateRange?.to ?? null;
+    // Mismo criterio que `list`: WHERE fijo + parámetros bindeados
+    // (mismo `|| null` para preservar la semántica de la cadena vacía).
+    const from = filters?.dateRange?.from || null;
+    const to = filters?.dateRange?.to || null;
     const rows = db
       .prepare(
         `SELECT b.*,

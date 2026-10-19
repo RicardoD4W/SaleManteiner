@@ -108,8 +108,7 @@ describe('buys repo', () => {
     });
 
     it('el valor del filtro va bindeado: un payload de inyección no ejecuta SQL', () => {
-      // La parte interpolada en el WHERE es una allowlist fija
-      // ('purchase_date >= ?'), el valor del filtro viaja como parámetro
+      // El WHERE es fijo y el valor del filtro viaja como parámetro
       // bindeado. Este test deja esa propiedad escrita: si alguien cambia
       // el valor por interpolación, la tabla 'buys' desaparece.
       repo.create(validCreate({ product_name: 'A', purchase_date: '2026-01-01' }));

@@ -17,7 +17,7 @@
 process.env.LOG_LEVEL = 'silent';
 process.env.NODE_ENV = 'production';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
@@ -29,6 +29,7 @@ const { createBuysRepo } = await import('../repo/buys-repo.js');
 const { createSoldsRepo } = await import('../repo/solds-repo.js');
 const { createCustomersRepo } = await import('../repo/customers-repo.js');
 const { createApp } = await import('../app.js');
+const { logger } = await import('../logger.js');
 
 type Repos = {
   buys: ReturnType<typeof createBuysRepo>;
@@ -65,6 +66,7 @@ describe('contrato HTTP del borrado de compras', () => {
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
+    vi.restoreAllMocks();
     db.close();
   });
 
@@ -86,12 +88,13 @@ describe('contrato HTTP del borrado de compras', () => {
     };
   }
 
-  function seedBuy(product_name: string, quantity = 5) {
+  function seedBuy(product_name: string, quantity = 5, purchase_date?: string) {
     return repos.buys.create({
       product_name,
       purchase_cost: 50,
       quantity,
       associated_costs: 0,
+      purchase_date,
     });
   }
 
@@ -249,6 +252,109 @@ describe('contrato HTTP del borrado de compras', () => {
 
       expect(del.status).toBe(404);
       expect(del.body).toEqual({ error: 'Compra no encontrada', id: 9999 });
+    });
+  });
+
+  describe('audit trail del cascade (S13)', () => {
+    it('el borrado en cascada deja registro con la compra y las ventas afectadas', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const buy = seedBuy('Audit', 3);
+      const customer = seedCustomer('Fede');
+      const sale = seedSale(customer.id, [{ buy_id: buy.id, quantity: 2 }]);
+
+      const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
+
+      expect(del.status).toBe(204);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [payload] = warn.mock.calls[0] as [{ buy_id: number; affected_sales: unknown[] }];
+      expect(payload.buy_id).toBe(buy.id);
+      expect(payload.affected_sales).toEqual([
+        { id: sale.id, customer_name: 'Fede', items_count: 2 },
+      ]);
+    });
+
+    it('no deja registro si el borrado no ocurrió (409 por ventas y 404 por inexistente)', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const buy = seedBuy('Audit sin borrado', 3);
+      const customer = seedCustomer('Gina');
+      seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
+
+      // 409: el delete normal no borra nada → no hay audit trail.
+      expect((await api('DELETE', `/api/buys/${buy.id}`)).status).toBe(409);
+      // 404: la cascada sobre una compra inexistente no borra nada.
+      expect((await api('DELETE', '/api/buys/9999/cascade')).status).toBe(404);
+
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('atomicidad del cascade (S2)', () => {
+    it('si el borrado falla a mitad de camino, no queda nada a medias', async () => {
+      // Un trigger que aborta el DELETE de la venta simula un fallo en
+      // medio de la transacción. Tiene que quedar todo como estaba: la
+      // compra, la venta y el item.
+      const buy = seedBuy('Rollback', 3);
+      const customer = seedCustomer('Huma');
+      const sale = seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
+      db.exec(
+        `CREATE TRIGGER block_sold_delete BEFORE DELETE ON solds
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
+
+      expect(del.status).toBe(500);
+      // Nada se borró: la transacción hizo rollback.
+      expect((await api('GET', `/api/buys/${buy.id}`)).status).toBe(200);
+      expect((await api('GET', `/api/solds/${sale.id}`)).status).toBe(200);
+      const items = db
+        .prepare('SELECT COUNT(*) AS c FROM sale_items WHERE buy_id = ?')
+        .get(buy.id) as { c: number };
+      expect(items.c).toBe(1);
+    });
+  });
+
+  describe('sin filas huérfanas tras el cascade (S2)', () => {
+    it('no deja sale_items, solds ni buys colgando', async () => {
+      const buyA = seedBuy('Huerfanos A', 3);
+      const buyB = seedBuy('Huerfanos B', 3);
+      const customer = seedCustomer('Ivo');
+      const sale = seedSale(customer.id, [
+        { buy_id: buyA.id, quantity: 1 },
+        { buy_id: buyB.id, quantity: 1 },
+      ]);
+
+      const del = await api('DELETE', `/api/buys/${buyA.id}/cascade`);
+      expect(del.status).toBe(204);
+
+      const count = (sql: string, ...args: unknown[]) =>
+        (db.prepare(sql).get(...args) as { c: number }).c;
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE buy_id = ?', buyA.id)).toBe(0);
+      expect(count('SELECT COUNT(*) AS c FROM buys WHERE id = ?', buyA.id)).toBe(0);
+      // La venta sigue viva con el item de buyB.
+      expect(count('SELECT COUNT(*) AS c FROM solds WHERE id = ?', sale.id)).toBe(1);
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
+    });
+  });
+
+  describe('filtros de fecha por HTTP (S10)', () => {
+    it('filtra por fecha y rechaza lo que no cumple el patrón', async () => {
+      seedBuy('Enero', 1, '2026-01-01');
+      seedBuy('Junio', 1, '2026-06-01');
+
+      const ok = await api('GET', '/api/buys?from=2026-03-01');
+      expect(ok.status).toBe(200);
+      const data = ok.body?.data as Array<{ product_name: string }>;
+      expect(data.map((b) => b.product_name)).toEqual(['Junio']);
+
+      // La regex de la ruta es la primera barrera: un valor inválido no
+      // llega al repo.
+      const bad = await api('GET', '/api/buys?from=abc');
+      expect(bad.status).toBe(400);
+      expect(bad.body?.error).toBe('Parámetros inválidos');
+
+      const empty = await api('GET', '/api/buys?from=');
+      expect(empty.status).toBe(400);
     });
   });
 });

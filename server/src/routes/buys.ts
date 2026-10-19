@@ -136,7 +136,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
             items_count: s.items_count,
           })),
         },
-        'Borrado en cascada de compra con ventas asociadas',
+        'Borrado en cascada de compra',
       );
       res.status(204).end();
     }),
