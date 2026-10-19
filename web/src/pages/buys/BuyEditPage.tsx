@@ -4,7 +4,7 @@
  * Mismo schema que BuyNewPage, pero pre-rellena con los datos de la compra.
  * Incluye botón de eliminar.
  */
-import { useEffect } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,8 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
-import { useDeleteBuy } from '../../hooks/useDeleteBuy';
+import { useDeleteBuy, isDeleteBuy409, type AssociatedSale } from '../../hooks/useDeleteBuy';
+import { useDeleteBuyCascade } from '../../hooks/useDeleteBuyCascade';
 import { useState } from 'react';
 import { ApiError } from '../../api/client';
 import { formatDate } from '../../lib/format';
@@ -49,9 +50,16 @@ export function BuyEditPage() {
   const { data: buy, isLoading, isError, error } = useBuy(buyId);
   const update = useUpdateBuy();
   const remove = useDeleteBuy();
+  const cascade = useDeleteBuyCascade();
   const navigate = useNavigate();
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  /** Modal de confirmación cascade: se abre cuando `remove` recibe 409. */
+  const [deleteCascadeOpen, setDeleteCascadeOpen] = useState(false);
+  /** Ventas asociadas devueltas en el 409 (para listar en la modal). */
+  const [associatedSales, setAssociatedSales] = useState<AssociatedSale[] | null>(null);
+  /** Error del cascade (red, 5xx). Se muestra dentro de la modal. */
+  const [cascadeError, setCascadeError] = useState<string | null>(null);
 
   const {
     register,
@@ -86,7 +94,7 @@ export function BuyEditPage() {
 
     try {
       await update.mutateAsync({ id: buyId, input: payload });
-      navigate('/buys');
+      navigate('/buys', { viewTransition: true });
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -102,9 +110,48 @@ export function BuyEditPage() {
     setDeleteError(null);
     try {
       await remove.mutateAsync(buyId);
-      navigate('/buys');
+      navigate('/buys', { viewTransition: true });
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Error al eliminar');
+      // 409 con ventas asociadas → abrir modal de confirmación cascade.
+      // NO mostrar el error inline (la modal ya es la confirmación).
+      // Si el 409 NO trae `associated_sales` (S11), el guard devuelve false y
+      // caemos en el `else`: se muestra el mensaje del server en vez de
+      // dejar el click sin efecto.
+      if (isDeleteBuy409(err)) {
+        setAssociatedSales(err.body.associated_sales);
+        setDeleteCascadeOpen(true);
+        return;
+      }
+      setDeleteError(
+        err instanceof ApiError
+          ? err.body.error
+          : err instanceof Error
+            ? err.message
+            : 'Error al eliminar',
+      );
+    }
+  };
+
+  const handleCascadeClose = () => {
+    if (cascade.isPending) return; // No cerrar mientras está en curso.
+    setDeleteCascadeOpen(false);
+    setCascadeError(null);
+  };
+
+  const handleCascadeConfirm = async () => {
+    setCascadeError(null);
+    try {
+      await cascade.mutateAsync(buyId);
+      setDeleteCascadeOpen(false);
+      navigate('/buys', { viewTransition: true });
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.body.error
+          : err instanceof Error
+            ? err.message
+            : 'Error al eliminar en cascada';
+      setCascadeError(message);
     }
   };
 
@@ -112,7 +159,7 @@ export function BuyEditPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-red-600 dark:text-red-400">Id de compra inválido.</p>
-        <Link to="/buys" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link to="/buys" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -133,7 +180,7 @@ export function BuyEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">
           No se pudo cargar la compra: {error.message}
         </p>
-        <Link to="/buys" className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
+        <Link to="/buys" viewTransition className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">
           ← Volver
         </Link>
       </div>
@@ -146,7 +193,7 @@ export function BuyEditPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar compra</h2>
-        <Link to="/buys" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link to="/buys" viewTransition className="text-sm text-gray-500 hover:underline dark:text-gray-400">
           ← Volver
         </Link>
       </div>
@@ -219,7 +266,7 @@ export function BuyEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => navigate('/buys')}>
+              <Button type="button" variant="ghost" onClick={() => navigate('/buys', { viewTransition: true })}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>
@@ -262,6 +309,171 @@ export function BuyEditPage() {
           )}
         </CardBody>
       </Card>
+
+      {deleteCascadeOpen && associatedSales ? (
+        <DeleteCascadeModal
+          productName={buy.product_name}
+          sales={associatedSales}
+          isPending={cascade.isPending}
+          cascadeError={cascadeError}
+          onClose={handleCascadeClose}
+          onConfirm={handleCascadeConfirm}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Modal de confirmación para el cascade delete. Se muestra cuando
+ * `DELETE /api/buys/:id` devuelve 409. Lista las ventas que se van a
+ * borrar (o de las que se va a quitar este buy) y exige una segunda
+ * confirmación antes de llamar a `DELETE /api/buys/:id/cascade`.
+ *
+ * Accesibilidad (WCAG 2.2): role="dialog" + aria-modal + aria-labelledby,
+ * cierre con Escape, click en backdrop, autofocus al botón destructivo.
+ */
+interface DeleteCascadeModalProps {
+  productName: string;
+  sales: AssociatedSale[];
+  isPending: boolean;
+  cascadeError: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+function DeleteCascadeModal({
+  productName,
+  sales,
+  isPending,
+  cascadeError,
+  onClose,
+  onConfirm,
+}: DeleteCascadeModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
+  // El botón destructivo usa `autoFocus` (raw <button>) en vez de un ref,
+  // porque el componente Button del repo no expone ref y modificar Button
+  // está fuera del scope de este cambio.
+
+  // Escape cierra (salvo mientras la mutación está en curso).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isPending) onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isPending, onClose]);
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && !isPending) onClose();
+  };
+
+  const salesCount = sales.length;
+  const salesLabel = salesCount === 1 ? 'venta registrada' : 'ventas registradas';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="presentation"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+          <h2 id={titleId} className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            La compra tiene ventas asociadas
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            aria-label="Cerrar"
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            La compra <strong>"{productName}"</strong> tiene{' '}
+            <strong>
+              {salesCount} {salesLabel}
+            </strong>
+            . Si la borrás también se van a borrar las ventas siguientes. Esta acción
+            no se puede deshacer.
+          </p>
+
+          <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+            {sales.map((s) => {
+              const unitLabel = s.items_count === 1 ? 'unidad' : 'unidades';
+              return (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between px-3 py-2 text-sm text-gray-800 dark:text-gray-200"
+                >
+                  <span className="font-medium">Venta #{s.id}</span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {s.customer_name} · {formatDate(s.sold_at)}
+                  </span>
+                  <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    × {s.items_count} {unitLabel}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {cascadeError ? (
+            <p
+              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+              role="alert"
+            >
+              {cascadeError}
+            </p>
+          ) : null}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+              Cancelar
+            </Button>
+            {isPending ? (
+              <Button type="button" variant="danger" isLoading onClick={onConfirm}>
+                Borrar también las ventas y la compra
+              </Button>
+            ) : (
+              <button
+                type="button"
+                autoFocus
+                onClick={onConfirm}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Borrar también las ventas y la compra
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

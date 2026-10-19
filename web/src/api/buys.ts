@@ -41,4 +41,14 @@ export const buysApi = {
     ),
 
   remove: (id: number) => apiFetch<void>(`/api/buys/${id}`, { method: 'DELETE' }),
+
+  /**
+   * Borra la compra EN CASCADA: limpia las ventas asociadas (si la venta
+   * tiene otros buys, solo quita este item del pack; si la venta queda
+   * con 0 items, también la borra). El endpoint está separado del
+   * `remove` normal porque el `remove` devuelve 409 cuando hay ventas
+   * para pedir confirmación al usuario (no es silencioso).
+   */
+  removeCascade: (id: number) =>
+    apiFetch<void>(`/api/buys/${id}/cascade`, { method: 'DELETE' }),
 };
