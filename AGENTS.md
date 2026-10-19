@@ -224,7 +224,7 @@ Comandos útiles:
 
 - `npm run typecheck` — TS en `web/` y `server/`
 - `npm run lint` — ESLint en ambos
-- `npm run format` / `format:check` — Prettier
+- `npm run format` / `format:check` — Prettier. **Desde 2026-10-19 el repo está normalizado con Prettier y `format:check` es un gate** (si falla, el cambio no entra).
 
 ## 9. Skills cargadas
 
