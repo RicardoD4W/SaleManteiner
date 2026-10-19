@@ -151,6 +151,60 @@ describe('solds repo', () => {
     });
   });
 
+  describe('listWithProfit', () => {
+    it('incluye los items vendidos en cada fila (S de UI: mostrar qué se vendió)', () => {
+      const c = makeCustomer(customersRepo, 'Pepe');
+      const b1 = makeBuy(buysRepo, { product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 });
+      const b2 = makeBuy(buysRepo, { product_name: 'carta magic', purchase_cost: 5, quantity: 3 });
+
+      // Venta 1: 2 unidades de b1
+      const s1 = soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b1.id, { sale_price: 9, items: [{ buy_id: b1.id, quantity: 2 }] }),
+      );
+      // Venta 2: pack con un item de cada buy
+      const s2 = soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b2.id, {
+          sale_price: 20,
+          items: [
+            { buy_id: b1.id, quantity: 1 },
+            { buy_id: b2.id, quantity: 1 },
+          ],
+        }),
+      );
+
+      const list = soldsRepo.listWithProfit();
+      expect(list).toHaveLength(2);
+
+      const byId = new Map(list.map((s) => [s.id, s]));
+
+      const row1 = byId.get(s1.id)!;
+      expect(row1.items).toEqual([
+        { buy_id: b1.id, product_name: 'sobre pokemon', quantity: 2, unit_cost: 1, unit_assoc: 0 },
+      ]);
+
+      const row2 = byId.get(s2.id)!;
+      expect(row2.items).toHaveLength(2);
+      // Orden estable por (sold_id, buy_id) en el SQL.
+      expect(row2.items[0]).toMatchObject({ buy_id: b1.id, quantity: 1 });
+      expect(row2.items[1]).toMatchObject({ buy_id: b2.id, quantity: 1 });
+    });
+
+    it('mantiene profit calculado aunque items sea []', () => {
+      // La invariante del modelo es que toda venta tiene ≥1 item
+      // (CreateSoldInput.items.min(1)), pero listWithProfit debe ser defensivo.
+      const c = makeCustomer(customersRepo);
+      const b = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 5 });
+      const s = soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b.id, { sale_price: 100, associated_costs: 0, items: [{ buy_id: b.id, quantity: 1 }] }),
+      );
+      const list = soldsRepo.listWithProfit();
+      expect(list[0].id).toBe(s.id);
+      // profit = sale_price - associated - COGS = 100 - 0 - (10/5)*1 = 98
+      expect(list[0].profit).toBe(98);
+      expect(list[0].items).toHaveLength(1);
+    });
+  });
+
   describe('list', () => {
     it('lista todas', () => {
       const c = makeCustomer(customersRepo);

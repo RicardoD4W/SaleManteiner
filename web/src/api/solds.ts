@@ -2,7 +2,7 @@
  * Funciones de API para ventas. Cada una devuelve el `data` del envelope.
  */
 import { apiFetch } from './client.js';
-import type { Sold, SoldWithItems } from '../schemas/solds.js';
+import type { Sold, SoldWithItems, SaleItemOutput } from '../schemas/solds.js';
 import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 
 /**
@@ -11,9 +11,13 @@ import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
  * Alimenta `GET /api/solds` para que la tabla de /solds muestre el profit real
  * sin tener que cargar los items de cada venta (S3 del feature
  * dashboard-iteration-1).
+ *
+ * `items` se incluye desde la misma respuesta del server (S de UI: la tabla
+ * muestra qué se vendió y cuántas unidades, sin abrir el detalle).
  */
 export interface SoldWithProfit extends Sold {
   profit: number;
+  items: SaleItemOutput[];
 }
 
 interface ListResponse {

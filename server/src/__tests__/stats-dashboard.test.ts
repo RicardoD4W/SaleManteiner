@@ -215,7 +215,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.topBuyers[1]).toMatchObject({ customer_name: 'Luis', total_gastado: 30 });
   });
 
-  it('mismo buy vendido varias veces: times_sold refleja count de sale_items', () => {
+  it('mismo buy vendido varias veces: times_sold suma la cantidad (SUM(quantity))', () => {
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
     const buy = buysRepo.create(validBuy({ product_name: 'Pack', purchase_cost: 60, quantity: 5 }));
 
@@ -232,7 +232,31 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.topProducts).toHaveLength(1);
     expect(stats.topProducts[0]).toMatchObject({
       product_name: 'Pack',
-      times_sold: 2,
+      times_sold: 2, // 1 + 1 unidades
+    });
+  });
+
+  it('topProducts.times_sold = unidades vendidas (SUM(quantity)), no count de sale_items', () => {
+    // Reporte de usuario: vendió 2 sobres y el chart mostraba 1x. La causa era
+    // COUNT(*) sobre sale_items (cuenta filas del pack) en vez de SUM(quantity)
+    // (suma las unidades). Tras el fix, una sola fila de sale_items con
+    // quantity=2 debe contar como times_sold=2.
+    const buy = buysRepo.create(validBuy({ product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 }));
+    const customer = customersRepo.create(validCustomer({ name: 'Pepe' }));
+
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 9,
+        items: [{ buy_id: buy.id, quantity: 2 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.topProducts).toHaveLength(1);
+    expect(stats.topProducts[0]).toMatchObject({
+      product_name: 'sobre pokemon',
+      times_sold: 2, // SUM(quantity) = 2 (no COUNT(*) = 1)
     });
   });
 

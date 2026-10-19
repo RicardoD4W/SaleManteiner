@@ -77,6 +77,8 @@ export interface SoldsRepo {
 /** Sold con el profit calculado (S13) — sale_price - associated - COGS - buy.associated. */
 export interface SoldWithProfit extends Sold {
   profit: number;
+  /** Items vendidos (nombre + cantidad + coste prorrateado). S de UI: la tabla de /solds los muestra para que se vea qué se vendió sin tener que abrir el detalle. */
+  items: SaleItemOutput[];
 }
 
 export interface DashboardStats {
@@ -315,7 +317,52 @@ export function createSoldsRepo(db: Database): SoldsRepo {
          LIMIT 200`,
       )
       .all(...params) as Array<SoldRow & { profit: number }>;
-    return rows.map((r) => ({ ...rowToSold(r), profit: round2(r.profit) }));
+
+    if (rows.length === 0) return [];
+
+    // Items de los solds en una sola query (evita N+1). Orden estable por
+    // (sold_id, buy_id) para que la UI renderice consistente.
+    // json_each expande el array JSON en filas; un solo placeholder evita
+    // interpolar el conteo de `?` en el SQL (que el linter marcaría como
+    // risk). JSON1 viene habilitado por default en better-sqlite3.
+    const soldIds = rows.map((r) => r.id);
+    const itemRows = db
+      .prepare(
+        `SELECT si.sold_id, si.buy_id, b.product_name, si.quantity,
+          ROUND(b.purchase_cost / b.quantity, 2) AS unit_cost,
+          ROUND(b.associated_costs / b.quantity, 2) AS unit_assoc
+         FROM sale_items si
+         JOIN buys b ON b.id = si.buy_id
+         WHERE si.sold_id IN (SELECT value FROM json_each(?))
+         ORDER BY si.sold_id, si.buy_id`,
+      )
+      .all(JSON.stringify(soldIds)) as Array<{
+      sold_id: number;
+      buy_id: number;
+      product_name: string;
+      quantity: number;
+      unit_cost: number;
+      unit_assoc: number;
+    }>;
+
+    const itemsBySold = new Map<number, SaleItemOutput[]>();
+    for (const row of itemRows) {
+      const list = itemsBySold.get(row.sold_id) ?? [];
+      list.push({
+        buy_id: row.buy_id,
+        product_name: row.product_name,
+        quantity: row.quantity,
+        unit_cost: row.unit_cost,
+        unit_assoc: row.unit_assoc,
+      });
+      itemsBySold.set(row.sold_id, list);
+    }
+
+    return rows.map((r) => ({
+      ...rowToSold(r),
+      profit: round2(r.profit),
+      items: itemsBySold.get(r.id) ?? [],
+    }));
   }
 
   function update(id: number, input: UpdateSoldInput): Sold | null {
@@ -493,7 +540,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       .prepare(
         `SELECT
            b.product_name,
-           COUNT(*) AS times_sold,
+           SUM(si.quantity) AS times_sold,
            SUM(si.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
            SUM(si.quantity * (s.associated_costs * 1.0 / st.total_qty)) AS total_assoc_sale,
            SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2)) AS total_unit_cost,

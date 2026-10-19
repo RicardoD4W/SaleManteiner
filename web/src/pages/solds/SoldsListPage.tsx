@@ -28,6 +28,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
 import type { SoldWithProfit } from '../../api/solds';
+import type { SaleItemOutput } from '../../schemas/solds';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
 
@@ -39,7 +40,10 @@ interface SoldWithCustomer extends SoldWithProfit {
 export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
   const { data: customers } = useCustomers();
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'sold_at', desc: true }]);
+  // Sin sort por defecto: el user pide explícitamente el estado idle (ni asc ni desc).
+  // El server ya devuelve las solds en id DESC (LIMIT 200), así que sin sort se ve
+  // lo más nuevo arriba.
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
@@ -76,6 +80,40 @@ export function SoldsListPage() {
           <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>
         ),
         sortingFn: 'basic',
+      }),
+      // Productos vendidos (S de UI: mostrar en la lista qué se vendió
+      // y cuántas unidades, sin abrir el detalle). Una línea por item
+      // del pack; cada línea con el formato "nombre × cantidad".
+      columnHelper.accessor((row) => row.items, {
+        id: 'items',
+        header: 'Productos',
+        cell: (info) => {
+          const items = info.getValue() as SaleItemOutput[];
+          if (items.length === 0) {
+            return (
+              <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+            );
+          }
+          return (
+            <ul className="space-y-0.5">
+              {items.map((item) => (
+                <li
+                  key={item.buy_id}
+                  className="flex items-baseline gap-1.5 text-sm leading-tight"
+                >
+                  <span className="text-gray-800 dark:text-gray-200">
+                    {item.product_name}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    × {item.quantity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          );
+        },
+        sortingFn: 'basic',
+        enableSorting: false,
       }),
       columnHelper.accessor('sale_price', {
         header: 'Precio (€)',
@@ -131,6 +169,10 @@ export function SoldsListPage() {
         cell: (info) => (
           <Link
             to={`/solds/${info.row.original.id}`}
+            // viewTransition (RR 7+) usa la View Transitions API del browser
+            // para animar la navegación /solds → /solds/:id. Default = cross-fade.
+            // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+            viewTransition
             className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Editar
