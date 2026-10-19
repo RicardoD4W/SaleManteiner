@@ -163,6 +163,7 @@
 - **L11** (cierre WU4 docs + smoke — **código cerrado en WU2**; cierre formal de docs en **L13**, sesión 2026-10-19): AGENTS.md ya reflejaba la estructura nueva del repo y el modelo de datos en sus §4 y §6 (re-hecho en el cleanup de WU2). La única pieza de cierre formal de docs que quedaba —AGENTS.md §12 ("próximo paso") apuntando a WU1 backend cuando WU1 ya estaba mergeado— se corrigió en L13 (esta sesión). Verificaciones automáticas todas verdes en `master`: `npm run typecheck` 0 errores; `npm run lint` 0 warnings; `npm test --workspaces -- --run` 113 server + 70 web passing; `npm run e2e -w web` 7/7 passing.
 
 - **L12** (Smoke manual — opcional, los E2E ya cubren el flujo):
+
   ```powershell
   # desde la raíz del repo
   fnm use 20
@@ -196,6 +197,7 @@
   # - Tab Compradores: ver "Juan Pérez" en el ranking
   # - Tab Ingresos: ver revenue y profit mensuales con los decimales correctos (8€ y 20€)
   ```
+
   Si algo falla, anotar como L14 y abrir feature doc de bugfix.
 
 - **L13** (cierre formal T15 + T16 — 2026-10-19, sesión "de la anterior sesión nos hemos dejado algo en el tintero?"): el usuario pidió cerrar T15 (AGENTS.md desactualizado) antes de cerrar el feature formalmente. Acciones aplicadas en la sesión:
