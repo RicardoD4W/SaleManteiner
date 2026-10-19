@@ -6,7 +6,16 @@ App web local (React + Node) para **registrar y mantener un histórico de compra
 
 ## Estado
 
-Backend + frontend operativos con el modelo `sales` legacy (entradas manuales). Migración en curso al modelo `buys + solds + sale_items + customers` documentado en `odd/tasks/feature-buys-and-solds.md`.
+MVP manual cerrado y operativo con el modelo `buys + solds + sale_items + customers`. El modelo legacy `sales` se dropeó en la migración 003; el actual gestiona compras con cantidad, ventas con packs multi-producto (validación de stock transaccional), clientes, dashboard con KPIs en euros decimales, dark mode y responsive.
+
+Features cerradas y mergeadas en `master`:
+
+- `feature-buys-and-solds` — modelo de 4 tablas + UI + endpoints REST + dashboard.
+- `feature-dashboard-iteration-1` — 8 cambios de UI (cash flow chart, modal flow, top 5 colapsables, tablas ordenables).
+- `feature-dark-mode` — toggle sol/luna con persistencia y anti-FOUC.
+- `feature-purchase-date-and-manual-sold-at` — fechas editables por el cliente.
+
+Ver `odd/tasks/feature-buys-and-solds.md` y `odd/tasks/feature-dashboard-iteration-1.md` para el detalle.
 
 ## Estructura
 
@@ -65,10 +74,12 @@ npm run dev
 ## Otros comandos
 
 ```bash
-npm run typecheck      # TypeScript en web/ y server/
-npm run lint           # ESLint en web/ y server/
-npm run format         # Prettier en todo el repo
-npm run build          # Build de producción de web/ y server/
+npm run typecheck                     # TypeScript en web/ y server/
+npm run lint                          # ESLint en web/ y server/
+npm run format                        # Prettier en todo el repo
+npm run build                         # Build de producción de web/ y server/
+npm test --workspaces -- --run        # Vitest en server (113 tests) + web (70 tests)
+npm run e2e -w web                    # Playwright (13 e2e specs del flujo principal + edit/delete/dark mode/dashboard tabs)
 ```
 
 ## Documentación

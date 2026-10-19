@@ -197,7 +197,7 @@ Refs: `odd/tasks/feature-buys-and-solds.md` S1-S13.
 | **5** Dashboard               | 🔁 sustituida | Sustituida por T12 del feature (KPIs del nuevo modelo + nueva tab "Compradores"). Mantiene las 3 tabs existentes (Resumen/Ingresos/Productos) adaptadas al nuevo esquema. |
 | **6** Exportación CSV         | ❌ descartada | Descartada junto con la Fase 3. Se reactiva en feature futuro si hace falta.                                                                                              |
 | **7** Settings + cifrado      | ⏸️ en pausa   | Queda pausada: el cifrado de un token que no existe (Fase 4 descartada) no aplica. Se reactiva si en el futuro aparece otro dato sensible para cifrar.                    |
-| **8** Pulido + E2E + docs     | pendiente     | Cuando se cierre `feature-buys-and-solds`, queda agregar pulido de UX y tests E2E adicionales. Probablemente surge como feature doc nuevo.                                |
+| **8** Pulido + E2E + docs     | ✅ (2026-10-19) | Cerrada con el feature `phase-8-polish-e2e-docs`: 6 e2e nuevos (editar/borrar compra+venta, dark mode toggle, tabs dashboard), README.md y AGENTS.md sincronizados con el estado real del proyecto. Refs: `odd/tasks/feature-phase-8-polish-e2e-docs.md`. Sin trabajo orgánico pendiente hasta el próximo cambio UX.                              |
 
 **Estimación total**: 5–6 días de trabajo real (no consecutivos).
 
@@ -338,6 +338,7 @@ Decisiones que quedaron pendientes (no bloquean nada):
 
 ## 13. Notas recientes
 
+- **(2026-10-19) Cierre de Fase 8 (Pulido + E2E + docs).** Feature `phase-8-polish-e2e-docs` cerrado: 6 e2e nuevos agregados a `web/e2e/buys-and-solds-flow.spec.ts` (13 totales vs 7 previos) + `README.md` reescrito para reflejar el estado real del proyecto (no más "migración en curso") + §7 marca la Fase 8 como ✅. El proyecto queda en estado "MVP manual cerrado y operativo". Verificación al cierre del feature: 113 server + 70 web + 13 e2e verdes.
 - **(2026-10-19) Cierre de features `buys-and-solds` + `dashboard-iteration-1`.** T15 del feature doc formalizado: AGENTS.md §12 deja de apuntar a "arrancar WU1 backend" (WU1-WU4 ya commiteados) y pasa a apuntar al push pendiente + cleanup opcional. El estado del proyecto es: features cerradas, tests verdes, working tree limpio.
 - **(2026-10-16) `openDb` crea el directorio padre de la BD** si no existe (`mkdirSync({ recursive: true })`). Antes crasheaba con `TypeError: Cannot open database because the directory does not exist` cuando `SALEMANTEINER_DIR` apuntaba a un directorio nuevo. Cubierto por 3 tests en `server/src/db/index.test.ts` (cubren `:memory:` + file-based + creación recursiva del dir). El feature doc de Fase 2 ahora usa `$env:TEMP\salemanteiner-smoke` como ejemplo portable.
 - **(2026-10-19) Persistencia BD en `~/.salemanteiner/` por defecto.** El server usa `~/.salemanteiner/data.db` via `os.homedir()` (configurable con `SALEMANTEINER_DIR` / `SALEMANTEINER_DB`). La "decisión pendiente" que figuraba en §12 quedó cerrada por código: `server/src/config.ts` ya implementa este path default. `openDb` crea el directorio padre si no existe.
