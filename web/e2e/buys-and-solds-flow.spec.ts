@@ -532,3 +532,87 @@ test('tabs del dashboard navegan entre Resumen / Ingresos / Productos', async ({
   await page.getByTestId('dashboard-tab-productos').click();
   await expect(page.getByTestId('products-table')).toBeVisible({ timeout: 10_000 });
 });
+
+test('borrar compra con ventas asociadas: 409 → modal de cascada → borra compra y venta', async ({
+  page,
+  request,
+}) => {
+  // 1. Compra con 5 unidades, cliente y una venta de 2 unidades.
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Cascade E2E',
+    purchase_cost: 50,
+    quantity: 5,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Cliente Cascade' });
+  const saleRes = await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 100,
+      items: [{ buy_id: buyId, quantity: 2 }],
+    },
+  });
+  expect(saleRes.ok(), `POST /api/solds falló: ${saleRes.status()}`).toBe(true);
+  const saleId = ((await saleRes.json()) as { data: { id: number } }).data.id;
+
+  // 2. /buys/:id → "Eliminar compra" → "Sí, eliminar". El server responde
+  // 409 (no borra en silencio) y la UI abre la modal de cascada.
+  await page.goto(`/buys/${buyId}`);
+  await page.getByRole('button', { name: /Eliminar compra/ }).click();
+  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+
+  // 3. La modal nombra QUÉ se va a borrar (S2: el texto tiene que nombrar
+  // qué se va a borrar).
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  await expect(dialog.getByText('La compra tiene ventas asociadas')).toBeVisible();
+  await expect(dialog.getByText(`Venta #${saleId}`)).toBeVisible();
+  await expect(dialog.getByText(/Cliente Cascade/)).toBeVisible();
+
+  // 4. Confirmar el borrado en cascada.
+  await page.getByRole('button', { name: 'Borrar también las ventas y la compra' }).click();
+
+  // 5. Vuelve a /buys y la compra ya no está.
+  await expect(page).toHaveURL(/\/buys$/);
+  await expect(page.getByText('Cascade E2E')).not.toBeVisible();
+
+  // 6. La venta asociada también se borró (cascade real, no solo la compra).
+  const soldsRes = await request.get('/api/solds');
+  const soldsBody = (await soldsRes.json()) as { data: Array<{ id: number }> };
+  expect(soldsBody.data.find((s) => s.id === saleId)).toBeUndefined();
+});
+
+test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async ({
+  page,
+  request,
+}) => {
+  // 1. Crear una compra cara (100€ / 5 unidades → COGS unitario = 20€).
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Caro',
+    purchase_cost: 100,
+    quantity: 5,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Cliente Pérdida' });
+
+  // 2. Vender 1 unidad a 10€. Profit = 10 - 0 - 20 = -10€ (negativo).
+  // Antes del fix, el dominio Y del CashFlowChart solo incluía >= 0,
+  // así que el punto de 'ventas = -10' se renderizaba off-screen y el
+  // usuario veía solo la línea de compras (que sí está dentro del rango).
+  await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 10,
+      items: [{ buy_id: buyId, quantity: 1 }],
+    },
+  });
+
+  // 3. Ir a / y verificar que el chart se renderiza visible (no off-screen).
+  await page.goto('/');
+  await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('cashflow-chart')).toBeVisible();
+
+  // 4. Verificar que el SVG tiene al menos 2 paths (uno por serie). Las 2
+  // series son: Compras (gastos) y Ventas (ingresos). Con el fix, ambos
+  // se renderizan dentro del viewBox aunque ventas sea negativo.
+  const svgPaths = page.locator('[data-testid="cashflow-chart"] svg path');
+  await expect(svgPaths).toHaveCount(2); // compras + ventas
+});
