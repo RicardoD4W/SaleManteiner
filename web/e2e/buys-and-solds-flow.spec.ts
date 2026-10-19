@@ -168,15 +168,14 @@ test('después de vender 5 unidades, la compra sigue apareciendo en /buys', asyn
     },
   });
 
-  // 3. Ir a /buys y verificar que la compra aparece con su cantidad original.
-  // NOTA: BuysListPage usa un placeholder (T12 traerá el cálculo real que resta
-  // sale_items de quantity). Por ahora la columna "Cantidad" y "Disponibles"
-  // muestran `quantity` (20), no el stock pendiente (15).
+  // 3. Ir a /buys y verificar que la compra aparece con la cantidad original
+  // (20) en "Cantidad" y los disponibles reales (15) en "Disponibles"
+  // (calculados como `quantity - SUM(sale_items.quantity)` por el server).
   await page.goto('/buys');
   await expect(page.getByText('Funda iPhone')).toBeVisible();
-  // La fila de la compra muestra "20" en la columna Cantidad (y también en
-  // Disponibles por el placeholder). Buscamos el "20" dentro del <tbody>.
-  await expect(page.locator('tbody').getByText('20').first()).toBeVisible();
+  const tbody = page.locator('tbody');
+  await expect(tbody.getByText('20').first()).toBeVisible(); // Cantidad original
+  await expect(tbody.getByText('15').first()).toBeVisible(); // Disponibles (20 - 5 vendidos)
 });
 
 test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({

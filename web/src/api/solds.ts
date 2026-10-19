@@ -5,8 +5,19 @@ import { apiFetch } from './client.js';
 import type { Sold, SoldWithItems } from '../schemas/solds.js';
 import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 
+/**
+ * Sold con el profit calculado (S13 del feature buys-and-solds):
+ * `sale_price - associated_costs - COGS_prorrateado - buy.associated_prorrateado`.
+ * Alimenta `GET /api/solds` para que la tabla de /solds muestre el profit real
+ * sin tener que cargar los items de cada venta (S3 del feature
+ * dashboard-iteration-1).
+ */
+export interface SoldWithProfit extends Sold {
+  profit: number;
+}
+
 interface ListResponse {
-  data: Sold[];
+  data: SoldWithProfit[];
 }
 interface ItemResponse {
   data: Sold;

@@ -43,6 +43,15 @@ export interface BuysRepo {
   create(input: CreateBuyInput): Buy;
   getById(id: number): Buy | null;
   list(filters?: ListFilters): Buy[];
+  /**
+   * Devuelve TODAS las compras con su stock disponible calculado
+   * (`quantity - SUM(sale_items.quantity)`), incluso las que ya no tienen
+   * stock (disponibles = 0). Respeta los mismos filtros que `list()`.
+   * Alimenta `GET /api/buys` para que la tabla de /buys pueda mostrar los
+   * pendientes en gris como pista visual (S3 del feature
+   * dashboard-iteration-1 — decisión: "Todas + disponibles").
+   */
+  listWithStock(filters?: ListFilters): BuyWithStock[];
   /** Devuelve compras con stock disponible (disponibles > 0), orden DESC por id. */
   getWithStock(): BuyWithStock[];
   update(id: number, input: UpdateBuyInput): Buy | null;
@@ -110,6 +119,32 @@ export function createBuysRepo(db: Database): BuysRepo {
    * unidades compradas - SUM(sale_items.quantity WHERE buy_id = b.id)
    * HAVING disponibles > 0 ORDER BY id DESC
    */
+  function listWithStock(filters?: ListFilters): BuyWithStock[] {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (filters?.dateRange?.from) {
+      conditions.push('b.purchase_date >= ?');
+      params.push(filters.dateRange.from);
+    }
+    if (filters?.dateRange?.to) {
+      conditions.push('b.purchase_date <= ?');
+      params.push(filters.dateRange.to);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const rows = db
+      .prepare(
+        `SELECT b.*,
+          (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
+         FROM buys b
+         ${where}
+         ORDER BY b.id DESC`,
+      )
+      .all(...params) as (BuyRow & { disponibles: number })[];
+    return rows.map((row) => ({ ...rowToBuy(row), disponibles: row.disponibles }));
+  }
+
   function getWithStock(): BuyWithStock[] {
     // WHERE subquery > 0 (no HAVING porque no hay GROUP BY)
     const rows = db
@@ -165,5 +200,5 @@ export function createBuysRepo(db: Database): BuysRepo {
     return deleteStmt.run(id).changes > 0;
   }
 
-  return { create, getById, list, getWithStock, update, remove };
+  return { create, getById, list, listWithStock, getWithStock, update, remove };
 }

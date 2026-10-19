@@ -24,31 +24,18 @@ import { useBuys } from '../../hooks/useBuys';
 import { Spinner } from '../../components/ui/Spinner';
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
-import type { Buy } from '../../schemas/buys';
+import type { BuyWithStock } from '../../api/buys';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
-
-interface BuyWithStock extends Buy {
-  /** Disponibles para vender: quantity - SUM(sale_items.quantity). */
-  disponibles: number;
-}
 
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'id', desc: true }]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // TODO (T12 del feature): el server devolverá stock en una query separada
-  // (`GET /api/buys` con left join a sale_items). Por ahora mostramos quantity.
-  // Las filas tienen disponible=buy.quantity (sin restar ventas).
-  const buysWithStock: BuyWithStock[] = useMemo(
-    () =>
-      (data ?? []).map((b) => ({
-        ...b,
-        disponibles: b.quantity, // Placeholder hasta T12
-      })),
-    [data],
-  );
+  // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
+  // el server (`listWithStock` en el repo). No hay transformación cliente.
+  const buysWithStock: BuyWithStock[] = data ?? [];
 
   const columns = useMemo(
     () => [
@@ -137,7 +124,7 @@ export function BuysListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table devuelve fns no memoizables; la tabla es chica, el perf no es problema
   const table = useReactTable<BuyWithStock>({
-    data: buysWithStock as BuyWithStock[],
+    data: buysWithStock,
     columns,
     state: { sorting },
     onSortingChange: setSorting,

@@ -47,7 +47,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       const filters = parsed.data.from || parsed.data.to
         ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
         : undefined;
-      const data = repo.list(filters);
+      const data = repo.listWithStock(filters);
       res.json({ data });
     }),
   );

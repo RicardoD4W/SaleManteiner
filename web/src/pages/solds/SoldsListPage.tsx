@@ -2,18 +2,14 @@
  * Página de listado de ventas (S6 del feature).
  *
  * Tabla con TanStack Table:
- *  - Fecha, Cliente, Items (resumen "N items · X€"), Precio, Asociados,
- *    Beneficio (calculado), Acciones.
- *
- * Beneficio = sale_price - associated_costs -
- *   SUM(item.quantity * (unit_cost + unit_assoc))   [S13 del feature]
- *
- * Por ahora mostramos el listado plano; la info de items viene de
- * `GET /api/solds` sin items (T12 traerá el detalle enriquecido).
+ *  - Fecha, Cliente, Precio, Asociados, Beneficio (sale_price - associated -
+ *    COGS - buy.assoc, prorrateado por unidad), Acciones.
  *
  * S3 del feature dashboard-iteration-1: el botón "+ Nueva venta" ahora
  * abre el `SaleNewModal` (multi-step con ProductPicker) en vez de
- * navegar a `/solds/new`.
+ * navegar a `/solds/new`. El endpoint `GET /api/solds` devuelve
+ * `SoldWithProfit` para que la columna Beneficio muestre el dato real
+ * calculado por el server (sin tener que cargar los items por venta).
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -31,12 +27,12 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
-import type { Sold } from '../../schemas/solds';
+import type { SoldWithProfit } from '../../api/solds';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
 
 /** Sold con nombre del cliente resuelto desde el cache. */
-interface SoldWithCustomer extends Sold {
+interface SoldWithCustomer extends SoldWithProfit {
   customerName: string;
 }
 
@@ -99,16 +95,26 @@ export function SoldsListPage() {
         ),
         sortingFn: 'basic',
       }),
-      // Beneficio calculado (placeholder — requiere items, se calcula en T12).
-      // Por ahora mostramos "—" ya que no tenemos unit_cost/unit_assoc sin los items.
-      columnHelper.display({
-        id: 'profit',
+      // Beneficio calculado por el server (sale_price - associated_costs -
+      // COGS_prorrateado - buy.associated_prorrateado, S13 del feature).
+      // Positivo en emerald, negativo en rojo, cero en gris.
+      columnHelper.accessor('profit', {
         header: 'Beneficio',
-        cell: () => (
-          <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-            (con items)
-          </span>
-        ),
+        cell: (info) => {
+          const profit = info.getValue() as number;
+          const colorClass =
+            profit > 0
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : profit < 0
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-gray-500 dark:text-gray-400';
+          return (
+            <span className={`tabular-nums font-medium ${colorClass}`}>
+              {formatEuro(profit)}
+            </span>
+          );
+        },
+        sortingFn: 'basic',
       }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',

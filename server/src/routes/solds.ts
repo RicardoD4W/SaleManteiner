@@ -42,7 +42,7 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
           ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
           : {}),
       };
-      const data = repo.list(
+      const data = repo.listWithProfit(
         Object.keys(filters).length > 0 ? filters : undefined,
       );
       res.json({ data });

@@ -5,16 +5,14 @@ import { apiFetch } from './client.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
-export interface BuyWithStock {
-  id: number;
-  product_name: string;
-  quantity: number;
-  /** Cantidad disponible para vender: quantity - SUM(sale_items.quantity). */
+/** Compra con su stock disponible calculado (S3 del feature dashboard-iteration-1). */
+export interface BuyWithStock extends Buy {
+  /** Unidades disponibles para vender: quantity - SUM(sale_items.quantity). */
   disponibles: number;
 }
 
 interface ListResponse {
-  data: Buy[];
+  data: BuyWithStock[];
 }
 interface ItemResponse {
   data: Buy;
