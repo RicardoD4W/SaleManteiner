@@ -82,7 +82,7 @@ npm run typecheck                     # TypeScript en web/ y server/
 npm run lint                          # ESLint en web/ y server/
 npm run format                        # Prettier en todo el repo
 npm run build                         # Build de producción de web/ y server/
-npm test --workspaces -- --run        # Vitest en server (135 tests) + web (78 tests)
+npm test --workspaces -- --run        # Vitest en server (140 tests) + web (78 tests)
 npm run e2e -w web                    # Playwright (15 e2e specs: flujo principal, edit/delete, dark mode, tabs, borrado en cascada)
 ```
 

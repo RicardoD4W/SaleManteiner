@@ -328,11 +328,11 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Estado actual**: el modelo `buys + solds + sale_items + customers` está activo en `master` (el legacy `sales` se dropeó en la migración 003). El feature `delete-cascade-and-ux-polish` está **cerrado en la branch `feature/delete-cascade-and-ux-polish`** (WU1-WU6, 5 commits) y a la espera de revisión + merge: borrado de compras con ventas asociadas en dos modos (409 explicativo + cascada con confirmación, con audit trail en el log), columna "Productos" en `/solds`, `times_sold` contando unidades, y pulido de navegación (view transitions, sort idle, autocomplete que se contrae).
+**Estado actual**: el modelo `buys + solds + sale_items + customers` está activo en `master` (el legacy `sales` se dropeó en la migración 003). El feature `delete-cascade-and-ux-polish` está **cerrado en la branch `feature/delete-cascade-and-ux-polish`** (WU1-WU7, 7 commits) y a la espera de revisión + merge: borrado de compras con ventas asociadas en dos modos (409 explicativo + cascada con confirmación, con audit trail en el log), columna "Productos" en `/solds`, `times_sold` contando unidades, y pulido de navegación (view transitions, sort idle, autocomplete que se contrae).
 
-**Verificación al cierre del feature**: 135 server + 78 web tests + 15/15 e2e + 0 typecheck/lint. Refs: `odd/tasks/feature-delete-cascade-and-ux-polish.md` (S1-S13, T1-T12).
+**Verificación al cierre del feature**: 140 server + 78 web tests + 15/15 e2e + 0 typecheck/lint (+ verificación independiente del commit de riesgo: 0 bloqueantes). Refs: `odd/tasks/feature-delete-cascade-and-ux-polish.md` (S1-S13, T1-T12).
 
-**Próximo paso inmediato**: **revisar y mergear `feature/delete-cascade-and-ux-polish` → `master`**, y después el **push a `origin/master`** (decisión tuya). `master` local está 1 commit ahead de `origin/master`; el feature agrega 5 commits más. Cuando quieras: `git push origin master` (o PR si preferís review antes).
+**Próximo paso inmediato**: **revisar y mergear `feature/delete-cascade-and-ux-polish` → `master`**, y después el **push a `origin/master`** (decisión tuya). `master` local está 1 commit ahead de `origin/master`; el feature agrega 7 commits más. Cuando quieras: `git push origin master` (o PR si preferís review antes).
 
 **Working tree con cambios sin commitear** (ajustes de otro actor hechos en paralelo durante el cierre del feature; revisalos y commitealos vos): `web/src/pages/dashboard/DashboardPage.tsx` (spacing de las tabs del dashboard + `viewTransition` de la tab) y `web/src/components/layout/NavLink.tsx` (contraste del nav en dark).
 
