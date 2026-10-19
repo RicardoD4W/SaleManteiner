@@ -257,9 +257,10 @@ test('pack multi-producto: venta con 2 items de A + 1 de B', async ({
   await expect(page.getByText('Comprador Pack')).toBeVisible();
   await expect(page.getByText(/30,00/).first()).toBeVisible();
 
-  // 4. Ir a /dashboard/products y verificar que el products-table muestra
-  // ambos productos (tabla ordenable en S8).
-  await page.goto('/dashboard/products');
+  // 4. Ir a /products y verificar que el products-table muestra ambos
+  // productos (tabla ordenable en S8). La ruta `/dashboard/products` se
+  // renombró a `/products` al quitar el prefijo `/dashboard`.
+  await page.goto('/products');
   await expect(page.getByTestId('products-table')).toBeVisible({ timeout: 10_000 });
   const table = page.getByTestId('products-table');
   await expect(table.getByText('Producto A')).toBeVisible();
@@ -515,8 +516,8 @@ test('tabs del dashboard navegan entre Resumen / Ingresos / Productos', async ({
     },
   });
 
-  // 2. Ir a /dashboard (Resumen por default).
-  await page.goto('/dashboard');
+  // 2. Ir a / (raíz; el dashboard vive solo en /, la ruta /dashboard se eliminó).
+  await page.goto('/');
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('dashboard-tab-resumen')).toBeVisible();
 
