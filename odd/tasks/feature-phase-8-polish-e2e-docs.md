@@ -55,17 +55,17 @@ Al cerrar el feature, agregar L1 con el detalle de los commits y la verificació
 
 ## Tasks
 
-| ID  | Título                                                                      | Specs  | Ruta                                                                  | Commit |
-| --- | --------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------- | ------ |
-| T1  | Actualizar `README.md` con estado real del proyecto                         | S1     | `README.md`                                                           | WU1    |
-| T2  | Actualizar `AGENTS.md §7` (Fase 8 → ✅) y `§13` (nota de cierre)            | S2     | `AGENTS.md`                                                           | WU1    |
-| T3  | E2E: editar compra                                                          | S3     | `web/e2e/buys-and-solds-flow.spec.ts` (nuevo spec)                    | WU2    |
-| T4  | E2E: editar venta                                                           | S4     | `web/e2e/buys-and-solds-flow.spec.ts`                                 | WU2    |
-| T5  | E2E: borrar compra                                                          | S5     | `web/e2e/buys-and-solds-flow.spec.ts`                                 | WU2    |
-| T6  | E2E: borrar venta                                                           | S6     | `web/e2e/buys-and-solds-flow.spec.ts`                                 | WU2    |
-| T7  | E2E: dark mode toggle persiste en reload                                    | S7     | `web/e2e/buys-and-solds-flow.spec.ts`                                 | WU2    |
-| T8  | E2E: navegación entre tabs del dashboard                                    | S8     | `web/e2e/buys-and-solds-flow.spec.ts`                                 | WU2    |
-| T9  | Log L1 del feature doc con cierre                                          | S9     | `odd/tasks/feature-phase-8-polish-e2e-docs.md`                        | WU3    |
+| ID  | Título                                                           | Specs | Ruta                                               | Commit |
+| --- | ---------------------------------------------------------------- | ----- | -------------------------------------------------- | ------ |
+| T1  | Actualizar `README.md` con estado real del proyecto              | S1    | `README.md`                                        | WU1    |
+| T2  | Actualizar `AGENTS.md §7` (Fase 8 → ✅) y `§13` (nota de cierre) | S2    | `AGENTS.md`                                        | WU1    |
+| T3  | E2E: editar compra                                               | S3    | `web/e2e/buys-and-solds-flow.spec.ts` (nuevo spec) | WU2    |
+| T4  | E2E: editar venta                                                | S4    | `web/e2e/buys-and-solds-flow.spec.ts`              | WU2    |
+| T5  | E2E: borrar compra                                               | S5    | `web/e2e/buys-and-solds-flow.spec.ts`              | WU2    |
+| T6  | E2E: borrar venta                                                | S6    | `web/e2e/buys-and-solds-flow.spec.ts`              | WU2    |
+| T7  | E2E: dark mode toggle persiste en reload                         | S7    | `web/e2e/buys-and-solds-flow.spec.ts`              | WU2    |
+| T8  | E2E: navegación entre tabs del dashboard                         | S8    | `web/e2e/buys-and-solds-flow.spec.ts`              | WU2    |
+| T9  | Log L1 del feature doc con cierre                                | S9    | `odd/tasks/feature-phase-8-polish-e2e-docs.md`     | WU3    |
 
 **Work units**:
 

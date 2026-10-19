@@ -15,7 +15,11 @@ Features cerradas y mergeadas en `master`:
 - `feature-dark-mode` — toggle sol/luna con persistencia y anti-FOUC.
 - `feature-purchase-date-and-manual-sold-at` — fechas editables por el cliente.
 
-Ver `odd/tasks/feature-buys-and-solds.md` y `odd/tasks/feature-dashboard-iteration-1.md` para el detalle.
+Feature en revisión (branch `feature/delete-cascade-and-ux-polish`):
+
+- `feature-delete-cascade-and-ux-polish` — borrar una compra que ya tiene ventas asociadas ya no tira 500: el server responde 409 con la lista de ventas y la UI pide confirmación; el borrado en cascada limpia las ventas afectadas (dejando audit trail en el log). Incluye la columna "Productos" en `/solds` y el pulido de navegación (view transitions, sort idle, autocomplete que se contrae).
+
+Ver `odd/tasks/feature-buys-and-solds.md`, `odd/tasks/feature-dashboard-iteration-1.md` y `odd/tasks/feature-delete-cascade-and-ux-polish.md` para el detalle.
 
 ## Estructura
 
@@ -78,8 +82,8 @@ npm run typecheck                     # TypeScript en web/ y server/
 npm run lint                          # ESLint en web/ y server/
 npm run format                        # Prettier en todo el repo
 npm run build                         # Build de producción de web/ y server/
-npm test --workspaces -- --run        # Vitest en server (113 tests) + web (70 tests)
-npm run e2e -w web                    # Playwright (13 e2e specs del flujo principal + edit/delete/dark mode/dashboard tabs)
+npm test --workspaces -- --run        # Vitest en server (135 tests) + web (78 tests)
+npm run e2e -w web                    # Playwright (15 e2e specs: flujo principal, edit/delete, dark mode, tabs, borrado en cascada)
 ```
 
 ## Documentación
