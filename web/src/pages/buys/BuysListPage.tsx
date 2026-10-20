@@ -57,11 +57,8 @@ export function BuysListPage() {
         size: 260,
         // El nombre NO es link — el user pidió que no se pueda editar
         // haciendo click en el nombre. La edición sigue disponible vía
-        // la columna "Acciones" → "Editar". El color brand-700 se
-        // mantiene como tratamiento visual, no como hint de clickable.
-        cell: (info) => (
-          <span className="font-medium text-brand-700 dark:text-brand-400">{info.getValue()}</span>
-        ),
+        // la columna "Acciones" → "Editar".
+        cell: (info) => <span className="font-medium">{info.getValue()}</span>,
         sortingFn: 'basic',
       }),
       columnHelper.accessor('purchase_cost', {

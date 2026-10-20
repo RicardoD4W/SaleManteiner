@@ -104,9 +104,14 @@ export function SoldsListPage() {
           return (
             <ul className="space-y-0.5">
               {items.map((item) => (
-                <li key={item.buy_id} className="flex items-baseline gap-1.5 text-sm leading-tight">
-                  <span className="text-gray-800 dark:text-gray-200">{item.product_name}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                <li
+                  key={item.buy_id}
+                  className="flex w-full items-baseline gap-1.5 text-sm leading-tight"
+                >
+                  <span className="text-gray-800 w-[85%] dark:text-gray-200">
+                    {item.product_name}
+                  </span>
+                  <span className="text-xs w-[15%]  text-gray-500 dark:text-gray-400">
                     × {item.quantity}
                   </span>
                 </li>
