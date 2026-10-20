@@ -27,14 +27,12 @@ function SortHeader({
   sortKey,
   currentKey,
   currentDir,
-  align = 'left',
   onSort,
 }: {
   label: string;
   sortKey: keyof ProductRow;
   currentKey: keyof ProductRow | null;
   currentDir: 'asc' | 'desc' | null;
-  align?: 'left' | 'right';
   onSort: (key: keyof ProductRow) => void;
 }) {
   const isActive = currentKey === sortKey;
@@ -43,10 +41,7 @@ function SortHeader({
     <th
       scope="col"
       onClick={() => onSort(sortKey)}
-      className={[
-        `cursor-pointer ${tableHeadClass}`,
-        align === 'right' ? 'text-right' : 'text-left',
-      ].join(' ')}
+      className={`cursor-pointer ${tableHeadClass} text-left`}
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       {label}
@@ -119,7 +114,6 @@ export function ProductsTab() {
                       sortKey="times_sold"
                       currentKey={sortKey}
                       currentDir={sortDir}
-                      align="right"
                       onSort={onSort}
                     />
                     <SortHeader
@@ -127,7 +121,6 @@ export function ProductsTab() {
                       sortKey="total_revenue"
                       currentKey={sortKey}
                       currentDir={sortDir}
-                      align="right"
                       onSort={onSort}
                     />
                     <SortHeader
@@ -135,7 +128,6 @@ export function ProductsTab() {
                       sortKey="total_profit"
                       currentKey={sortKey}
                       currentDir={sortDir}
-                      align="right"
                       onSort={onSort}
                     />
                   </tr>
@@ -143,18 +135,18 @@ export function ProductsTab() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {sortedItems.map((p) => (
                     <tr key={p.product_name}>
-                      <td className="px-3 py-2 text-gray-800 dark:text-gray-200">
+                      <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
                         {p.product_name}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                      <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
                         {p.times_sold}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                      <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
                         {formatEuro(p.total_revenue)}
                       </td>
                       <td
                         className={[
-                          'px-3 py-2 text-right tabular-nums',
+                          'px-4 py-2 tabular-nums',
                           p.total_profit >= 0
                             ? 'text-gray-700 dark:text-gray-300'
                             : 'text-red-600 dark:text-red-400',

@@ -25,14 +25,12 @@ function SortHeader({
   sortKey,
   currentKey,
   currentDir,
-  align = 'left',
   onSort,
 }: {
   label: string;
   sortKey: keyof BuyerRow;
   currentKey: keyof BuyerRow | null;
   currentDir: 'asc' | 'desc' | null;
-  align?: 'left' | 'right';
   onSort: (key: keyof BuyerRow) => void;
 }) {
   const isActive = currentKey === sortKey;
@@ -41,10 +39,7 @@ function SortHeader({
     <th
       scope="col"
       onClick={() => onSort(sortKey)}
-      className={[
-        `cursor-pointer ${tableHeadClass}`,
-        align === 'right' ? 'text-right' : 'text-left',
-      ].join(' ')}
+      className={`cursor-pointer ${tableHeadClass} text-left`}
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       {label}
@@ -115,7 +110,6 @@ export function BuyersTab() {
                       sortKey="ventas"
                       currentKey={sortKey}
                       currentDir={sortDir}
-                      align="right"
                       onSort={onSort}
                     />
                     <SortHeader
@@ -123,7 +117,6 @@ export function BuyersTab() {
                       sortKey="total_gastado"
                       currentKey={sortKey}
                       currentDir={sortDir}
-                      align="right"
                       onSort={onSort}
                     />
                   </tr>
@@ -131,13 +124,13 @@ export function BuyersTab() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {sortedItems.map((b) => (
                     <tr key={b.customer_id}>
-                      <td className="px-3 py-2 text-gray-800 dark:text-gray-200">
+                      <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
                         {b.customer_name}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                      <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
                         {b.ventas}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                      <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
                         {formatEuro(b.total_gastado)}
                       </td>
                     </tr>
