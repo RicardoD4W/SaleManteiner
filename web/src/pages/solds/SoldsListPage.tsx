@@ -15,9 +15,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type SortingState,
@@ -25,17 +23,14 @@ import {
 import { useSolds } from '../../hooks/useSolds';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { VirtualTable } from '../../components/ui/VirtualTable';
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
-import type { SoldWithProfit } from '../../api/solds';
+import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
-
-/** Sold con nombre del cliente resuelto desde el cache. */
-interface SoldWithCustomer extends SoldWithProfit {
-  customerName: string;
-}
 
 export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
@@ -45,6 +40,8 @@ export function SoldsListPage() {
   // lo más nuevo arriba.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  /** Query del buscador (client-side). */
+  const [query, setQuery] = useState('');
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
   const customerMap = useMemo(() => {
@@ -62,18 +59,31 @@ export function SoldsListPage() {
     [solds, customerMap],
   );
 
+  /**
+   * Filtro client-side por la query del buscador. Se aplica ANTES de la
+   * tabla (TanStack Table pagina sobre las filas ya filtradas).
+   */
+  const filteredSolds = useMemo(
+    () => filterSolds(soldsWithCustomer, query),
+    [soldsWithCustomer, query],
+  );
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('sold_at', {
         header: 'Fecha',
+        size: 120,
         cell: (info) => (
-          <span className="text-gray-700 dark:text-gray-300">{formatDate(info.getValue())}</span>
+          <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
+            {formatDate(info.getValue())}
+          </span>
         ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor((row) => row.customerName, {
         id: 'customer',
         header: 'Cliente',
+        size: 150,
         cell: (info) => (
           <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>
         ),
@@ -85,6 +95,7 @@ export function SoldsListPage() {
       columnHelper.accessor((row) => row.items, {
         id: 'items',
         header: 'Productos',
+        size: 230,
         cell: (info) => {
           const items = info.getValue() as SaleItemOutput[];
           if (items.length === 0) {
@@ -108,6 +119,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('sale_price', {
         header: 'Precio (€)',
+        size: 115,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">
             {formatEuro(info.getValue())}
@@ -117,6 +129,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
+        size: 125,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">
             {formatEuro(info.getValue())}
@@ -129,6 +142,7 @@ export function SoldsListPage() {
       // Positivo en emerald, negativo en rojo, cero en gris.
       columnHelper.accessor('profit', {
         header: 'Beneficio',
+        size: 120,
         cell: (info) => {
           const profit = info.getValue() as number;
           const colorClass =
@@ -145,8 +159,9 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',
+        size: 135,
         cell: (info) => (
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
             {formatDate(info.getValue())}
           </span>
         ),
@@ -155,6 +170,7 @@ export function SoldsListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
+        size: 80,
         cell: (info) => (
           <Link
             to={`/solds/${info.row.original.id}`}
@@ -174,15 +190,31 @@ export function SoldsListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table
   const table = useReactTable<SoldWithCustomer>({
-    data: soldsWithCustomer,
+    data: filteredSolds,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
   });
+
+  /**
+   * Cambia la query del buscador. La tabla es virtualizada (scroll infinito),
+   * así que no hay páginas que resetear: el filtro se aplica sobre todas las
+   * filas.
+   */
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    table.setPageIndex(0);
+  };
+
+  /** Texto del contador de resultados. */
+  const resultsText =
+    query.trim() === ''
+      ? `${soldsWithCustomer.length} ${soldsWithCustomer.length === 1 ? 'venta' : 'ventas'}`
+      : `${filteredSolds.length} de ${soldsWithCustomer.length} ${
+          soldsWithCustomer.length === 1 ? 'venta' : 'ventas'
+        }`;
 
   if (isLoading) {
     return (
@@ -232,6 +264,17 @@ export function SoldsListPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Ventas</h2>
+        <div className="flex w-full flex-col gap-1 sm:w-auto sm:max-w-xs sm:flex-1">
+          <SearchInput
+            value={query}
+            resultsText={resultsText}
+            countTestId="solds-search-count"
+            onChange={handleQueryChange}
+            label="Buscar ventas"
+            landmarkLabel="Filtro de ventas"
+            placeholder="Cliente, producto, precio, beneficio…"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -241,70 +284,34 @@ export function SoldsListPage() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-            <thead className="bg-gray-50 dark:bg-gray-950">
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300"
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() === 'asc' ? ' ▲' : null}
-                      {header.column.getIsSorted() === 'desc' ? ' ▼' : null}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-4 py-2 align-middle text-gray-800 dark:text-gray-200"
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {filteredSolds.length === 0 ? (
+        <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sin resultados para «{query.trim()}»
+          </p>
+          <button
+            type="button"
+            onClick={() => handleQueryChange('')}
+            className="mt-3 text-sm font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+          >
+            Limpiar filtro
+          </button>
         </div>
-
-        {/* Paginación */}
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-          <span>
-            Mostrando {table.getRowModel().rows.length} de {solds.length}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              ← Anterior
-            </button>
-            <span className="px-2 py-1">
-              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-            </span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              Siguiente →
-            </button>
-          </div>
-        </div>
-      </div>
+      ) : (
+        <VirtualTable
+          table={table}
+          footer={
+            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+              <span>
+                {filteredSolds.length === 1 ? '1 venta' : `${filteredSolds.length} ventas`}
+              </span>
+              {filteredSolds.length > 25 ? (
+                <span className="text-xs">Desplazate para ver el resto</span>
+              ) : null}
+            </div>
+          }
+        />
+      )}
       {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
     </div>
   );

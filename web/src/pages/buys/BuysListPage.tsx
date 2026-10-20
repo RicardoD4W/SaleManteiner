@@ -13,17 +13,18 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table';
 import { useBuys } from '../../hooks/useBuys';
 import { Spinner } from '../../components/ui/Spinner';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { VirtualTable } from '../../components/ui/VirtualTable';
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { formatDate, formatEuro } from '../../lib/format';
+import { filterBuys } from '../../lib/searchQuery';
 import type { BuyWithStock } from '../../api/buys';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
@@ -34,15 +35,26 @@ export function BuysListPage() {
   // El server ya devuelve los buys en id DESC, así que sin sort se ve lo más nuevo arriba.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  /** Query del buscador (client-side). */
+  const [query, setQuery] = useState('');
 
   // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
   // el server (`listWithStock` en el repo). No hay transformación cliente.
-  const buysWithStock: BuyWithStock[] = data ?? [];
+  // Va en useMemo para que el array no cambie de identidad en cada render
+  // (si no, los useMemo de abajo se recalculan siempre).
+  const buysWithStock = useMemo<BuyWithStock[]>(() => data ?? [], [data]);
+
+  /**
+   * Filtro client-side por la query del buscador. Se aplica ANTES de la
+   * tabla (TanStack Table pagina sobre las filas ya filtradas).
+   */
+  const filteredBuys = useMemo(() => filterBuys(buysWithStock, query), [buysWithStock, query]);
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('product_name', {
         header: 'Producto',
+        size: 260,
         // El nombre NO es link — el user pidió que no se pueda editar
         // haciendo click en el nombre. La edición sigue disponible vía
         // la columna "Acciones" → "Editar". El color brand-700 se
@@ -54,6 +66,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('purchase_cost', {
         header: 'Coste (€)',
+        size: 120,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">
             {formatEuro(info.getValue())}
@@ -63,6 +76,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('quantity', {
         header: 'Cantidad',
+        size: 110,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">{info.getValue()}</span>
         ),
@@ -70,6 +84,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
+        size: 130,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">
             {formatEuro(info.getValue())}
@@ -79,14 +94,18 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('purchase_date', {
         header: 'Fecha compra',
+        size: 150,
         cell: (info) => (
-          <span className="text-gray-700 dark:text-gray-300">{formatDate(info.getValue())}</span>
+          <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
+            {formatDate(info.getValue())}
+          </span>
         ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor((row) => row.disponibles, {
         id: 'disponibles',
         header: 'Disponibles',
+        size: 130,
         cell: (info) => {
           const disponibles = info.getValue() as number;
           return (
@@ -109,6 +128,7 @@ export function BuysListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
+        size: 90,
         cell: (info) => (
           <Link
             to={`/buys/${info.row.original.id}`}
@@ -128,15 +148,30 @@ export function BuysListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table devuelve fns no memoizables; la tabla es chica, el perf no es problema
   const table = useReactTable<BuyWithStock>({
-    data: buysWithStock,
+    data: filteredBuys,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
   });
+
+  /**
+   * Cambia la query del buscador. La tabla es virtualizada (scroll infinito),
+   * así que no hay páginas que resetear: el filtro se aplica sobre todas las
+   * filas y la vista se posiciona arriba sola al cambiar la query.
+   */
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+  };
+
+  /** Texto del contador de resultados. */
+  const resultsText =
+    query.trim() === ''
+      ? `${buysWithStock.length} ${buysWithStock.length === 1 ? 'compra' : 'compras'}`
+      : `${filteredBuys.length} de ${buysWithStock.length} ${
+          buysWithStock.length === 1 ? 'compra' : 'compras'
+        }`;
 
   if (isLoading) {
     return (
@@ -186,6 +221,17 @@ export function BuysListPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
+        <div className="flex w-full flex-col gap-1 sm:w-auto sm:max-w-xs sm:flex-1">
+          <SearchInput
+            value={query}
+            resultsText={resultsText}
+            countTestId="buys-search-count"
+            onChange={handleQueryChange}
+            label="Buscar compras"
+            landmarkLabel="Filtro de compras"
+            placeholder="Producto, coste, cantidad, fecha…"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -195,70 +241,34 @@ export function BuysListPage() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-            <thead className="bg-gray-50 dark:bg-gray-950">
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300"
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{ cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() === 'asc' ? ' ▲' : null}
-                      {header.column.getIsSorted() === 'desc' ? ' ▼' : null}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-4 py-2 align-middle text-gray-800 dark:text-gray-200"
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {filteredBuys.length === 0 ? (
+        <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sin resultados para «{query.trim()}»
+          </p>
+          <button
+            type="button"
+            onClick={() => handleQueryChange('')}
+            className="mt-3 text-sm font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+          >
+            Limpiar filtro
+          </button>
         </div>
-
-        {/* Paginación */}
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-          <span>
-            Mostrando {table.getRowModel().rows.length} de {data.length}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              ← Anterior
-            </button>
-            <span className="px-2 py-1">
-              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-            </span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm disabled:opacity-50 dark:border-gray-700"
-            >
-              Siguiente →
-            </button>
-          </div>
-        </div>
-      </div>
+      ) : (
+        <VirtualTable
+          table={table}
+          footer={
+            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+              <span>
+                {filteredBuys.length === 1 ? '1 compra' : `${filteredBuys.length} compras`}
+              </span>
+              {filteredBuys.length > 25 ? (
+                <span className="text-xs">Desplazate para ver el resto</span>
+              ) : null}
+            </div>
+          }
+        />
+      )}
       {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
     </div>
   );
