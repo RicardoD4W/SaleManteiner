@@ -8,7 +8,7 @@
  *  - Confirm llama a `onConfirm` con los items correctos.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useBuysStock', () => ({
@@ -145,11 +145,14 @@ describe('ProductPickerModal', () => {
       buy_id: number;
       product_name: string;
       quantity: number;
+      max: number;
     }>;
     expect(calledItems).toContainEqual({
       buy_id: 1,
       product_name: 'Funda iPhone',
       quantity: 1,
+      // Tope de la cantidad: el stock disponible.
+      max: 8,
     });
   });
 
@@ -192,5 +195,93 @@ describe('ProductPickerModal', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Cerrar/ }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // S1 (feature-modal-venta-ux): al reabrir el picker desde "+ Cambiar
+  // productos", lo ya elegido tiene que venir preseleccionado.
+  it('preselecciona los items que le llegan en initialSelection', async () => {
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(
+      <ProductPickerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        initialSelection={[{ buy_id: 1, quantity: 3 }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
+    expect(screen.getByText(/1 seleccionado/)).toBeInTheDocument();
+    // La cantidad viene preseleccionada, no la de por defecto (1).
+    expect(screen.getByLabelText('Cantidad para Funda iPhone')).toHaveValue(3);
+  });
+
+  // S3 (feature-modal-venta-ux): escribir la cantidad tiene que REEMPLAZAR
+  // el valor anterior, no concatenarse ("1" + "2" = "12").
+  it('al enfocar el input de cantidad se selecciona su contenido', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole('checkbox')[0]);
+
+    const input = screen.getByLabelText('Cantidad para Funda iPhone');
+    expect(input).toHaveValue(1);
+
+    // El contenido se selecciona al enfocar: al escribir, el valor nuevo
+    // reemplaza al anterior en vez de concatenarse ("1" + "2" = "12").
+    // OJO: en un input type="number" el rango de selección no es observable
+    // (devuelve null), así que se comprueba la llamada a select().
+    const selectSpy = vi.spyOn(input as HTMLInputElement, 'select');
+    fireEvent.focus(input);
+    expect(selectSpy).toHaveBeenCalled();
+  });
+
+  it('la cantidad no puede pasar de las unidades disponibles', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal isOpen={true} onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getAllByRole('checkbox')[0]);
+
+    const input = screen.getByLabelText('Cantidad para Funda iPhone');
+    // 8 disponibles: escribir 99 se recorta a 8.
+    fireEvent.change(input, { target: { value: '99' } });
+    expect(input).toHaveValue(8);
   });
 });

@@ -21,7 +21,18 @@ interface ProductPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Se llama al confirmar con los items seleccionados. */
-  onConfirm: (items: Array<{ buy_id: number; product_name: string; quantity: number }>) => void;
+  onConfirm: (
+    items: Array<{ buy_id: number; product_name: string; quantity: number; max: number }>,
+  ) => void;
+  /**
+   * Selección con la que se abre el modal (S1 de feature-modal-venta-ux).
+   * Si viene, esos items aparecen tildados y con su cantidad: al reabrir el
+   * picker desde "+ Cambiar productos" no se pierde lo que ya estaba elegido.
+   *
+   * OJO: el padre tiene que memoizarlo, porque el modal reinicia su estado
+   * cuando cambia la referencia.
+   */
+  initialSelection?: Array<{ buy_id: number; quantity: number }>;
 }
 
 /** Filtro de texto para buscar por nombre de producto. */
@@ -76,6 +87,10 @@ function ProductRow({
             min={1}
             max={item.disponibles}
             value={quantity}
+            // Al enfocar se selecciona el contenido: escribir "2" sobre "1"
+            // REEMPLAZA en vez de concatenar ("12"). Sin esto hay que
+            // seleccionar el texto a mano para cambiar la cantidad.
+            onFocus={(e) => e.currentTarget.select()}
             onChange={(e) =>
               onQuantityChange(
                 item.id,
@@ -90,7 +105,12 @@ function ProductRow({
   );
 }
 
-export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPickerModalProps) {
+export function ProductPickerModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  initialSelection,
+}: ProductPickerModalProps) {
   const { data: buysWithStock, isLoading, isError, error, refetch } = useBuysStock();
 
   /** buy_id → checked */
@@ -105,18 +125,24 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
   const firstFocusRef = useRef<HTMLInputElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Reset al abrir
+  // Al abrir: se aplica la selección inicial (si viene) o se arranca en vacío.
   useEffect(() => {
     if (isOpen) {
-      setChecked({});
-      setQuantities({});
+      const nextChecked: Record<number, boolean> = {};
+      const nextQuantities: Record<number, number> = {};
+      for (const sel of initialSelection ?? []) {
+        nextChecked[sel.buy_id] = true;
+        nextQuantities[sel.buy_id] = sel.quantity;
+      }
+      setChecked(nextChecked);
+      setQuantities(nextQuantities);
       setFilter('');
       // Enfocar el input de filtro o el botón de cerrar
       requestAnimationFrame(() => {
         (firstFocusRef.current ?? closeButtonRef.current)?.focus();
       });
     }
-  }, [isOpen]);
+  }, [isOpen, initialSelection]);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -159,19 +185,28 @@ export function ProductPickerModal({ isOpen, onClose, onConfirm }: ProductPicker
 
   const handleConfirm = () => {
     const buys = buysWithStock ?? [];
-    const selected: Array<{ buy_id: number; product_name: string; quantity: number }> =
-      Object.entries(checked)
-        .filter(([, v]) => v)
-        .map(([buy_id, _v]) => {
-          void _v;
-          const id = Number(buy_id);
-          const buy = buys.find((b) => b.id === id);
-          return {
-            buy_id: id,
-            product_name: buy?.product_name ?? `Producto #${id}`,
-            quantity: quantities[id] ?? 1,
-          };
-        });
+    const selected: Array<{
+      buy_id: number;
+      product_name: string;
+      quantity: number;
+      max: number;
+    }> = Object.entries(checked)
+      .filter(([, v]) => v)
+      .map(([buy_id, _v]) => {
+        void _v;
+        const id = Number(buy_id);
+        const buy = buys.find((b) => b.id === id);
+        const quantity = quantities[id] ?? 1;
+        return {
+          buy_id: id,
+          product_name: buy?.product_name ?? `Producto #${id}`,
+          quantity,
+          // Stock disponible: la modal de venta lo usa como tope de la
+          // cantidad. Antes se mandaba solo la cantidad y el primer item
+          // quedaba "fijado en 1 unidad" (sin input para cambiarla).
+          max: buy?.disponibles ?? quantity,
+        };
+      });
     onConfirm(selected);
   };
 

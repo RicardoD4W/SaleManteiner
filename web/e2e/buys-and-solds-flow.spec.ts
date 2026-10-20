@@ -142,6 +142,52 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   await expect(page.getByText(/40,00/).first()).toBeVisible();
 });
 
+test('"+ Cambiar productos": conserva lo elegido, la cantidad se escribe fácil y cancelar vuelve al form', async ({
+  page,
+  request,
+}) => {
+  // Compra con 15 unidades (el caso reportado: escribir "2" con 15
+  // disponibles no debe dejar "12").
+  await createBuyViaApi(request, {
+    product_name: 'Funda Test',
+    purchase_cost: 100,
+    quantity: 15,
+  });
+
+  await page.goto('/solds');
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
+
+  // 1) Elegir el producto y escribir la cantidad a 2.
+  const picker = page.getByRole('dialog');
+  await picker.getByLabel('Funda Test').check();
+  const qty = picker.getByLabel('Cantidad para Funda Test');
+  await expect(qty).toHaveValue('1');
+  await qty.click();
+  await qty.press('2');
+  // Escribe 2, no 12: al enfocar se selecciona el contenido del input.
+  await expect(qty).toHaveValue('2');
+
+  await picker.getByRole('button', { name: /confirmar/i }).click();
+
+  // 2) La modal de venta refleja 2 unidades (y la cantidad es editable).
+  await expect(page.getByText('Productos (1)')).toBeVisible();
+  await expect(page.getByLabel('Cantidad para Funda Test')).toHaveValue('2');
+
+  // 3) Al reabrir el picker, lo elegido viene preseleccionado con su cantidad.
+  await page.getByRole('button', { name: /\+ Cambiar productos/ }).click();
+  const picker2 = page.getByRole('dialog');
+  await expect(picker2.getByLabel('Seleccionar Funda Test')).toBeChecked();
+  await expect(picker2.getByLabel('Cantidad para Funda Test')).toHaveValue('2');
+
+  // 4) Cancelar el picker vuelve a la modal de venta conservando la info.
+  await picker2.getByRole('button', { name: /cancelar/i }).click();
+  // Scoped al diálogo: "Nueva venta" también es el texto del botón de la
+  // página.
+  await expect(page.getByRole('dialog').getByText('Nueva venta')).toBeVisible();
+  await expect(page.getByText('Productos (1)')).toBeVisible();
+  await expect(page.getByLabel('Cantidad para Funda Test')).toHaveValue('2');
+});
+
 test('después de vender 5 unidades, la compra sigue apareciendo en /buys', async ({
   page,
   request,

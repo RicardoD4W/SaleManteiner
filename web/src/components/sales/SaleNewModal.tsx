@@ -15,7 +15,7 @@
  * isModalOpen es true, así cada apertura arranca con state fresco. No
  * necesitamos un useEffect para resetear el form.
  */
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -89,6 +89,15 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
   /** Items del pack confirmados en el ProductPickerModal. */
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  /**
+   * Selección inicial para el picker (S1): lo que ya está elegido. Va
+   * memoizada porque el picker reinicia su estado cuando cambia la
+   * referencia de la prop.
+   */
+  const initialSelection = useMemo(
+    () => selectedItems.map((i) => ({ buy_id: i.buy_id, quantity: i.quantity })),
+    [selectedItems],
+  );
   /** Si el ProductPickerModal está abierto. True al inicio. */
   const [showPicker, setShowPicker] = useState(true);
   /** Cliente seleccionado. */
@@ -143,7 +152,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   };
 
   const handlePickerConfirm = (
-    items: Array<{ buy_id: number; product_name: string; quantity: number }>,
+    items: Array<{ buy_id: number; product_name: string; quantity: number; max: number }>,
   ) => {
     const itemMap = new Map(selectedItems.map((i) => [i.buy_id, i]));
     const merged: SelectedItem[] = items.map((i) => ({
@@ -151,7 +160,10 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       product_name:
         i.product_name || itemMap.get(i.buy_id)?.product_name || `Producto #${i.buy_id}`,
       quantity: i.quantity,
-      max: itemMap.get(i.buy_id)?.max ?? i.quantity,
+      // Tope de la cantidad: el stock disponible que manda el picker. Antes
+      // caía a la cantidad (1) cuando no había selección previa, y el item
+      // quedaba "fijado en 1 unidad" sin input para cambiarla.
+      max: i.max ?? itemMap.get(i.buy_id)?.max ?? i.quantity,
     }));
     setSelectedItems(merged);
     setShowPicker(false);
@@ -211,9 +223,12 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     return (
       <ProductPickerModal
         isOpen={true}
+        initialSelection={initialSelection}
         onClose={() => {
-          // Cancelar: cerrar todo el flujo.
-          onClose();
+          // Cancelar el picker es "volver atrás": se conserva lo elegido y
+          // se vuelve a la modal de venta. El descarte es el "Cancelar" de
+          // la modal de venta.
+          setShowPicker(false);
         }}
         onConfirm={handlePickerConfirm}
       />
