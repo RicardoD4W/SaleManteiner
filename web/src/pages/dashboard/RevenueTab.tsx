@@ -12,7 +12,7 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { CashFlowChart } from '../../components/dashboard/CashFlowChart';
+import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';
 
 export function RevenueTab() {
@@ -106,7 +106,7 @@ export function RevenueTab() {
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
             Flujo de caja por mes
           </h3>
-          <CashFlowChart data={data.cashFlowByMonth} />
+          <LazyCashFlowChart data={data.cashFlowByMonth} />
         </CardBody>
       </Card>
     </div>

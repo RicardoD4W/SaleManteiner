@@ -17,7 +17,7 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { CashFlowChart } from '../../components/dashboard/CashFlowChart';
+import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';
 
 interface StatCardProps {
@@ -126,7 +126,7 @@ export function OverviewTab() {
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
             Flujo de caja de los últimos 12 meses
           </h3>
-          <CashFlowChart data={data.cashFlowByMonth} />
+          <LazyCashFlowChart data={data.cashFlowByMonth} />
         </CardBody>
       </Card>
 
