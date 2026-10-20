@@ -8,6 +8,7 @@ export function useDeleteSold() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['solds'] });
       void qc.invalidateQueries({ queryKey: ['buys'] });
+      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
     },
   });
 }

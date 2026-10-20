@@ -8,6 +8,7 @@ export function useUpdateBuy() {
     mutationFn: ({ id, input }: { id: number; input: UpdateBuyInput }) => buysApi.update(id, input),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ['buys'] });
+      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
       qc.setQueryData(['buys', data.id], data);
     },
   });

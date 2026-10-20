@@ -46,6 +46,7 @@ export function useDeleteBuy() {
     mutationFn: (id: number) => buysApi.remove(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['buys'] });
+      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
     },
   });
 }

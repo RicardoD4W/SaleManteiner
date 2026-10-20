@@ -8,6 +8,7 @@ export function useCreateBuy() {
     mutationFn: (input: CreateBuyInput) => buysApi.create(input),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['buys'] });
+      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
     },
   });
 }

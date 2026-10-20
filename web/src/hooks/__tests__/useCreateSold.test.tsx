@@ -87,6 +87,9 @@ describe('useCreateSold', () => {
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['solds'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['buys'] });
+      // Con staleTime Infinity, el dashboard solo se refresca si alguien
+      // invalida su clave: si no, sus KPIs quedan congelados.
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
 

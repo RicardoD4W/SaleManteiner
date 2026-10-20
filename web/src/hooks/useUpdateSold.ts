@@ -9,6 +9,7 @@ export function useUpdateSold() {
       soldsApi.update(id, input),
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ['solds'] });
+      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
       qc.setQueryData(['solds', data.id], data);
     },
   });

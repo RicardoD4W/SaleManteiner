@@ -62,7 +62,7 @@ describe('useCreateBuy', () => {
     expect(buysApi.create).toHaveBeenCalledWith(input);
   });
 
-  it('en éxito invalida ["buys"]', async () => {
+  it('en éxito invalida ["buys"] y los KPIs del dashboard', async () => {
     vi.mocked(buysApi.create).mockResolvedValueOnce(buyFixture as never);
     const { qc, Wrapper } = makeWrapper();
     const invalidateSpy = vi.spyOn(qc, 'invalidateQueries');
@@ -75,6 +75,9 @@ describe('useCreateBuy', () => {
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['buys'] });
+      // Con staleTime Infinity, el dashboard solo se refresca si alguien
+      // invalida su clave: si no, sus KPIs quedan congelados.
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
 
