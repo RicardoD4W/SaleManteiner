@@ -41,7 +41,7 @@ export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
   const { data: customers } = useCustomers();
   // Sin sort por defecto: el user pide explícitamente el estado idle (ni asc ni desc).
-  // El server ya devuelve las solds en id DESC (LIMIT 200), así que sin sort se ve
+  // El server ya devuelve las solds en id DESC, así que sin sort se ve
   // lo más nuevo arriba.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);

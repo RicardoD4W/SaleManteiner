@@ -249,6 +249,79 @@ describe('solds repo', () => {
       expect(soldsRepo.list({ customerId: c1.id })).toHaveLength(2);
       expect(soldsRepo.list({ customerId: c2.id })).toHaveLength(1);
     });
+
+    it('lista todas las ventas, sin tope (el buscador necesita el histórico completo)', () => {
+      // Antes la lista venía topeada a 200 filas (LIMIT 200 en la query), así
+      // que el buscador de /solds no encontraba ventas más viejas. Con 250
+      // ventas, la lista tiene que devolverlas todas.
+      const c = makeCustomer(customersRepo);
+      const b = makeBuy(buysRepo, { quantity: 300 });
+
+      for (let i = 0; i < 250; i++) {
+        soldsRepo.createManyWithStockCheck(
+          validSold(c.id, b.id, { sale_price: 10, items: [{ buy_id: b.id, quantity: 1 }] }),
+        );
+      }
+
+      expect(soldsRepo.list()).toHaveLength(250);
+      expect(soldsRepo.listWithProfit()).toHaveLength(250);
+    });
+
+    it('filtra por dateRange (rango cerrado)', () => {
+      const c = makeCustomer(customersRepo);
+      const b1 = makeBuy(buysRepo);
+      const b2 = makeBuy(buysRepo);
+      const b3 = makeBuy(buysRepo);
+
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b1.id, { sold_at: '2026-01-01', items: [{ buy_id: b1.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b2.id, { sold_at: '2026-06-01', items: [{ buy_id: b2.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b3.id, { sold_at: '2026-12-01', items: [{ buy_id: b3.id, quantity: 1 }] }),
+      );
+
+      const r = soldsRepo.list({ dateRange: { from: '2026-01-01', to: '2026-06-30' } });
+      expect(r).toHaveLength(2);
+      // El mismo filtro sobre la query que usa la ruta HTTP.
+      expect(
+        soldsRepo.listWithProfit({ dateRange: { from: '2026-01-01', to: '2026-06-30' } }),
+      ).toHaveLength(2);
+    });
+
+    it('filtra por from only', () => {
+      const c = makeCustomer(customersRepo);
+      const b1 = makeBuy(buysRepo);
+      const b2 = makeBuy(buysRepo);
+
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b1.id, { sold_at: '2026-01-01', items: [{ buy_id: b1.id, quantity: 1 }] }),
+      );
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b2.id, { sold_at: '2026-12-01', items: [{ buy_id: b2.id, quantity: 1 }] }),
+      );
+
+      const r = soldsRepo.list({ dateRange: { from: '2026-06-01' } });
+      expect(r).toHaveLength(1);
+    });
+
+    it('el valor del filtro va bindeado: un payload de inyección no ejecuta SQL', () => {
+      // El WHERE es fijo y el valor del filtro viaja como parámetro
+      // bindeado. Este test deja esa propiedad escrita: si alguien cambia
+      // el valor por interpolación, la tabla 'solds' desaparece.
+      const c = makeCustomer(customersRepo);
+      const b = makeBuy(buysRepo);
+      soldsRepo.createManyWithStockCheck(
+        validSold(c.id, b.id, { sold_at: '2026-01-01', items: [{ buy_id: b.id, quantity: 1 }] }),
+      );
+
+      const r = soldsRepo.list({ dateRange: { from: "2026-01-01'; DROP TABLE solds; --" } });
+      expect(r).toHaveLength(0);
+      // La tabla sigue en pie: el payload se comparó como texto.
+      expect(soldsRepo.list()).toHaveLength(1);
+    });
   });
 
   describe('update', () => {

@@ -260,47 +260,33 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function list(filters?: ListFilters): Sold[] {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-
-    if (filters?.customerId !== undefined) {
-      conditions.push('customer_id = ?');
-      params.push(filters.customerId);
-    }
-    if (filters?.dateRange?.from) {
-      conditions.push('sold_at >= ?');
-      params.push(filters.dateRange.from);
-    }
-    if (filters?.dateRange?.to) {
-      conditions.push('sold_at <= ?');
-      params.push(filters.dateRange.to);
-    }
-
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // Filtros con WHERE fijo + parámetros bindeados: no hay ningún fragmento
+    // de SQL armado por concatenación (mismo criterio que `listWithStock` en
+    // buys-repo). `|| null` (y no `?? null`) a propósito para las fechas: el
+    // filtro anterior usaba un check de truthiness, así que la cadena vacía
+    // significaba "sin filtro" y con `||` la equivalencia es exacta. Para
+    // `customerId` el check anterior era `!== undefined`, así que ahí va
+    // `?? null`.
+    const customerId = filters?.customerId ?? null;
+    const from = filters?.dateRange?.from || null;
+    const to = filters?.dateRange?.to || null;
     const rows = db
-      .prepare(`SELECT * FROM solds ${where} ORDER BY id DESC LIMIT 200`)
-      .all(...params) as SoldRow[];
+      .prepare(
+        `SELECT * FROM solds
+         WHERE (? IS NULL OR customer_id = ?)
+           AND (? IS NULL OR sold_at >= ?)
+           AND (? IS NULL OR sold_at <= ?)
+         ORDER BY id DESC`,
+      )
+      .all(customerId, customerId, from, from, to, to) as SoldRow[];
     return rows.map(rowToSold);
   }
 
   function listWithProfit(filters?: ListFilters): SoldWithProfit[] {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-
-    if (filters?.customerId !== undefined) {
-      conditions.push('s.customer_id = ?');
-      params.push(filters.customerId);
-    }
-    if (filters?.dateRange?.from) {
-      conditions.push('s.sold_at >= ?');
-      params.push(filters.dateRange.from);
-    }
-    if (filters?.dateRange?.to) {
-      conditions.push('s.sold_at <= ?');
-      params.push(filters.dateRange.to);
-    }
-
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // Mismo criterio de filtros que en `list()` (WHERE fijo + params bindeados).
+    const customerId = filters?.customerId ?? null;
+    const from = filters?.dateRange?.from || null;
+    const to = filters?.dateRange?.to || null;
     const rows = db
       .prepare(
         `SELECT s.*,
@@ -311,11 +297,12 @@ export function createSoldsRepo(db: Database): SoldsRepo {
             WHERE si.sold_id = s.id
           ), 0) AS profit
          FROM solds s
-         ${where}
-         ORDER BY s.id DESC
-         LIMIT 200`,
+         WHERE (? IS NULL OR s.customer_id = ?)
+           AND (? IS NULL OR s.sold_at >= ?)
+           AND (? IS NULL OR s.sold_at <= ?)
+         ORDER BY s.id DESC`,
       )
-      .all(...params) as Array<SoldRow & { profit: number }>;
+      .all(customerId, customerId, from, from, to, to) as Array<SoldRow & { profit: number }>;
 
     if (rows.length === 0) return [];
 
