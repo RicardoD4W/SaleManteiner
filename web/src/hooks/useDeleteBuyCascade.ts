@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { buysApi } from '../api/buys.js';
+import { toastEliminado } from '../lib/toast.js';
 
 /**
  * Hook de mutación para el cascade delete de compras (`DELETE
@@ -16,6 +17,7 @@ export function useDeleteBuyCascade() {
   return useMutation({
     mutationFn: (id: number) => buysApi.removeCascade(id),
     onSuccess: () => {
+      toastEliminado('compra');
       void qc.invalidateQueries({ queryKey: ['buys'] });
       void qc.invalidateQueries({ queryKey: ['solds'] });
       void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });

@@ -319,7 +319,11 @@ test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', asy
 
   // Modal cierra, lista refresca.
   await expect(modal).toBeHidden({ timeout: 5_000 });
-  await expect(page.getByText('Funda Test')).toBeVisible();
+  // Scoped a la tabla: el nombre también aparece en el toast de confirmación
+  // ("Compra registrada · Funda Test") y `getByText` sin scope da 2 elementos.
+  await expect(page.getByRole('table').getByText('Funda Test')).toBeVisible();
+  // El aviso de éxito acompaña a la alta.
+  await expect(page.getByText('Compra registrada')).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------

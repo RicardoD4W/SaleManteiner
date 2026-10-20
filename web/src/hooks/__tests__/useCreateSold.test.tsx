@@ -17,6 +17,9 @@ vi.mock('@/api/solds', () => ({
   },
 }));
 
+const { toastRegistrado } = vi.hoisted(() => ({ toastRegistrado: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastRegistrado }));
+
 import { soldsApi } from '@/api/solds';
 import { useCreateSold } from '@/hooks/useCreateSold';
 import { CreateSoldInput } from '@/schemas/solds';
@@ -90,6 +93,25 @@ describe('useCreateSold', () => {
       // Con staleTime Infinity, el dashboard solo se refresca si alguien
       // invalida su clave: si no, sus KPIs quedan congelados.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
+    });
+  });
+
+  it('en éxito avisa con un toast de venta registrada', async () => {
+    vi.mocked(soldsApi.create).mockResolvedValueOnce(soldFixture as never);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useCreateSold(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(
+        CreateSoldInput.parse({
+          customer_id: 1,
+          items: [{ buy_id: 1, quantity: 1 }],
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(toastRegistrado).toHaveBeenCalledWith('venta');
     });
   });
 

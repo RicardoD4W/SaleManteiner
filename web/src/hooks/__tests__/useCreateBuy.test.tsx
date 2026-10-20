@@ -17,6 +17,9 @@ vi.mock('@/api/buys', () => ({
   },
 }));
 
+const { toastRegistrado } = vi.hoisted(() => ({ toastRegistrado: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastRegistrado }));
+
 import { buysApi } from '@/api/buys';
 import { useCreateBuy } from '@/hooks/useCreateBuy';
 import { CreateBuyInput } from '@/schemas/buys';
@@ -78,6 +81,21 @@ describe('useCreateBuy', () => {
       // Con staleTime Infinity, el dashboard solo se refresca si alguien
       // invalida su clave: si no, sus KPIs quedan congelados.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
+    });
+  });
+
+  it('en éxito avisa con un toast de compra registrada', async () => {
+    vi.mocked(buysApi.create).mockResolvedValueOnce(buyFixture as never);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useCreateBuy(), { wrapper: Wrapper });
+
+    const input = CreateBuyInput.parse({ product_name: 'Funda iPhone' });
+    await act(async () => {
+      await result.current.mutateAsync(input);
+    });
+
+    await waitFor(() => {
+      expect(toastRegistrado).toHaveBeenCalledWith('compra', 'Funda iPhone');
     });
   });
 

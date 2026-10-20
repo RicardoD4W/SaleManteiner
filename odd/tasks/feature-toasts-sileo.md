@@ -10,7 +10,7 @@ Añade confirmaciones por toast a las acciones de compras, ventas y clientes usa
 
 > "6. agregar confirmaciones por toast de edicion, eliminacion y registro de compras, ventas y clientes usanbdo la libreria sileo (busca su documentacion para ver como funciona)"
 
-Regla: cada alta, edición y borrado **exitoso** de una compra, una venta o un cliente dispara un toast. Los errores de la API también se avisan con un toast (además del error en línea que ya hay en los formularios: el toast **no** reemplaza la validación en línea de los formularios).
+Regla: cada alta, edición y borrado **exitoso** de una compra, una venta o un cliente dispara un toast. Los **errores no se toastean**: ya se muestran en línea en los formularios y en las modales de borrado, y un toast con el mismo mensaje sería duplicarlo (decisión en L6).
 
 API de sileo (verificada en la documentación oficial, `sileo` v0.1.6, MIT):
 
@@ -30,7 +30,9 @@ sileo.promise(promesa, { success, error });
 
 ### S2 — El toast tiene que verse bien en dark mode
 
-Regla: en dark mode el toast no puede quedar con el fondo blanco por defecto (`fill: "#FFFFFF"`). Se define un `fill` oscuro (`#171717`) con texto claro vía `styles`, o se sube el `theme` del `Toaster` a `dark` y se deja el `fill` por defecto. La app tiene dark mode (toggle en el header + `localStorage['salemanteiner-theme']`).
+Regla: en dark mode el toast no puede quedar con el fondo blanco por defecto (`fill: "#FFFFFF"`). Se invierte el `theme` que se le pasa a sileo (ver L7: sileo nombra el tema al revés) y se baja el toast con `offset` para que no tape el nav del header.
+
+OJO con el `theme` de sileo: su `THEME_FILLS` es `{ light: '#1a1a1a', dark: '#f2f2f2' }` y el color del texto sigue al tema (con "light" la descripción sale blanca, con "dark" sale oscura). Es decir: el tema "light" de sileo es la tarjeta **oscura**. Para que el toast se parezca a la app hay que invertir: en dark mode de la app se le pasa `theme="light"` a sileo.
 
 ### S3 — Dónde se monta el `Toaster` y dónde se disparan los toasts
 
@@ -95,3 +97,6 @@ Dependencias: este feature es la base de `feature-acciones-en-listas` (los aviso
 - **L3 (2026-10-20, evidencia — hooks de mutación que hay que hookear)**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold` (todas con `qc.invalidateQueries` en el `onSuccess`) y `useCreateCustomer`. Los de update/delete de clientes todavía no existen: los crea `feature-clientes-crud`.
 - **L4 (2026-10-20, decisión)**: los errores de validación en línea de los formularios (Zod + `setError`) **se quedan**; el toast es solo para el resultado de la acción (éxito/fracaso). Así no se duplica el mensaje ni se pierde el foco en el campo con error.
 - **L5 (2026-10-20, decisión)**: el toast se dispara desde los hooks de mutación y no desde las páginas, para que el mismo hook usado en cualquier pantalla dé el mismo aviso. Si un flujo necesita un texto distinto (p. ej. el borrado en cascada de una compra), el hook recibe el texto por parámetro opcional.
+- **L6 (2026-10-20, decisión — los errores NO se toastean)**: los errores ya se muestran en línea (el `setError` de los formularios y el `setDeleteError` de las páginas de edición). Un toast con el mismo mensaje sería duplicarlo, así que el toast es solo de confirmación de éxito. Se cambió el S1 en consecuencia.
+- **L7 (2026-10-20, evidencia — sileo invierte el nombre del tema)**: en `sileo@0.1.6`, `THEME_FILLS = { light: '#1a1a1a', dark: '#f2f2f2' }` y el color del texto sigue al tema (`[data-sileo-viewport][data-theme="light"] [data-sileo-description] { color: rgba(255,255,255,.5) }`). O sea: el tema "light" de sileo es la tarjeta **oscura**. Para que el toast acompañe al dark mode de la app hay que invertir la correspondencia.
+- **L8 (2026-10-20, implementación)**: `<Toaster>` se monta una vez en la raíz (`main.tsx`, fuera del router, para que los toasts sobrevivan a la navegación). El tema se lee del DOM con el hook nuevo `useDomTheme` (un `MutationObserver` sobre la clase `dark` del `<html>`): el `useTheme` de la app es estado local por componente, así que el Toaster no puede leerlo sin desincronizarse. Dos ajustes de la librería: `offset={{ top: '4rem' }}` (el toast tapaba el nav del header) y `styles: { title: 'normal-case!' }` (sileo aplica `text-transform: capitalize` al título: "Compra Registrada" no es español).

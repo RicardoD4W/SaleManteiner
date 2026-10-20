@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { buysApi } from '../api/buys.js';
 import { ApiError } from '../api/client';
+import { toastEliminado } from '../lib/toast.js';
 
 /** Venta asociada a un buy en el body del 409. Mirror del server. */
 export interface AssociatedSale {
@@ -45,6 +46,7 @@ export function useDeleteBuy() {
   return useMutation({
     mutationFn: (id: number) => buysApi.remove(id),
     onSuccess: () => {
+      toastEliminado('compra');
       void qc.invalidateQueries({ queryKey: ['buys'] });
       void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
     },
