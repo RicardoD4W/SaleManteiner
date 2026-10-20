@@ -122,7 +122,7 @@ export function ProductsTab() {
                       onSort={onSort}
                     />
                     <SortHeader
-                      label="Revenue"
+                      label="Precio de venta"
                       sortKey="total_revenue"
                       currentKey={sortKey}
                       currentDir={sortDir}
@@ -130,7 +130,7 @@ export function ProductsTab() {
                       onSort={onSort}
                     />
                     <SortHeader
-                      label="Profit"
+                      label="Beneficio"
                       sortKey="total_profit"
                       currentKey={sortKey}
                       currentDir={sortDir}
