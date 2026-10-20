@@ -98,19 +98,19 @@ export function OverviewTab() {
         <StatCard
           label="Compras totales"
           value={formatEuro(k.compras_total_eur)}
-          hint="Gastos en compras acumulados"
+          hint="Productos + costes de compra y de venta"
           valueClassName="dark:text-red-200 text-red-400"
         />
         <StatCard
           label="Ventas totales"
           value={formatEuro(k.ventas_total_eur)}
-          hint="Beneficios de ventas"
+          hint="Ingresos brutos de las ventas"
           valueClassName="dark:text-green-200 text-green-400"
         />
         <StatCard
           label="Beneficio"
           value={`${netSign}${formatEuro(k.beneficio_total_eur)}`}
-          hint="Beneficio - compras - costes asociados"
+          hint="Ingresos menos los costes de cada venta"
           valueClassName={beneficioColorClass(k.beneficio_total_eur)}
         />
         <StatCard

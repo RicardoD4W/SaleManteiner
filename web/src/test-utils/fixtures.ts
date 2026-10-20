@@ -67,19 +67,20 @@ export const dashboardStatsFixture: DashboardStats = {
   // 12 meses consecutivos, el último con actividad.
   // neto = compras - ventas por convención del spec.
   cashFlowByMonth: [
-    { month: '2025-11', compras: 0, ventas: 0, neto: 0 },
-    { month: '2025-12', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-01', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-02', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-03', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-04', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-05', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-06', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-07', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-08', compras: 0, ventas: 0, neto: 0 },
-    { month: '2026-09', compras: 0, ventas: 0, neto: 0 },
+    { month: '2025-11', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2025-12', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-01', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-02', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-03', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-04', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-05', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-06', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-07', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-08', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
+    { month: '2026-09', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
     // Mes actual: compras 130€, profit 8€ → neto = 122 (positivo = "ganancia" según spec).
-    { month: '2026-10', compras: 130.0, ventas: 8.0, neto: 122.0 },
+    // beneficio_real = profit realizado (8) - gasto en compras del mes (130) = -122.
+    { month: '2026-10', compras: 130.0, ventas: 8.0, neto: 122.0, beneficio_real: -122.0 },
   ],
   topProducts: [
     { product_name: 'Funda iPhone', times_sold: 2, total_revenue: 20.0, total_profit: 16.0 },

@@ -98,7 +98,13 @@ export interface DashboardStats {
    *    se colorea rojo = "zona de pérdida"; arriba de cero se colorea verde =
    *    "zona de ganancia").
    */
-  cashFlowByMonth: Array<{ month: string; compras: number; ventas: number; neto: number }>;
+  cashFlowByMonth: Array<{
+    month: string;
+    compras: number;
+    ventas: number;
+    neto: number;
+    beneficio_real: number;
+  }>;
   topProducts: Array<{
     product_name: string;
     times_sold: number;
@@ -437,8 +443,22 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       .get() as { total: number };
 
     const kpis = {
-      compras_total_eur: round2(buysRow.compras_total + buysRow.gastos_asociados_total),
+      // Compras totales = TODO el dinero invertido en el producto:
+      //   coste de los productos comprados
+      // + sus costes asociados (los de la compra)
+      // + los costes asociados de las ventas de esos productos.
+      // Es la misma definición que usa la serie `compras` del cash flow
+      // mensual, así que la KPI y el chart cuentan exactamente lo mismo.
+      compras_total_eur: round2(
+        buysRow.compras_total + buysRow.gastos_asociados_total + sellsRow.gastos_asociados_total,
+      ),
+      // Ventas totales = el dinero que entró por las ventas (importe bruto,
+      // antes de restar ningún coste).
       ventas_total_eur: round2(sellsRow.ventas_total),
+      // Beneficio = el dinero que ganaste vendiendo: los ingresos menos los
+      // costes asociados de las ventas y el coste de los productos vendidos.
+      // NO resta el stock que todavía no vendiste (eso está en
+      // compras_total_eur y en stock_pendiente_count).
       beneficio_total_eur: round2(beneficioRow.total),
       stock_pendiente_count: stockRow.cnt,
     };
@@ -449,6 +469,10 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     //   compras = SUM(buys.purchase_cost + buys.associated_costs) +
     //             SUM(solds.associated_costs) donde las fechas caen en ese mes.
     //   ventas  = SUM del profit realizado por venta del mes (fórmula S13).
+    //   beneficio_real = profit realizado - gasto en compras del mes. NO es
+    //             `ventas - compras`: los asociados de las ventas ya están
+    //             descontados dentro de `ventas`, así que restar `compras`
+    //             (que los incluye) los contaría dos veces.
     //   neto    = compras - ventas (convención del spec: negativo=pérdida,
     //             positivo=ganancia → el chart colorea rojo bajo cero y verde
     //             sobre cero).
@@ -512,7 +536,12 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       const compras = round2((c?.compras_de_buys ?? 0) + (c?.asociados_de_solds ?? 0));
       const ventas = round2(v?.ventas ?? 0);
       const neto = round2(compras - ventas);
-      return { month, compras, ventas, neto };
+      // Beneficio real del mes = profit realizado en las ventas - gasto en
+      // compras del mes. OJO: NO es `ventas - compras` (eso contaría dos
+      // veces los asociados de las ventas, que ya están descontados
+      // dentro de `ventas`).
+      const beneficioReal = round2(ventas - (c?.compras_de_buys ?? 0));
+      return { month, compras, ventas, neto, beneficio_real: beneficioReal };
     });
 
     // ── Top products (prorrateo por unidad para packs) ────────────────────

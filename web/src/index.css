@@ -23,6 +23,7 @@
      el theming va por variables CSS y no por clases en el SVG). */
   --color-chart-compras: #ef4444; /* rojo: gasto */
   --color-chart-ventas: #10b981; /* verde: ingreso */
+  --color-chart-beneficio: #b84a0a; /* naranja de marca (brand-600): beneficio real */
   --color-chart-dot: #ffffff; /* relleno de los puntos */
 }
 
@@ -31,5 +32,6 @@
 .dark {
   --color-chart-compras: #f87171;
   --color-chart-ventas: #34d399;
+  --color-chart-beneficio: #f57d3a;
   --color-chart-dot: #111827;
 }

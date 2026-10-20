@@ -29,25 +29,56 @@ vi.mock('recharts', async (importOriginal) => {
 import { CashFlowChart } from '../CashFlowChart';
 
 const DATA = [
-  { month: '2026-01', compras: 100, ventas: 50, neto: -50 },
-  { month: '2026-02', compras: 200, ventas: 150, neto: -50 },
-  { month: '2026-03', compras: 150, ventas: 180, neto: 30 },
+  { month: '2026-01', compras: 100, ventas: 50, beneficio_real: -20 },
+  { month: '2026-02', compras: 200, ventas: 150, beneficio_real: -50 },
+  { month: '2026-03', compras: 150, ventas: 180, beneficio_real: 30 },
 ];
 
 describe('CashFlowChart (recharts)', () => {
-  it('renderiza el chart con sus dos series y la leyenda', () => {
+  it('renderiza el chart con sus tres series y la leyenda', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     // El contenedor conserva el contrato que usan los e2e.
     const root = container.querySelector('[data-testid="cashflow-chart"]');
     expect(root).toBeInTheDocument();
     expect(root).toHaveAttribute('role', 'img');
-    expect(root).toHaveAttribute('aria-label', 'Flujo de caja por mes (compras vs ventas)');
+    expect(root).toHaveAttribute(
+      'aria-label',
+      'Flujo de caja por mes (compras, beneficio y resultado del mes)',
+    );
 
-    // Dos curvas: Compras (gastos) y Ventas (ingresos).
-    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(2);
-    expect(screen.getByText('Compras (gastos)')).toBeInTheDocument();
-    expect(screen.getByText('Ventas (ingresos)')).toBeInTheDocument();
+    // Tres curvas: Compras, Beneficio y Resultado del mes.
+    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(screen.getByText('Compras')).toBeInTheDocument();
+    expect(screen.getByText('Beneficio')).toBeInTheDocument();
+    expect(screen.getByText('Resultado del mes')).toBeInTheDocument();
+  });
+
+  it('la serie de beneficio real se dibuja con el naranja de marca', () => {
+    const { container } = render(<CashFlowChart data={DATA} />);
+
+    const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
+      el.getAttribute('stroke'),
+    );
+    expect(strokes).toContain('var(--color-chart-beneficio)');
+  });
+
+  it('el eje Y cubre el beneficio real cuando es más negativo que las ventas', () => {
+    const { container } = render(
+      <CashFlowChart
+        data={[
+          { month: '2026-01', compras: 0, ventas: 0, beneficio_real: -500 },
+          { month: '2026-02', compras: 0, ventas: 0, beneficio_real: -500 },
+        ]}
+      />,
+    );
+
+    const tickValues = Array.from(
+      container.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
+    ).map((el) => el.textContent ?? '');
+
+    // Sin este tick, la línea de beneficio real se saldría del área de dibujo.
+    expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
   });
 
   it('muestra los meses en español en el eje X', () => {
@@ -69,8 +100,8 @@ describe('CashFlowChart (recharts)', () => {
     const { container } = render(
       <CashFlowChart
         data={[
-          { month: '2026-01', compras: 100, ventas: -10, neto: -110 },
-          { month: '2026-02', compras: 200, ventas: 150, neto: -50 },
+          { month: '2026-01', compras: 100, ventas: -10, beneficio_real: -50 },
+          { month: '2026-02', compras: 200, ventas: 150, beneficio_real: -50 },
         ]}
       />,
     );

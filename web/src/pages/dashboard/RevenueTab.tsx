@@ -58,7 +58,7 @@ export function RevenueTab() {
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Ingresos YTD
+              Ingresos
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
               {formatEuro(ytdIngresos)}
@@ -69,7 +69,7 @@ export function RevenueTab() {
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Beneficio YTD
+              Beneficio
             </p>
             <p
               className={[
@@ -82,7 +82,7 @@ export function RevenueTab() {
               {formatEuro(ytdBeneficio)}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              ingresos − COGS − gastos
+              Ingresos menos los costes de cada venta
             </p>
           </CardBody>
         </Card>

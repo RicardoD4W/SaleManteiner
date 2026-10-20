@@ -205,12 +205,12 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
   // El OverviewTab tiene un data-testid en el grid de los 4 KPIs.
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
 
-  // 4. Verificar KPIs. formatEuro() devuelve "100,00 €", "40,00 €", "+10,00 €".
-  // - compras_total_eur: 100€ (la compra de 20 unidades).
+  // 4. Verificar KPIs. formatEuro() devuelve "105,00 €", "40,00 €", "+10,00 €".
+  // - compras_total_eur: 105€ (100€ del producto + 5€ de los asociados de la venta).
   // - ventas_total_eur: 40€ (la venta).
   // - beneficio_total_eur: 10€ (40 - 5 - 25).
   // - stock_pendiente_count: 1 (la compra con stock).
-  await expect(page.getByText(/100,00/).first()).toBeVisible();
+  await expect(page.getByText(/105,00/).first()).toBeVisible();
   await expect(page.getByText(/40,00/).first()).toBeVisible();
   await expect(page.getByText(/10,00/).first()).toBeVisible();
   // El KPI "Stock pendiente" muestra el número "1" (sin formato de moneda).
@@ -608,12 +608,12 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('cashflow-chart')).toBeVisible();
 
-  // 4. Verificar que se dibujan las 2 series (Compras y Ventas). Con
-  // recharts cada serie es una curva (`.recharts-line-curve`); antes (SVG
-  // inline) eran 2 `path`. Con el fix, ambas se renderizan dentro del área
-  // de dibujo aunque las ventas sean negativas.
+  // 4. Verificar que se dibujan las 3 series (Compras, Ventas y Beneficio
+  // real). Con recharts cada serie es una curva (`.recharts-line-curve`);
+  // antes (SVG inline) eran 2 `path`. Con el fix, todas se renderizan
+  // dentro del área de dibujo aunque las ventas sean negativas.
   const series = page.locator('[data-testid="cashflow-chart"] .recharts-line-curve');
-  await expect(series).toHaveCount(2); // compras + ventas
+  await expect(series).toHaveCount(3); // compras + ventas + beneficio real
 
   // 5. El dominio del eje Y incluye el valor negativo: hay un tick que
   // empieza con "-".

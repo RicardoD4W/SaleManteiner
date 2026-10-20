@@ -58,7 +58,14 @@ export interface DashboardStats {
    *    El chart colorea rojo bajo cero y verde sobre cero.
    * 12 meses consecutivos, meses sin actividad con 0.
    */
-  cashFlowByMonth: Array<{ month: string; compras: number; ventas: number; neto: number }>;
+  cashFlowByMonth: Array<{
+    month: string;
+    compras: number;
+    ventas: number;
+    neto: number;
+    /** Beneficio real del mes = profit realizado - gasto en compras del mes. */
+    beneficio_real: number;
+  }>;
   topProducts: Array<{
     product_name: string;
     times_sold: number;

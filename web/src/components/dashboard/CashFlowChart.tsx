@@ -1,12 +1,20 @@
 /**
  * Chart de flujo de caja mensual (recharts).
  *
- * Muestra **dos series separadas** por mes:
- *  - **Compras** (lo que gasté): inversión del mes = SUM(buys.purchase_cost
- *    + buys.associated_costs) + SUM(solds.associated_costs).
- *  - **Ventas** (lo que generé): profit realizado por las ventas del mes
- *    (sale_price - associated_costs - COGS prorrateado - buy.assoc
- *    prorrateado, fórmula S13 del feature buys-and-solds).
+ * Muestra **tres series** por mes, con la misma definición que las KPIs del
+ * dashboard (ver `statsDashboard` en el repo del server):
+ *  - **Compras**: el dinero invertido en el mes = SUM(buys.purchase_cost
+ *    + buys.associated_costs) + SUM(solds.associated_costs). Es la serie
+ *    mensual de la KPI "Compras totales".
+ *  - **Beneficio**: el dinero que ganaste vendiendo en el mes = profit
+ *    realizado (sale_price - associated_costs - COGS prorrateado - buy.assoc
+ *    prorrateado, fórmula S13). Es la serie mensual de la KPI "Beneficio".
+ *  - **Resultado del mes**: el beneficio del mes MENOS lo invertido en
+ *    comprar stock ese mes. OJO: NO es `compras - beneficio`: los costes
+ *    asociados de las ventas ya están descontados dentro del beneficio, así
+ *    que restar `compras` (que los incluye) los contaría dos veces. Es el
+ *    dinero que te queda de ese mes (mientras el stock comprado sigue en el
+ *    almacén, y eso lo mide la KPI "Stock pendiente").
  *
  * Decisión del feature phase-8-polish-e2e-docs: el chart anterior mostraba
  * una sola línea de `neto = compras - ventas`. Cuando el negocio estaba
@@ -18,8 +26,8 @@
  * Implementado con **recharts** (feature `recharts-charts`): antes era SVG
  * inline, que obligaba a mantener a mano el dominio, los ticks y las
  * escalas. El dominio del eje Y se sigue calculando a mano (no交给 recharts)
- * para garantizar que el cero esté siempre visible y que las ventas
- * negativas (profit < 0) no se salgan del área de dibujo.
+ * para garantizar que el cero esté siempre visible y que los importes
+ * negativos (profit < 0) no se salgan del área de dibujo.
  *
  * Theming: recharts escribe atributos `stroke`/`fill` en el SVG que
  * genera, así que el dark mode se resuelve con variables CSS
@@ -41,9 +49,28 @@ import {
 } from 'recharts';
 import { formatEuro } from '../../lib/format';
 
-interface Props {
-  data: Array<{ month: string; compras: number; ventas: number; neto: number }>;
+/**
+ * Props del chart. Se exportan porque `LazyCashFlowChart` (el boundary lazy)
+ * reexpone la misma API sin duplicar la forma de los datos.
+ */
+export interface CashFlowChartProps {
+  data: Array<{
+    month: string;
+    /** Salidas de caja del mes (compras + asociados). */
+    compras: number;
+    /** Profit realizado por las ventas del mes (precio - asociados - COGS). */
+    ventas: number;
+    /** Beneficio real del mes = profit realizado - gasto en compras del mes. */
+    beneficio_real: number;
+  }>;
 }
+
+/** Color del punto de cada serie en el tooltip (por dataKey). */
+const SERIES_COLOR_CLASS: Record<string, string> = {
+  compras: 'bg-chart-compras',
+  ventas: 'bg-chart-ventas',
+  beneficio_real: 'bg-chart-beneficio',
+};
 
 const MONTH_LABELS = [
   'ene',
@@ -92,9 +119,7 @@ function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
             <span
               className={[
                 'h-2 w-2 shrink-0 rounded-full',
-                entry.dataKey === 'compras'
-                  ? 'bg-[var(--color-chart-compras)]'
-                  : 'bg-[var(--color-chart-ventas)]',
+                SERIES_COLOR_CLASS[String(entry.dataKey)] ?? SERIES_COLOR_CLASS.ventas,
               ].join(' ')}
               aria-hidden="true"
             />
@@ -109,7 +134,7 @@ function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
   );
 }
 
-export function CashFlowChart({ data }: Props) {
+export function CashFlowChart({ data }: CashFlowChartProps) {
   if (data.length === 0) {
     return (
       <div className="h-64 w-full" data-testid="cashflow-chart">
@@ -118,11 +143,13 @@ export function CashFlowChart({ data }: Props) {
     );
   }
 
-  // Dominio Y: incluye el cero siempre, y se extiende hacia abajo si hay
-  // ventas negativas (profit < 0 cuando se vendió por debajo del COGS) y
-  // hacia arriba para el máximo de compras.
-  const yMin = Math.min(0, ...data.map((d) => d.ventas));
-  const yMax = Math.max(1, ...data.map((d) => d.compras));
+  // Dominio Y: incluye el cero siempre y cubre las TRES series (compras,
+  // beneficio y resultado del mes). Sin esto una serie se sale del área de
+  // dibujo: el beneficio puede superar a las compras (venta de stock
+  // comprado en meses anteriores) y el resultado del mes puede ser muy
+  // negativo.
+  const yMin = Math.min(0, ...data.flatMap((d) => [d.ventas, d.beneficio_real]));
+  const yMax = Math.max(1, ...data.flatMap((d) => [d.compras, d.ventas, d.beneficio_real]));
 
   return (
     <div
@@ -143,7 +170,7 @@ export function CashFlowChart({ data }: Props) {
       ].join(' ')}
       data-testid="cashflow-chart"
       role="img"
-      aria-label="Flujo de caja por mes (compras vs ventas)"
+      aria-label="Flujo de caja por mes (compras, beneficio y resultado del mes)"
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
@@ -151,26 +178,42 @@ export function CashFlowChart({ data }: Props) {
           <XAxis dataKey="month" tickFormatter={monthLabel} tickMargin={8} />
           <YAxis tickFormatter={formatEurosShort} domain={[yMin, yMax]} width={56} tickMargin={4} />
           <Tooltip content={<CashFlowTooltip />} />
-          <Legend verticalAlign="top" align="left" height={24} />
+          <Legend verticalAlign="top" align="left" height={36} />
+
           <Line
             type="linear"
             dataKey="compras"
-            name="Compras (gastos)"
+            name="Compras"
             stroke="var(--color-chart-compras)"
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
-            isAnimationActive={false}
+            isAnimationActive={true}
           />
           <Line
             type="linear"
             dataKey="ventas"
-            name="Ventas (ingresos)"
+            name="Beneficio"
             stroke="var(--color-chart-ventas)"
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
-            isAnimationActive={false}
+            isAnimationActive={true}
+          />
+          {/* Resultado del mes: el beneficio del mes menos lo invertido en
+              comprar stock ese mes (es decir, la caja que te queda del mes).
+              Trazo discontinuo + puntos pequeños para distinguirlo de las
+              otras dos series. */}
+          <Line
+            type="linear"
+            dataKey="beneficio_real"
+            name="Resultado del mes"
+            stroke="var(--color-chart-beneficio)"
+            strokeWidth={2.5}
+            strokeDasharray="5 4"
+            dot={{ r: 2, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
+            activeDot={{ r: 4 }}
+            isAnimationActive={true}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -158,6 +158,31 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.kpis.compras_total_eur).toBe(165); // 100+10 + 50+5
   });
 
+  it('compras_total_eur incluye también los costes asociados de las ventas', () => {
+    // Definición de la KPI (usuario): el dinero total invertido = el coste de
+    // los productos comprados + sus costes asociados + los costes asociados
+    // de las ventas de esos productos. Es la misma suma que la serie
+    // `compras` del cash flow mensual.
+    const buy = buysRepo.create(
+      validBuy({ product_name: 'A', purchase_cost: 100, associated_costs: 10, quantity: 10 }),
+    );
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 50,
+        associated_costs: 7,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    // 100 (producto) + 10 (asociados de la compra) + 7 (asociados de la venta).
+    expect(stats.kpis.compras_total_eur).toBe(117);
+  });
+
   it('stock_pendiente_count cuenta buys con disponibles > 0', () => {
     // Buy con 3 unidades
     const buy = buysRepo.create(validBuy({ product_name: 'X', purchase_cost: 30, quantity: 3 }));
@@ -446,6 +471,41 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(currentMonth.ventas).toBe(44.5);
     // neto = 37 - 44.5 = -7.5.
     expect(currentMonth.neto).toBe(-7.5);
+  });
+
+  it('cashFlowByMonth: beneficio_real = profit de las ventas - gasto en compras del mes', () => {
+    // Compra del mes: 30€ + 5€ de asociados = 35€ de gasto en compras.
+    const buy = buysRepo.create(
+      validBuy({
+        product_name: 'Prod',
+        purchase_cost: 30,
+        quantity: 10,
+        associated_costs: 5,
+        purchase_date: todayLocalDate(),
+      }),
+    );
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+
+    // Venta del mes: 50€ - 2€ (asociados) - COGS (1*3) - buy_assoc (1*0.5) = 44.5€ de profit.
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 50,
+        associated_costs: 2,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    // Profit realizado del mes (la serie `ventas`).
+    expect(currentMonth.ventas).toBe(44.5);
+    // Beneficio real = profit realizado - gasto en compras del mes = 44.5 - 35 = 9.5.
+    // NO es 7.5 (`ventas - compras`): los 2€ de asociados de la venta ya están
+    // descontados dentro de `ventas`, así que restarlos otra vez los contaría
+    // dos veces.
+    expect(currentMonth.beneficio_real).toBe(9.5);
   });
 
   it('cashFlowByMonth: meses sin actividad se rellenan con 0', () => {
