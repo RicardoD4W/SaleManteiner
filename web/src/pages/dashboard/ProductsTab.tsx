@@ -10,6 +10,7 @@
  */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
+import { tableHeadClass } from '../../components/ui/tableStyles';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
@@ -43,7 +44,7 @@ function SortHeader({
       scope="col"
       onClick={() => onSort(sortKey)}
       className={[
-        'cursor-pointer select-none px-3 py-2 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+        `cursor-pointer ${tableHeadClass}`,
         align === 'right' ? 'text-right' : 'text-left',
       ].join(' ')}
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}

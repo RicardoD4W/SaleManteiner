@@ -21,6 +21,7 @@
 import { useRef, type ReactNode } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { tableHeadClass } from './tableStyles';
 
 interface VirtualTableProps<TData> {
   /** Instancia de TanStack Table (ya filtrada y ordenada). */
@@ -69,20 +70,29 @@ export function VirtualTable<TData>({
           >
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="flex w-full">
-                {hg.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    style={{ flex: `${header.getSize()} 1 0` }}
-                    className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() === 'asc' ? ' ▲' : null}
-                      {header.column.getIsSorted() === 'desc' ? ' ▼' : null}
-                    </span>
-                  </th>
-                ))}
+                {hg.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+                  return (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getToggleSortingHandler()}
+                      style={{
+                        flex: `${header.getSize()} 1 0`,
+                        cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                      }}
+                      className={`${tableHeadClass} text-left`}
+                      aria-sort={
+                        sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
+                      }
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {sorted === 'asc' ? ' ▲' : null}
+                        {sorted === 'desc' ? ' ▼' : null}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
