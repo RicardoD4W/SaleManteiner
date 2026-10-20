@@ -433,7 +433,7 @@ function DeleteCascadeModal({
             <strong>
               {salesCount} {salesLabel}
             </strong>
-            . Si la borrás también se van a borrar las ventas siguientes. Esta acción no se puede
+            . Si la borras también se van a borrar las ventas siguientes. Esta acción no se puede
             deshacer.
           </p>
 
