@@ -342,14 +342,10 @@ describe('customers repo', () => {
 
       // 0 huérfanos en las tres direcciones.
       expect(
-        count(
-          'SELECT COUNT(*) AS c FROM sale_items WHERE sold_id NOT IN (SELECT id FROM solds)',
-        ),
+        count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id NOT IN (SELECT id FROM solds)'),
       ).toBe(0);
       expect(
-        count(
-          'SELECT COUNT(*) AS c FROM sale_items WHERE buy_id NOT IN (SELECT id FROM buys)',
-        ),
+        count('SELECT COUNT(*) AS c FROM sale_items WHERE buy_id NOT IN (SELECT id FROM buys)'),
       ).toBe(0);
       expect(
         count(

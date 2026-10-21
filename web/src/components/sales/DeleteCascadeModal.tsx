@@ -113,10 +113,7 @@ export function DeleteCascadeModal({
         className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-          <h2
-            id={titleId}
-            className="text-base font-semibold text-gray-900 dark:text-gray-100"
-          >
+          <h2 id={titleId} className="text-base font-semibold text-gray-900 dark:text-gray-100">
             {title}
           </h2>
           <button
@@ -149,8 +146,8 @@ export function DeleteCascadeModal({
             <strong>
               {salesCount} {salesLabel}
             </strong>
-            . Si {entityPronoun} borrás también se van a borrar las ventas siguientes. Esta acción no
-            se puede deshacer.
+            . Si {entityPronoun} borrás también se van a borrar las ventas siguientes. Esta acción
+            no se puede deshacer.
           </p>
 
           <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">

@@ -126,7 +126,9 @@ test('borrar un cliente con ventas: 409 → modal de cascada → borra cliente y
   await expect(dialog.getByText(`Venta #${saleBody.data.id}`)).toBeVisible();
   // La fila de la venta muestra el cliente y la fecha (formato dd/MM/yyyy).
   await expect(dialog.getByText(`${nombre} · 20/10/2026`)).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Borrar también las ventas y el cliente' })).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: 'Borrar también las ventas y el cliente' }),
+  ).toBeVisible();
 
   // Confirmar la cascada: se borran el cliente y sus ventas.
   await dialog.getByRole('button', { name: 'Borrar también las ventas y el cliente' }).click();
