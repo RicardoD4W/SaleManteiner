@@ -1,6 +1,12 @@
 # SaleManteiner — Contexto para agentes
 
-> Resumen operativo del proyecto. Reemplaza al antiguo `CONTEXT.md`/`PLAN.md`. Última actualización: 2026-10-16.
+> Resumen operativo del proyecto. Reemplaza al antiguo `CONTEXT.md`/`PLAN.md`. Última actualización: 2026-10-21.
+
+## 0. Reglas no negociables
+
+1. **Verificación visual antes de cerrar cualquier feature con UI** (§8.1). Un test verde **no** es "se ve bien": hay que levantar la app, capturar las pantallas y **mirar las capturas** (`npm run visual -w web`). El informe de cierre incluye las capturas revisadas. Si no se pudo mirar, el feature **no está cerrado** y se reporta como bloqueado. No hay excepciones por "es un cambio chico", "solo un texto" o "los tests pasan": un texto partido o una columna cortada son bugs igual que un test rojo.
+2. **La BD del usuario no se toca.** Toda verificación (e2e, visual, scripts) corre contra una BD **temporal** (`SALEMANTEINER_DIR`), nunca `~/.salemanteiner`. Los datos que el usuario carga a mano son sacredos.
+3. **Los gates antes de commitear**: `typecheck`, `lint`, `format:check` y los tests (unit + e2e) tienen que estar verdes. Si un gate no se puede correr, se dice; no se commitea a ciegas.
 
 ## 1. Qué es
 
@@ -227,7 +233,7 @@ Comandos útiles:
 - `npm run format` / `format:check` — Prettier. **Desde 2026-10-19 el repo está normalizado con Prettier y `format:check` es un gate** (si falla, el cambio no entra).
 - `npm run visual -w web` — **verificación visual** (ver §8.1): levanta la app aislada, siembra datos y deja capturas en `web/visual/shots/`.
 
-### 8.1 Verificación visual (obligatoria antes de cerrar un feature con UI)
+### 8.1 Verificación visual (NO NEGOCIABLE — ver §0.1)
 
 Un test verde no es lo mismo que "se ve bien". Antes de dar por cerrado un feature que toca la UI, hay que **mirar la web**:
 
@@ -244,11 +250,12 @@ Qué hace el script (`web/visual/capture.spec.ts` + `web/playwright.visual.confi
 
 Las capturas se **miren** con la herramienta `read` (renderiza el PNG como imagen). Esto es lo que atrapa lo que ningún test ve: una columna que se sale de la tabla, un texto partido, un color sin contraparte `dark:`, un modal que tapa el contenido, un chart que quedó en su fallback de carga.
 
-Reglas:
+Reglas (no negociables, §0.1):
 
 1. El cierre de un feature con UI incluye **las capturas revisadas** en el informe (qué se vio y si algo quedó mal).
-2. Si no se pudo mirar, se dice explícitamente: no se da por verificado.
-3. Para flujos interactivos puntuales (clics, teclado, consola, red) está el MCP de Playwright; el repo ya tiene Chromium instalado (`npx playwright install chromium`) y se puede usar el Playwright del repo directamente desde un script.
+2. Si no se pudo mirar, se dice explícitamente: **el feature no está cerrado** y el resultado es "bloqueado por falta de verificación visual", no "cerrado con un pendiente".
+3. Lo que se mira es justo lo que los tests no ven: columna cortada, texto partido, chart en su fallback, modal que tapa el contenido, color sin contraparte `dark:`, versión móvil rota.
+4. Para flujos interactivos puntuales (clics, teclado, consola, red) está el MCP de Playwright; el repo ya tiene Chromium instalado (`npx playwright install chromium`) y se puede usar el Playwright del repo directamente desde un script.
 
 ## 9. Skills cargadas
 
