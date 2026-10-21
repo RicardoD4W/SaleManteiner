@@ -6,6 +6,8 @@ import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { createCustomersRepo } from '../repo/customers-repo.js';
+import { createBuysRepo } from '../repo/buys-repo.js';
+import { createSoldsRepo } from '../repo/solds-repo.js';
 import { CreateCustomerInput, UpdateCustomerInput } from '../schemas/customers.js';
 
 const CreateSchema = CreateCustomerInput;
@@ -26,16 +28,46 @@ function validUpdate(
 describe('customers repo', () => {
   let db: Database;
   let repo: ReturnType<typeof createCustomersRepo>;
+  let buysRepo: ReturnType<typeof createBuysRepo>;
+  let soldsRepo: ReturnType<typeof createSoldsRepo>;
 
   beforeEach(() => {
     db = openDb(':memory:');
     runMigrations(db);
     repo = createCustomersRepo(db);
+    buysRepo = createBuysRepo(db);
+    soldsRepo = createSoldsRepo(db);
   });
 
   afterEach(() => {
     db.close();
   });
+
+  /** Compra de stock para poder vender. */
+  function seedBuy(quantity = 5) {
+    return buysRepo.create({
+      product_name: 'Producto',
+      purchase_cost: 50,
+      quantity,
+      associated_costs: 0,
+    });
+  }
+
+  /** Venta de `quantity` unidades de una compra nueva, para un cliente. */
+  function seedSale(customer_id: number, quantity = 1, sold_at = '2026-10-20') {
+    const buy = seedBuy(quantity + 1);
+    return soldsRepo.createManyWithStockCheck({
+      customer_id,
+      sale_price: 100,
+      associated_costs: 0,
+      sold_at,
+      items: [{ buy_id: buy.id, quantity }],
+    });
+  }
+
+  function count(sql: string, ...args: unknown[]): number {
+    return (db.prepare(sql).get(...args) as { c: number }).c;
+  }
 
   describe('create', () => {
     it('crea un cliente con name', () => {
@@ -131,14 +163,154 @@ describe('customers repo', () => {
   });
 
   describe('remove', () => {
-    it('devuelve true y elimina si existe', () => {
+    it('cliente sin ventas: devuelve { ok: true } y elimina', () => {
       const created = repo.create(validCreate({ name: 'Ana' }));
-      expect(repo.remove(created.id)).toBe(true);
+      expect(repo.remove(created.id)).toEqual({ ok: true });
       expect(repo.getById(created.id)).toBeNull();
     });
 
-    it('devuelve false si no existe', () => {
-      expect(repo.remove(99999)).toBe(false);
+    it('cliente inexistente: devuelve NOT_FOUND', () => {
+      expect(repo.remove(99999)).toEqual({ ok: false, code: 'NOT_FOUND' });
+    });
+
+    it('cliente con ventas: devuelve HAS_ASSOCIATED_SALES y NO borra nada', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const sale = seedSale(customer.id, 2);
+
+      const result = repo.remove(customer.id);
+
+      expect(result).toEqual({
+        ok: false,
+        code: 'HAS_ASSOCIATED_SALES',
+        sales: [
+          {
+            id: sale.id,
+            customer_name: 'Ana',
+            sold_at: '2026-10-20',
+            items_count: 2,
+          },
+        ],
+      });
+      // Ni el cliente ni la venta se tocan.
+      expect(repo.getById(customer.id)).not.toBeNull();
+      expect(soldsRepo.getById(sale.id)).not.toBeNull();
+    });
+
+    it('cliente con varias ventas: lista todas las ventas asociadas', () => {
+      const customer = repo.create(validCreate({ name: 'Nora' }));
+      const sale1 = seedSale(customer.id, 1);
+      const sale2 = seedSale(customer.id, 3);
+
+      const result = repo.remove(customer.id);
+
+      expect(result.ok).toBe(false);
+      if (result.ok || result.code !== 'HAS_ASSOCIATED_SALES') {
+        throw new Error('se esperaba HAS_ASSOCIATED_SALES');
+      }
+      expect(result.sales).toEqual([
+        {
+          id: sale2.id,
+          customer_name: 'Nora',
+          sold_at: '2026-10-20',
+          items_count: 3,
+        },
+        {
+          id: sale1.id,
+          customer_name: 'Nora',
+          sold_at: '2026-10-20',
+          items_count: 1,
+        },
+      ]);
+    });
+
+    it('las ventas de OTROS clientes no bloquean el borrado', () => {
+      const withSales = repo.create(validCreate({ name: 'Con ventas' }));
+      const other = repo.create(validCreate({ name: 'Otro' }));
+      const sale = seedSale(withSales.id, 1);
+
+      expect(repo.remove(other.id)).toEqual({ ok: true });
+      expect(repo.getById(other.id)).toBeNull();
+      // La venta del otro cliente sigue intacta.
+      expect(soldsRepo.getById(sale.id)).not.toBeNull();
+      expect(repo.getById(withSales.id)).not.toBeNull();
+    });
+  });
+
+  describe('listAssociatedSales', () => {
+    it('devuelve [] si el cliente no tiene ventas', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      expect(repo.listAssociatedSales(customer.id)).toEqual([]);
+    });
+
+    it('lista las ventas con items_count (unidades) y de la más reciente a la más vieja', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const sale1 = seedSale(customer.id, 2);
+      const sale2 = seedSale(customer.id, 1);
+
+      expect(repo.listAssociatedSales(customer.id)).toEqual([
+        {
+          id: sale2.id,
+          customer_name: 'Ana',
+          sold_at: '2026-10-20',
+          items_count: 1,
+        },
+        {
+          id: sale1.id,
+          customer_name: 'Ana',
+          sold_at: '2026-10-20',
+          items_count: 2,
+        },
+      ]);
+    });
+  });
+
+  describe('removeWithCascade', () => {
+    it('borra el cliente, sus ventas y sus sale_items', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const sale = seedSale(customer.id, 2);
+
+      expect(repo.removeWithCascade(customer.id)).toBe(true);
+
+      expect(repo.getById(customer.id)).toBeNull();
+      expect(soldsRepo.getById(sale.id)).toBeNull();
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(0);
+      expect(count('SELECT COUNT(*) AS c FROM solds WHERE customer_id = ?', customer.id)).toBe(0);
+    });
+
+    it('no toca las ventas de otros clientes', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const other = repo.create(validCreate({ name: 'Beto' }));
+      const mine = seedSale(customer.id, 1);
+      const otherSale = seedSale(other.id, 1);
+
+      expect(repo.removeWithCascade(customer.id)).toBe(true);
+
+      expect(repo.getById(customer.id)).toBeNull();
+      expect(soldsRepo.getById(mine.id)).toBeNull();
+      expect(repo.getById(other.id)).not.toBeNull();
+      expect(soldsRepo.getById(otherSale.id)).not.toBeNull();
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', otherSale.id)).toBe(1);
+    });
+
+    it('devuelve false si el cliente no existe', () => {
+      expect(repo.removeWithCascade(99999)).toBe(false);
+    });
+
+    it('es transaccional: si el borrado de las ventas falla, no se borra nada', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const sale = seedSale(customer.id, 1);
+      // Trigger que aborta el DELETE de la venta → la cascada falla.
+      db.exec(
+        `CREATE TRIGGER block_sold_delete BEFORE DELETE ON solds
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      expect(() => repo.removeWithCascade(customer.id)).toThrow();
+
+      // Rollback: el cliente, la venta y el item siguen como estaban.
+      expect(repo.getById(customer.id)).not.toBeNull();
+      expect(soldsRepo.getById(sale.id)).not.toBeNull();
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
     });
   });
 });
