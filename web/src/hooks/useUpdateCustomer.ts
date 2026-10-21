@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customersApi } from '../api/customers.js';
+import { toastActualizado } from '../lib/toast.js';
 import type { UpdateCustomerInput } from '../schemas/customers.js';
 
 /**
@@ -20,7 +21,11 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateCustomerInput }) =>
       customersApi.update(id, input),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // Aviso de éxito (S4 del feature clientes-crud). Los errores NO se
+      // toastean: ya se muestran en línea dentro del formulario.
+      // La descripción lleva el nombre del cliente (como el toast del alta).
+      toastActualizado('cliente', variables.input.name);
       void qc.invalidateQueries({ queryKey: ['customers'] });
       void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
     },

@@ -6,9 +6,12 @@
  *  - Los estados de carga y de error (con "Reintentar").
  *  - El botón "Nuevo cliente" abre el modal de alta.
  *  - El botón "Editar" abre el modal de edición con el cliente.
+ *  - El borrado en cascada (S3): la fila abre la confirmación, un 409 con
+ *    ventas asociadas abre la modal de cascada y el botón destructivo
+ *    llama al endpoint de cascada.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useCustomers', () => ({
@@ -17,6 +20,12 @@ vi.mock('@/hooks/useCustomers', () => ({
 vi.mock('@/hooks/useSolds', () => ({
   useSolds: vi.fn(),
 }));
+// El type guard `isDeleteCustomer409` se usa tal cual (no se mockea): solo
+// se mockean los hooks de la mutación.
+vi.mock('@/hooks/useDeleteCustomer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/useDeleteCustomer')>();
+  return { ...actual, useDeleteCustomer: vi.fn(), useDeleteCustomerCascade: vi.fn() };
+});
 vi.mock('@/components/sales/CustomerFormModal', () => ({
   CustomerFormModal: ({
     mode,
@@ -34,7 +43,9 @@ vi.mock('@/components/sales/CustomerFormModal', () => ({
 
 import { useCustomers } from '@/hooks/useCustomers';
 import { useSolds } from '@/hooks/useSolds';
+import { useDeleteCustomer, useDeleteCustomerCascade } from '@/hooks/useDeleteCustomer';
 import { CustomersListPage } from '@/pages/customers/CustomersListPage';
+import { ApiError } from '@/api/client';
 import { renderWithProviders } from '@/test-utils/render';
 
 const customersFixture = [
@@ -78,6 +89,18 @@ const soldsFixture = [
   },
 ];
 
+/** Error 409 con ventas asociadas (el body real del server). */
+function error409(): ApiError {
+  const body = {
+    error:
+      'No se puede borrar: el cliente tiene ventas asociadas. ¿Querés borrar también las ventas?',
+    associated_sales: [
+      { id: 7, customer_name: 'Juan Pérez', sold_at: '2026-10-21', items_count: 2 },
+    ],
+  };
+  return new ApiError(409, body);
+}
+
 describe('CustomersListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,6 +117,14 @@ describe('CustomersListPage', () => {
       isError: false,
       error: null,
       refetch: vi.fn(),
+    } as never);
+    vi.mocked(useDeleteCustomer).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      isPending: false,
+    } as never);
+    vi.mocked(useDeleteCustomerCascade).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      isPending: false,
     } as never);
   });
 
@@ -169,5 +200,85 @@ describe('CustomersListPage', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByTestId('modal-mode')).toHaveTextContent('edit');
     expect(screen.getByTestId('modal-customer')).toHaveTextContent('Juan Pérez');
+  });
+
+  it('el botón "Borrar" abre la confirmación del borrado', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomersListPage />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
+
+    // La confirmación nombra al cliente de la fila.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('"Juan Pérez"')).toBeInTheDocument();
+    expect(screen.getByText(/No se puede deshacer/)).toBeInTheDocument();
+  });
+
+  it('un cliente sin ventas se borra con el DELETE simple', async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useDeleteCustomer).mockReturnValue({ mutateAsync, isPending: false } as never);
+
+    renderWithProviders(<CustomersListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith(1);
+    });
+    // El diálogo se cierra tras el borrado.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('un cliente con ventas: el 409 abre la modal de cascada y borra en cascada', async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockRejectedValue(error409());
+    const mutateCascadeAsync = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useDeleteCustomer).mockReturnValue({ mutateAsync, isPending: false } as never);
+    vi.mocked(useDeleteCustomerCascade).mockReturnValue({
+      mutateAsync: mutateCascadeAsync,
+      isPending: false,
+    } as never);
+
+    renderWithProviders(<CustomersListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+
+    // Paso 2: la modal de cascada lista las ventas afectadas.
+    await waitFor(() => {
+      expect(screen.getByText('El cliente tiene ventas asociadas')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Venta #7')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Borrar también las ventas y el cliente' }),
+    );
+
+    await waitFor(() => {
+      expect(mutateCascadeAsync).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('si el borrado simple falla, el error se muestra dentro de la modal', async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockRejectedValue(new ApiError(0, { error: 'Error de red' }));
+    vi.mocked(useDeleteCustomer).mockReturnValue({ mutateAsync, isPending: false } as never);
+
+    renderWithProviders(<CustomersListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Error de red');
+    });
+    // La modal sigue abierta (no se cerró sin borrar).
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

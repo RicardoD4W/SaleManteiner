@@ -12,9 +12,13 @@ vi.mock('@/api/customers', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    removeCascade: vi.fn(),
     search: vi.fn(),
   },
 }));
+
+const { toastActualizado } = vi.hoisted(() => ({ toastActualizado: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastActualizado }));
 
 import { customersApi } from '@/api/customers';
 import { useUpdateCustomer } from '@/hooks/useUpdateCustomer';
@@ -29,6 +33,7 @@ const customerFixture = {
 describe('useUpdateCustomer', () => {
   beforeEach(() => {
     vi.mocked(customersApi.update).mockReset();
+    toastActualizado.mockClear();
   });
 
   it('llama a customersApi.update con el id y el input', async () => {
@@ -91,5 +96,21 @@ describe('useUpdateCustomer', () => {
     });
 
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('avisa con un toast de cliente actualizado (con el nombre)', async () => {
+    // S4 del feature clientes-crud: la edición de un cliente dispara el
+    // aviso de éxito. Los errores NO se toastean (ya se muestran en línea).
+    vi.mocked(customersApi.update).mockResolvedValueOnce(customerFixture as never);
+    const { Wrapper } = makeHookWrapper();
+    const { result } = renderHook(() => useUpdateCustomer(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ id: 1, input: { name: 'Juan Pérez' } });
+    });
+
+    await waitFor(() => {
+      expect(toastActualizado).toHaveBeenCalledWith('cliente', 'Juan Pérez');
+    });
   });
 });
