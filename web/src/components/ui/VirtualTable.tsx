@@ -85,10 +85,27 @@ export function VirtualTable<TData>({
                         sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
                       }
                     >
-                      <span className="inline-flex items-center gap-1">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {sorted === 'asc' ? ' ▲' : null}
-                        {sorted === 'desc' ? ' ▼' : null}
+                      {/*
+                        El texto de la cabecera y el indicador de orden van
+                        SIEMPRE en la misma línea: el texto no se parte (si se
+                        parte, el indicador "cae" a la línea de abajo y la
+                        cabecera queda descentrada). Para eso el texto no
+                        envuelve (`truncate`) y el indicador reserva su hueco
+                        fijo (`w-3`), así la anchura de la columna no cambia
+                        al ordenar y la tabla no se desajusta.
+                      */}
+                      <span className="flex items-center gap-1">
+                        <span className="min-w-0 truncate">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </span>
+                        {header.column.getCanSort() ? (
+                          <span
+                            className="inline-block w-3 shrink-0 text-center"
+                            aria-hidden="true"
+                          >
+                            {sorted === 'asc' ? '▲' : sorted === 'desc' ? '▼' : ''}
+                          </span>
+                        ) : null}
                       </span>
                     </th>
                   );

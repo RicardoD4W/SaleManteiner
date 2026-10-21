@@ -81,7 +81,9 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
-        size: 130,
+        // Ancho mínimo para que el texto + el indicador de orden quepan en
+        // una línea (S4): el texto mide ~85px y el indicador reserva 12px.
+        size: 140,
         cell: (info) => (
           <span className="tabular-nums text-gray-700 dark:text-gray-300">
             {formatEuro(info.getValue())}

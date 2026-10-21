@@ -42,11 +42,17 @@ function SortHeader({
       className={`cursor-pointer ${tableHeadClass} text-left`}
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
-      {label}
+      {/*
+        El texto no envuelve: si se parte en dos líneas, el indicador "cae" a
+        la línea de abajo (S4 de feature-acciones-en-listas).
+      */}
+      <span className="whitespace-nowrap">{label}</span>
       {/* El hueco del indicador se reserva siempre (anchura fija): si no,
           al ordenar aparece el ▼, la columna crece y el navegador
           redistribuye el ancho de todas -> la tabla se desajusta. */}
-      <span className="ml-1 inline-block w-3">{indicator}</span>
+      <span className="ml-1 inline-block w-3">
+        {indicator}
+      </span>
     </th>
   );
 }
