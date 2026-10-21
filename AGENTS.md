@@ -225,6 +225,30 @@ Comandos útiles:
 - `npm run typecheck` — TS en `web/` y `server/`
 - `npm run lint` — ESLint en ambos
 - `npm run format` / `format:check` — Prettier. **Desde 2026-10-19 el repo está normalizado con Prettier y `format:check` es un gate** (si falla, el cambio no entra).
+- `npm run visual -w web` — **verificación visual** (ver §8.1): levanta la app aislada, siembra datos y deja capturas en `web/visual/shots/`.
+
+### 8.1 Verificación visual (obligatoria antes de cerrar un feature con UI)
+
+Un test verde no es lo mismo que "se ve bien". Antes de dar por cerrado un feature que toca la UI, hay que **mirar la web**:
+
+```bash
+npm run visual -w web     # → capturas en web/visual/shots/
+```
+
+Qué hace el script (`web/visual/capture.spec.ts` + `web/playwright.visual.config.ts`):
+
+- Levanta su propio backend (:4200) y su propio Vite (:5200) con una BD **temporal**: nunca toca `~/.salemanteiner`.
+- Siembra datos realistas: acentos (`Lucía Fernández`), un pack de 2 productos, una venta con poco margen y una con beneficio **negativo**.
+- Captura: dashboard, compras, ventas, clientes, el modal de nueva venta, la página de edición, **dark mode** y **móvil** (390px).
+- Falla si alguna pantalla dejó un error en la consola del navegador (un error de runtime no se ve en una captura, pero sí lo detecta este paso).
+
+Las capturas se **miren** con la herramienta `read` (renderiza el PNG como imagen). Esto es lo que atrapa lo que ningún test ve: una columna que se sale de la tabla, un texto partido, un color sin contraparte `dark:`, un modal que tapa el contenido, un chart que quedó en su fallback de carga.
+
+Reglas:
+
+1. El cierre de un feature con UI incluye **las capturas revisadas** en el informe (qué se vio y si algo quedó mal).
+2. Si no se pudo mirar, se dice explícitamente: no se da por verificado.
+3. Para flujos interactivos puntuales (clics, teclado, consola, red) está el MCP de Playwright; el repo ya tiene Chromium instalado (`npx playwright install chromium`) y se puede usar el Playwright del repo directamente desde un script.
 
 ## 9. Skills cargadas
 
