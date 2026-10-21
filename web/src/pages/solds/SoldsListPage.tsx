@@ -11,8 +11,9 @@
  * `SoldWithProfit` para que la columna Beneficio muestre el dato real
  * calculado por el server (sin tener que cargar los items por venta).
  */
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -30,8 +31,118 @@ import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteD
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
+import type { Sold } from '../../schemas/solds';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
+
+/**
+ * Nombre de la view transition de elemento compartido (S3).
+ *
+ * La clave es el **id** de la venta: el `view-transition-name` tiene que ser
+ * un `custom-ident` válido (sin espacios) y único en el documento, y el
+ * nombre del cliente puede repetirse entre filas.
+ */
+function nombreTransicion(id: number): string {
+  return `sold-client-${id}`;
+}
+
+/**
+ * Lee el id de la fila armada que viaja en el `state` de la navegación
+ * (la vuelta desde `/solds/:id`).
+ */
+function leerFilaArmada(state: unknown): number | null {
+  if (typeof state !== 'object' || state === null || !('filaArmada' in state)) return null;
+  const valor = (state as { filaArmada?: unknown }).filaArmada;
+  return typeof valor === 'number' ? valor : null;
+}
+
+/**
+ * Estado de la transición de elemento compartido (S3), para las celdas.
+ *
+ * Las celdas son COMPONENTES DE MÓDULO (ver `CeldaCliente`): TanStack
+ * renderiza el renderer de la celda con `React.createElement`, así que si
+ * su identidad cambiara, React lo remontaría y el nodo del enlace "Editar"
+ * se recrearía entre el pointerdown y el click → el click se perdería (y
+ * con él, la navegación). Por eso el estado llega a las celdas por
+ * contexto y las columnas se crean una sola vez.
+ */
+interface ContextoArmado {
+  /** Id de la fila armada (la que lleva el `view-transition-name`). */
+  filaArmada: number | null;
+  /** Arma una fila para la transición. */
+  armarFila: (fila: SoldWithCustomer) => void;
+}
+
+const ContextoArmado = createContext<ContextoArmado>({
+  filaArmada: null,
+  armarFila: () => {},
+});
+
+/**
+ * Celda de cliente: es la que lleva el `view-transition-name` de la fila
+ * armada (S3).
+ *
+ * En `/solds` lo que identifica la venta en la tabla es el cliente (los
+ * productos del pack son de solo lectura en el formulario), así que es el
+ * dato que viaja al input del cliente de `/solds/:id`.
+ */
+function CeldaCliente({ fila }: { fila: SoldWithCustomer }) {
+  const { filaArmada } = useContext(ContextoArmado);
+  const armada = fila.id === filaArmada;
+  return (
+    <span
+      className="text-gray-800 dark:text-gray-200"
+      style={armada ? { viewTransitionName: nombreTransicion(fila.id) } : undefined}
+      data-vt-nombre={armada ? nombreTransicion(fila.id) : undefined}
+    >
+      {fila.customerName}
+    </span>
+  );
+}
+
+/**
+ * Celda de acciones: "Editar" (arma la fila para la transición) + "Borrar".
+ */
+function CeldaAcciones({
+  fila,
+  onBorrar,
+}: {
+  fila: SoldWithCustomer;
+  onBorrar: (fila: SoldWithCustomer) => void;
+}) {
+  const { armarFila } = useContext(ContextoArmado);
+  return (
+    <div className="flex items-center gap-3">
+      <Link
+        to={`/solds/${fila.id}`}
+        // viewTransition (RR 7+) usa la View Transitions API del browser
+        // para animar la navegación /solds → /solds/:id. Default = cross-fade.
+        // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+        viewTransition
+        // S3: armar la fila al apuntarla. El snapshot del DOM viejo se toma
+        // en el click, así que el `view-transition-name` tiene que estar
+        // puesto ANTES (de ahí los tres eventos: mouse, foco y puntero —
+        // el puntero cubre el táctil).
+        onMouseEnter={() => armarFila(fila)}
+        onFocus={() => armarFila(fila)}
+        onPointerDown={() => armarFila(fila)}
+        className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+      >
+        Editar
+      </Link>
+      <button
+        type="button"
+        onClick={() => onBorrar(fila)}
+        // Nombre accesible: identifica el registro (la fila concreta que se
+        // va a borrar), no un "Borrar" ambiguo.
+        aria-label={`Borrar venta #${fila.id}`}
+        className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+      >
+        Borrar
+      </button>
+    </div>
+  );
+}
 
 export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
@@ -50,6 +161,47 @@ export function SoldsListPage() {
    * `position: fixed` del backdrop.
    */
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+  /**
+   * Fila "armada" para la view transition de elemento compartido (S3).
+   *
+   * Guarda el id de la fila y la clave de la navegación en la que se armó:
+   * al volver del formulario (otra navegación) el armado anterior deja de
+   * tener efecto y manda el que viene en el `state` de la navegación.
+   */
+  const [armada, setArmada] = useState<{ id: number; navegacion: string } | null>(null);
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
+  /** Fila que vuelve armada desde la página de edición (S3). */
+  const filaDesdeEstado = leerFilaArmada(location.state);
+  /** La fila armada: la que está bajo el puntero, o la que vuelve del form. */
+  const filaArmada = armada && armada.navegacion === location.key ? armada.id : filaDesdeEstado;
+
+  /**
+   * Arma la fila para la transición de elemento compartido (S3).
+   *
+   *  - El `view-transition-name` lo lleva la celda de cliente (mira
+   *    `filaArmada`); tiene que estar puesto ANTES del click, porque el
+   *    navegador toma la foto del DOM viejo en el momento del click.
+   *  - Además deja la venta en la caché de react-query: así el formulario
+   *    de edición existe desde su primer render y su input de cliente
+   *    (que lleva el mismo nombre) está en la foto del DOM nuevo.
+   */
+  const armarFila = useCallback(
+    (sold: SoldWithCustomer) => {
+      setArmada({ id: sold.id, navegacion: location.key });
+      queryClient.setQueryData<Sold>(['solds', sold.id], {
+        id: sold.id,
+        customer_id: sold.customer_id,
+        sale_price: sold.sale_price,
+        associated_costs: sold.associated_costs,
+        sold_at: sold.sold_at,
+        notes: sold.notes,
+        created_at: sold.created_at,
+      });
+    },
+    [location.key, queryClient],
+  );
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
   const customerMap = useMemo(() => {
@@ -92,9 +244,7 @@ export function SoldsListPage() {
         id: 'customer',
         header: 'Cliente',
         size: 140,
-        cell: (info) => (
-          <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>
-        ),
+        cell: (info) => <CeldaCliente fila={info.row.original} />,
         sortingFn: 'basic',
       }),
       // Productos vendidos (S de UI: mostrar en la lista qué se vendió
@@ -189,33 +339,12 @@ export function SoldsListPage() {
         // "Borrar") sin que la columna se corte: el contenido necesita
         // ~125px (padding + los dos textos + el gap).
         size: 130,
-        cell: (info) => {
-          const sold = info.row.original;
-          return (
-            <div className="flex items-center gap-3">
-              <Link
-                to={`/solds/${sold.id}`}
-                // viewTransition (RR 7+) usa la View Transitions API del browser
-                // para animar la navegación /solds → /solds/:id. Default = cross-fade.
-                // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
-                viewTransition
-                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-              >
-                Editar
-              </Link>
-              <button
-                type="button"
-                onClick={() => setDeleteTarget({ tipo: 'venta', id: sold.id })}
-                // Nombre accesible: identifica el registro (la fila concreta
-                // que se va a borrar), no un "Borrar" ambiguo.
-                aria-label={`Borrar venta #${sold.id}`}
-                className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
-              >
-                Borrar
-              </button>
-            </div>
-          );
-        },
+        cell: (info) => (
+          <CeldaAcciones
+            fila={info.row.original}
+            onBorrar={(fila) => setDeleteTarget({ tipo: 'venta', id: fila.id })}
+          />
+        ),
       }),
     ],
     [],
@@ -240,6 +369,19 @@ export function SoldsListPage() {
     setQuery(value);
     table.setPageIndex(0);
   };
+
+  /**
+   * Estado de la transición que consumen las celdas (S3).
+   *
+   * Va por contexto (y no como dependencia de las columnas) para que las
+   * columnas se creen una sola vez: recrearlas remontaría las celdas y el
+   * nodo del enlace "Editar" se recrearía entre el pointerdown y el click
+   * → el click se perdería.
+   */
+  const valorArmado = useMemo<ContextoArmado>(
+    () => ({ filaArmada, armarFila }),
+    [filaArmada, armarFila],
+  );
 
   /** Texto del contador de resultados. */
   const resultsText =
@@ -331,19 +473,21 @@ export function SoldsListPage() {
           </button>
         </div>
       ) : (
-        <VirtualTable
-          table={table}
-          footer={
-            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-              <span>
-                {filteredSolds.length === 1 ? '1 venta' : `${filteredSolds.length} ventas`}
-              </span>
-              {filteredSolds.length > 25 ? (
-                <span className="text-xs">Desplazate para ver el resto</span>
-              ) : null}
-            </div>
-          }
-        />
+        <ContextoArmado.Provider value={valorArmado}>
+          <VirtualTable
+            table={table}
+            footer={
+              <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+                <span>
+                  {filteredSolds.length === 1 ? '1 venta' : `${filteredSolds.length} ventas`}
+                </span>
+                {filteredSolds.length > 25 ? (
+                  <span className="text-xs">Desplazate para ver el resto</span>
+                ) : null}
+              </div>
+            }
+          />
+        </ContextoArmado.Provider>
       )}
       {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
       {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}

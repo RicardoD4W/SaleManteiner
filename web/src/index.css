@@ -35,3 +35,37 @@
   --color-chart-beneficio: #f57d3a;
   --color-chart-dot: #111827;
 }
+
+/* ---------------------------------------------------------------------------
+   View transitions de elemento compartido (S3 del feature `acciones-en-listas`).
+
+   La transición relaciona la fila de la tabla con la vista de edición: el
+   elemento "armado" (la fila que el usuario está por abrir) y su destino en
+   el formulario comparten el MISMO `view-transition-name`.
+   --------------------------------------------------------------------------- */
+
+/* El cross-fade por defecto de la raíz usa `mix-blend-mode: plus-difference`
+   (un hack del user-agent para que el modo oscuro no parpadee en blanco).
+   Ese hack invierte los colores mientras dura el fade, así que lo
+   neutralizamos: la transición tiene que mostrar los colores del tema. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+
+/* Con movimiento reducido no hay animación: el cambio es instantáneo (el
+   nombre y el contenido siguen viajando, solo sin interpolación). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* El input del campo de cliente (`CustomerAutocomplete`) hereda el nombre de
+   la transición de la custom property que pone la página de edición: así el
+   componente compartido no necesita cambios (S3). */
+.campo-transicion input {
+  view-transition-name: var(--vt-nombre, none);
+}

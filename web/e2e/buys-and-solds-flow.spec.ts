@@ -138,7 +138,10 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   // (cliente + precio). El campo notes no se renderiza en la tabla, así que
   // verificamos por los datos que sí se muestran.
   await expect(page.getByRole('dialog')).toBeHidden({ timeout: 5_000 });
-  await expect(page.getByText('Juan Pérez')).toBeVisible();
+  // OJO: se busca la CELDA de la tabla, no el texto suelto: el toast de
+  // sileo ("Cliente registrado" con la descripción "Juan Pérez") también
+  // matchea ese texto y el locator reventaba por strict mode.
+  await expect(page.getByRole('cell', { name: 'Juan Pérez', exact: true })).toBeVisible();
   await expect(page.getByText(/40,00/).first()).toBeVisible();
 });
 

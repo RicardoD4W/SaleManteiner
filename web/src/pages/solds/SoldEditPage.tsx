@@ -10,7 +10,7 @@
  * desde la tabla de `/solds`, con el mismo diálogo compartido
  * (`components/sales/DeleteDialogs.tsx`).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +23,7 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSold } from '../../hooks/useSold';
 import { useUpdateSold } from '../../hooks/useUpdateSold';
+import { useCustomers } from '../../hooks/useCustomers';
 import { formatDate } from '../../lib/format';
 import { ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
@@ -53,8 +54,39 @@ export function SoldEditPage() {
   const update = useUpdateSold();
   const navigate = useNavigate();
   const [soldWithItems, setSoldWithItems] = useState<SoldWithItems | null>(null);
+  /** Clientes (los carga la tabla de `/solds`; aquí salen de la caché). */
+  const { data: customers } = useCustomers();
 
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  /**
+   * Cliente seleccionado.
+   *
+   * Se inicializa con el cliente que ya está en la caché (la tabla de
+   * `/solds` carga los clientes) para que el input del cliente tenga el
+   * nombre desde el primer render: si no, el `view-transition-name`
+   * viajaría a un input vacío y la transición no relacionaría nada.
+   */
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(() => {
+    const cliente = customers?.find((c) => c.id === sold?.customer_id);
+    return cliente ? { id: cliente.id, name: cliente.name, created_at: '' } : null;
+  });
+
+  /**
+   * Nombre de la view transition de elemento compartido (S3).
+   *
+   * En `/solds` lo que identifica la venta en la tabla es el CLIENTE (los
+   * productos del pack son de solo lectura en el form), así que el elemento
+   * que viaja es el input del cliente. Es el MISMO nombre que lleva la
+   * celda de cliente de la fila, con el id de la venta como clave.
+   */
+  const nombreTransicion = `sold-client-${soldId}`;
+
+  /**
+   * Vuelve a la lista dejando armada la fila de esta venta (S3): el id
+   * viaja en el `state` de la navegación y la lista lo lee para armar la
+   * fila (y que el cliente vuelva a la celda).
+   */
+  const volverALista = () =>
+    navigate('/solds', { viewTransition: true, state: { filaArmada: soldId } });
 
   const {
     register,
@@ -105,7 +137,7 @@ export function SoldEditPage() {
 
     try {
       await update.mutateAsync({ id: soldId, input: payload });
-      navigate('/solds', { viewTransition: true });
+      volverALista();
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -123,6 +155,7 @@ export function SoldEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
+          state={{ filaArmada: soldId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -148,6 +181,7 @@ export function SoldEditPage() {
         </p>
         <Link
           to="/solds"
+          state={{ filaArmada: soldId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -165,6 +199,7 @@ export function SoldEditPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
         <Link
           to="/solds"
+          state={{ filaArmada: soldId }}
           viewTransition
           className="text-sm text-gray-500 hover:underline dark:text-gray-400"
         >
@@ -217,14 +252,26 @@ export function SoldEditPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <CustomerAutocomplete
-              value={selectedCustomer}
-              onChange={(c) => {
-                setSelectedCustomer(c);
-                if (c) setValue('customer_id' as keyof SoldEditFormOutput, c.id);
-              }}
-              error={(errors.customer_id as { message?: string } | undefined)?.message}
-            />
+            {/*
+              S3: el input del cliente es el destino de la transición de
+              elemento compartido. El `CustomerAutocomplete` es un
+              componente compartido que no acepta props de estilo, así que
+              el nombre viaja por una custom property (`.campo-transicion
+              input` en index.css) y el input la hereda.
+            */}
+            <div
+              className="campo-transicion"
+              style={{ '--vt-nombre': nombreTransicion } as CSSProperties}
+            >
+              <CustomerAutocomplete
+                value={selectedCustomer}
+                onChange={(c) => {
+                  setSelectedCustomer(c);
+                  if (c) setValue('customer_id' as keyof SoldEditFormOutput, c.id);
+                }}
+                error={(errors.customer_id as { message?: string } | undefined)?.message}
+              />
+            </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
@@ -268,11 +315,7 @@ export function SoldEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => navigate('/solds', { viewTransition: true })}
-              >
+              <Button type="button" variant="ghost" onClick={volverALista}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

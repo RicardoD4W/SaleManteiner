@@ -49,6 +49,24 @@ export function BuyEditPage() {
   const update = useUpdateBuy();
   const navigate = useNavigate();
 
+  /**
+   * Nombre de la view transition de elemento compartido (S3).
+   *
+   * Es el MISMO nombre que lleva la celda de producto de la fila en
+   * `/buys`: así el texto del producto viaja de la tabla al formulario.
+   * La clave es el id de la compra (el nombre del producto no sirve como
+   * `view-transition-name`: tiene espacios y puede repetirse).
+   */
+  const nombreTransicion = `buy-product-${buyId}`;
+
+  /**
+   * Vuelve a la lista dejando armada la fila de esta compra (S3): el id
+   * viaja en el `state` de la navegación y la lista lo lee para armar la
+   * fila (y que el producto vuelva a la celda).
+   */
+  const volverALista = () =>
+    navigate('/buys', { viewTransition: true, state: { filaArmada: buyId } });
+
   const {
     register,
     handleSubmit,
@@ -82,7 +100,7 @@ export function BuyEditPage() {
 
     try {
       await update.mutateAsync({ id: buyId, input: payload });
-      navigate('/buys', { viewTransition: true });
+      volverALista();
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -100,6 +118,7 @@ export function BuyEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">Id de compra inválido.</p>
         <Link
           to="/buys"
+          state={{ filaArmada: buyId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -125,6 +144,7 @@ export function BuyEditPage() {
         </p>
         <Link
           to="/buys"
+          state={{ filaArmada: buyId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -142,6 +162,7 @@ export function BuyEditPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar compra</h2>
         <Link
           to="/buys"
+          state={{ filaArmada: buyId }}
           viewTransition
           className="text-sm text-gray-500 hover:underline dark:text-gray-400"
         >
@@ -170,6 +191,9 @@ export function BuyEditPage() {
               autoFocus
               {...register('product_name')}
               error={errors.product_name?.message}
+              // S3: este input es el destino de la transición de elemento
+              // compartido (el mismo nombre que la celda de la fila).
+              style={{ viewTransitionName: nombreTransicion }}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -217,11 +241,7 @@ export function BuyEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => navigate('/buys', { viewTransition: true })}
-              >
+              <Button type="button" variant="ghost" onClick={volverALista}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

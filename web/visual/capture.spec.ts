@@ -225,10 +225,13 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   // Cancelar: no se borra nada (el flujo se cierra sin tocar la BD).
   await page.keyboard.press('Escape');
 
-  // 8. Página de edición de una compra.
+  // 8. Página de edición de una compra. La view transition de elemento
+  // compartido tarda un instante: sin esperar, la captura sale a medio
+  // morphing (con la foto del DOM nuevo encima de la de la tabla).
   await page.goto('/buys');
   await page.getByRole('link', { name: 'Editar' }).first().click();
   await page.getByRole('button', { name: /Guardar cambios/ }).waitFor();
+  await page.waitForTimeout(900);
   await capturar(page, '08-editar-compra');
 
   // 9. Dark mode (el toggle del header).
