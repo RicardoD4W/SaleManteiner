@@ -4,6 +4,11 @@
  * Carga la venta con `soldsApi.getByIdWithItems` para obtener los items del pack.
  * Permite editar: cliente, precio, asociados, fecha, notas.
  * Los items del pack NO se pueden editar (son inmutables una vez creada la venta).
+ *
+ * El borrado NO vive acá: el usuario lo pidió así ("quitar el boton borrar
+ * del apartado de editar", L5 del feature `acciones-en-listas`). Se borra
+ * desde la tabla de `/solds`, con el mismo diálogo compartido
+ * (`components/sales/DeleteDialogs.tsx`).
  */
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -18,7 +23,6 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSold } from '../../hooks/useSold';
 import { useUpdateSold } from '../../hooks/useUpdateSold';
-import { useDeleteSold } from '../../hooks/useDeleteSold';
 import { formatDate } from '../../lib/format';
 import { ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
@@ -47,10 +51,7 @@ export function SoldEditPage() {
   const soldId = Number(id);
   const { data: sold, isLoading, isError, error } = useSold(soldId);
   const update = useUpdateSold();
-  const remove = useDeleteSold();
   const navigate = useNavigate();
-  const [deleteConfirming, setDeleteConfirming] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [soldWithItems, setSoldWithItems] = useState<SoldWithItems | null>(null);
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -113,16 +114,6 @@ export function SoldEditPage() {
             ? err.message
             : 'Error desconocido';
       setError('root', { message });
-    }
-  };
-
-  const handleDelete = async () => {
-    setDeleteError(null);
-    try {
-      await remove.mutateAsync(soldId);
-      navigate('/solds', { viewTransition: true });
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Error al eliminar');
     }
   };
 
@@ -289,39 +280,6 @@ export function SoldEditPage() {
               </Button>
             </div>
           </form>
-        </CardBody>
-      </Card>
-
-      {/* Eliminar */}
-      <Card>
-        <CardBody>
-          {!deleteConfirming ? (
-            <Button variant="danger" size="sm" onClick={() => setDeleteConfirming(true)}>
-              Eliminar venta
-            </Button>
-          ) : (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
-              <p className="text-sm text-red-800 dark:text-red-300">
-                ¿Eliminar esta venta? No se puede deshacer.
-              </p>
-              {deleteError ? (
-                <p className="mt-2 text-sm text-red-700 dark:text-red-400">{deleteError}</p>
-              ) : null}
-              <div className="mt-3 flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setDeleteConfirming(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  isLoading={remove.isPending}
-                  onClick={handleDelete}
-                >
-                  Sí, eliminar
-                </Button>
-              </div>
-            </div>
-          )}
         </CardBody>
       </Card>
     </div>

@@ -4,7 +4,8 @@
  * Tabla con TanStack Table:
  *  - Producto, Coste, Cantidad, Asociados, Fecha compra, Disponibles, Acciones.
  *  - Disponibles = quantity - SUM(sale_items.quantity).
- *  - Acciones → enlace a /buys/:id (editar).
+ *  - Acciones → enlace a /buys/:id (editar) + botón de borrar (S1 del
+ *    feature `acciones-en-listas`).
  *
  *  S3 del feature dashboard-iteration-1: el botón "+ Nueva compra" ahora
  *  abre el `BuyNewModal` en vez de navegar a `/buys/new`.
@@ -23,6 +24,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
+import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterBuys } from '../../lib/searchQuery';
 import type { BuyWithStock } from '../../api/buys';
@@ -37,6 +39,13 @@ export function BuysListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   /** Query del buscador (client-side). */
   const [query, setQuery] = useState('');
+  /**
+   * Compra que se va a borrar (S1 del feature `acciones-en-listas`).
+   * La modal se renderiza a nivel de página (fuera de la tabla) porque las
+   * filas tienen `transform: translateY(...)` y eso rompería el
+   * `position: fixed` del backdrop.
+   */
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
   // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
   // el server (`listWithStock` en el repo). No hay transformación cliente.
@@ -54,7 +63,11 @@ export function BuysListPage() {
     () => [
       columnHelper.accessor('product_name', {
         header: 'Producto',
-        size: 260,
+        // El ancho de las columnas es una "repartición" del espacio
+        // disponible (el `size` es el factor de crecimiento del flex), no
+        // un ancho fijo: por eso "Producto" cede espacio a "Acciones"
+        // (que necesita los dos enlaces, "Editar" y "Borrar").
+        size: 220,
         // El nombre NO es link — el user pidió que no se pueda editar
         // haciendo click en el nombre. La edición sigue disponible vía
         // la columna "Acciones" → "Editar".
@@ -127,19 +140,39 @@ export function BuysListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        size: 90,
-        cell: (info) => (
-          <Link
-            to={`/buys/${info.row.original.id}`}
-            // viewTransition (RR 7+) usa la View Transitions API del browser
-            // para animar la navegación /buys → /buys/:id. Default = cross-fade.
-            // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
-            viewTransition
-            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Editar
-          </Link>
-        ),
+        // Ancho mínimo para que quepan los dos enlaces ("Editar" y
+        // "Borrar") sin que la columna se corte: el contenido necesita
+        // ~125px (padding + los dos textos + el gap).
+        size: 140,
+        cell: (info) => {
+          const buy = info.row.original;
+          return (
+            <div className="flex items-center gap-3">
+              <Link
+                to={`/buys/${buy.id}`}
+                // viewTransition (RR 7+) usa la View Transitions API del browser
+                // para animar la navegación /buys → /buys/:id. Default = cross-fade.
+                // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+                viewTransition
+                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Editar
+              </Link>
+              <button
+                type="button"
+                onClick={() =>
+                  setDeleteTarget({ tipo: 'compra', id: buy.id, nombre: buy.product_name })
+                }
+                // Nombre accesible: identifica el registro (la fila concreta
+                // que se va a borrar), no un "Borrar" ambiguo.
+                aria-label={`Borrar ${buy.product_name}`}
+                className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+              >
+                Borrar
+              </button>
+            </div>
+          );
+        },
       }),
     ],
     [],
@@ -269,6 +302,8 @@ export function BuysListPage() {
         />
       )}
       {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
+      {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}
+      <DeleteDialogs target={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );
 }

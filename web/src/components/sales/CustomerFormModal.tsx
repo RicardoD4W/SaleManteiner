@@ -17,13 +17,14 @@
  *    el modal al cerrar.
  *  - Los errores (de campo y del servidor) se anuncian con `role="alert"`.
  */
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import { useForm, type FieldErrors, type Resolver, type ResolverResult } from 'react-hook-form';
 import { z } from 'zod';
 import { CreateCustomerInput, UpdateCustomerInput } from '../../schemas/customers';
 import type { Customer } from '../../schemas/customers';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { useFocusTrap } from '../ui/useFocusTrap';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import { useUpdateCustomer } from '../../hooks/useUpdateCustomer';
 import { ApiError } from '../../api/client';
@@ -85,6 +86,8 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
   const update = useUpdateCustomer();
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  /** El campo de nombre: recibe el foco al abrir la modal. */
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const nameInputId = `${titleId}-name`;
   const nameErrorId = `${titleId}-name-error`;
@@ -101,51 +104,27 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
     },
   });
 
-  // Elemento que tenía el foco antes de abrir el modal: al cerrar, el foco
-  // vuelve ahí (el botón "Nuevo cliente" o el "Editar" de la fila).
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    return () => {
-      previous?.focus();
-    };
-  }, []);
+  /**
+   * Registro del campo "nombre" de react-hook-form. La `ref` de RHF y la
+   * del modal (que necesita el input para poner el foco al abrir) se
+   * combinan en una sola callback: si se pasan las dos por separado, la
+   * segunda pisa a la primera.
+   */
+  const { ref: registerNameRef, ...nameFieldProps } = register('name');
 
-  // Foco al primer input al montar (el modal se monta fresh en cada apertura).
-  useEffect(() => {
-    dialogRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-  }, []);
-
-  // Escape para cerrar.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  // Foco al abrir (el campo de nombre), trap de Tab/Shift+Tab, cierre con
+  // Escape y devolución del foco al disparador al cerrar: es el
+  // comportamiento compartido de los diálogos (`useFocusTrap`).
+  useFocusTrap({
+    dialogRef,
+    enabled: true,
+    onEscape: onClose,
+    initialFocusRef: nameInputRef,
+  });
 
   // Click en el backdrop cierra.
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
-  };
-
-  // Focus trap: Tab / Shift+Tab ciclan dentro del diálogo.
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== 'Tab') return;
-    const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusables || focusables.length === 0) return;
-
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
   };
 
   const onSubmit = async (values: CustomerFormValues) => {
@@ -182,7 +161,6 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        onKeyDown={handleKeyDown}
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
       >
         {/* Header */}
@@ -216,12 +194,16 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
         {/* Body (form) */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
           <Input
+            {...nameFieldProps}
             id={nameInputId}
+            ref={(element) => {
+              registerNameRef(element);
+              nameInputRef.current = element;
+            }}
             label="Nombre *"
             placeholder="Nombre del cliente…"
             aria-invalid={errors.name ? true : undefined}
             aria-describedby={errors.name ? nameErrorId : undefined}
-            {...register('name')}
           />
 
           {errors.name ? (

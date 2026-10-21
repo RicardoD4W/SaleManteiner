@@ -152,7 +152,12 @@ test.beforeAll(async ({ request }) => {
 
 test('captura las pantallas clave en light y dark', async ({ page }) => {
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errores.push(`[console] ${msg.text()}`);
+    if (msg.type() !== 'error') return;
+    // El 409 del borrado en cascada es INTENCIONAL (el server se niega a
+    // borrar una compra con ventas y la UI pide confirmación): el browser
+    // lo loguea como "Failed to load resource" y no es un error de la app.
+    if (msg.text().includes('status of 409')) return;
+    errores.push(`[console] ${msg.text()}`);
   });
   page.on('pageerror', (err) => errores.push(`[pageerror] ${err.message}`));
 
@@ -187,34 +192,60 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await capturar(page, '05-modal-nueva-venta', false);
   await page.keyboard.press('Escape');
 
-  // 6. Página de edición de una compra.
+  // 6. Modal de CONFIRMACIÓN de borrado (paso 1 del flujo nuevo): el botón
+  // "Borrar" de la fila abre el diálogo de confirmación.
+  await page.goto('/buys');
+  await page.getByRole('button', { name: 'Borrar Funda iPhone 15' }).click();
+  await page.getByRole('dialog').waitFor();
+  await capturar(page, '06-modal-confirmar-borrado', false);
+  await page.keyboard.press('Escape');
+
+  // 7. Modal de CASCADA (paso 2): una compra con ventas asociadas →
+  // el server responde 409 → aparece el diálogo que nombra las ventas.
+  await page.goto('/buys');
+  await page.getByRole('button', { name: 'Borrar Soporte de monitor' }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+  await page.getByText('La compra tiene ventas asociadas').waitFor({ timeout: 10_000 });
+  await capturar(page, '07-modal-cascada', false);
+  // Cancelar: no se borra nada (el flujo se cierra sin tocar la BD).
+  await page.keyboard.press('Escape');
+
+  // 8. Página de edición de una compra.
   await page.goto('/buys');
   await page.getByRole('link', { name: 'Editar' }).first().click();
   await page.getByRole('button', { name: /Guardar cambios/ }).waitFor();
-  await capturar(page, '06-editar-compra');
+  await capturar(page, '08-editar-compra');
 
-  // 7. Dark mode (el toggle del header).
+  // 9. Dark mode (el toggle del header).
   await page.goto('/buys');
   await page
     .getByRole('button', { name: /tema|oscuro|dark|claro|light/i })
     .first()
     .click();
   await page.waitForTimeout(400);
-  await capturar(page, '07-buys-dark');
+  await capturar(page, '09-buys-dark');
+
+  // El modal de borrado en dark mode (el fondo del diálogo tiene que
+  // seguir al tema, no quedarse blanco).
+  await page.getByRole('button', { name: 'Borrar Funda iPhone 15' }).click();
+  await page.getByRole('dialog').waitFor();
+  await capturar(page, '10-modal-borrar-dark', false);
+  await page.keyboard.press('Escape');
 
   await page.goto('/solds');
   await page.getByText('Lucía Fernández').first().waitFor();
-  await capturar(page, '08-solds-dark');
+  await capturar(page, '11-solds-dark');
 
   await page.goto('/customers');
   await page.getByText('Lucía Fernández').first().waitFor();
-  await capturar(page, '09-clientes-dark');
+  await capturar(page, '12-clientes-dark');
 
-  // 8. Móvil.
+  // 10. Móvil.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/solds');
   await page.getByText('Lucía Fernández').first().waitFor();
-  await capturar(page, '10-solds-movil');
+  await capturar(page, '13-solds-movil');
 
   // Un error de runtime no se ve en una captura: este paso lo detecta.
   expect(errores, `Errores de consola: ${errores.join(' | ')}`).toEqual([]);

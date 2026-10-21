@@ -26,6 +26,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
+import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
@@ -42,6 +43,13 @@ export function SoldsListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   /** Query del buscador (client-side). */
   const [query, setQuery] = useState('');
+  /**
+   * Venta que se va a borrar (S1 del feature `acciones-en-listas`).
+   * La modal se renderiza a nivel de página (fuera de la tabla) porque las
+   * filas tienen `transform: translateY(...)` y eso rompería el
+   * `position: fixed` del backdrop.
+   */
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
   /** Un map de customerId → name para resolver nombres sin recorrer el array cada vez. */
   const customerMap = useMemo(() => {
@@ -72,7 +80,7 @@ export function SoldsListPage() {
     () => [
       columnHelper.accessor('sold_at', {
         header: 'Fecha',
-        size: 120,
+        size: 115,
         cell: (info) => (
           <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
             {formatDate(info.getValue())}
@@ -83,7 +91,7 @@ export function SoldsListPage() {
       columnHelper.accessor((row) => row.customerName, {
         id: 'customer',
         header: 'Cliente',
-        size: 150,
+        size: 140,
         cell: (info) => (
           <span className="text-gray-800 dark:text-gray-200">{info.getValue() as string}</span>
         ),
@@ -95,7 +103,7 @@ export function SoldsListPage() {
       columnHelper.accessor((row) => row.items, {
         id: 'items',
         header: 'Productos',
-        size: 230,
+        size: 210,
         cell: (info) => {
           const items = info.getValue() as SaleItemOutput[];
           if (items.length === 0) {
@@ -149,7 +157,7 @@ export function SoldsListPage() {
       // Positivo en emerald, negativo en rojo, cero en gris.
       columnHelper.accessor('profit', {
         header: 'Beneficio',
-        size: 120,
+        size: 115,
         cell: (info) => {
           const profit = info.getValue() as number;
           const colorClass =
@@ -166,7 +174,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',
-        size: 135,
+        size: 120,
         cell: (info) => (
           <span className="whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
             {formatDate(info.getValue())}
@@ -177,19 +185,37 @@ export function SoldsListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        size: 80,
-        cell: (info) => (
-          <Link
-            to={`/solds/${info.row.original.id}`}
-            // viewTransition (RR 7+) usa la View Transitions API del browser
-            // para animar la navegación /solds → /solds/:id. Default = cross-fade.
-            // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
-            viewTransition
-            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Editar
-          </Link>
-        ),
+        // Ancho mínimo para que quepan los dos enlaces ("Editar" y
+        // "Borrar") sin que la columna se corte: el contenido necesita
+        // ~125px (padding + los dos textos + el gap).
+        size: 130,
+        cell: (info) => {
+          const sold = info.row.original;
+          return (
+            <div className="flex items-center gap-3">
+              <Link
+                to={`/solds/${sold.id}`}
+                // viewTransition (RR 7+) usa la View Transitions API del browser
+                // para animar la navegación /solds → /solds/:id. Default = cross-fade.
+                // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+                viewTransition
+                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Editar
+              </Link>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget({ tipo: 'venta', id: sold.id })}
+                // Nombre accesible: identifica el registro (la fila concreta
+                // que se va a borrar), no un "Borrar" ambiguo.
+                aria-label={`Borrar venta #${sold.id}`}
+                className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+              >
+                Borrar
+              </button>
+            </div>
+          );
+        },
       }),
     ],
     [],
@@ -320,6 +346,8 @@ export function SoldsListPage() {
         />
       )}
       {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
+      {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}
+      <DeleteDialogs target={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );
 }

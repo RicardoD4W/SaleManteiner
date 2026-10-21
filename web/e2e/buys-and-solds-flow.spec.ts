@@ -441,7 +441,7 @@ test('editar venta: cambiar precio en /solds/:id refleja en la lista', async ({
   await expect(page.getByText('60,00 €').first()).toBeVisible();
 });
 
-test('borrar compra: /buys/:id "Eliminar compra" + "Sí, eliminar" la quita de la lista', async ({
+test('borrar compra: desde la tabla de /buys la confirmación la quita de la lista', async ({
   page,
   request,
 }) => {
@@ -451,24 +451,25 @@ test('borrar compra: /buys/:id "Eliminar compra" + "Sí, eliminar" la quita de l
     purchase_cost: 50,
     quantity: 5,
   });
-  const buysRes = await request.get('/api/buys');
-  const buysBody = (await buysRes.json()) as { data: Array<{ id: number }> };
-  const buyId = buysBody.data[0]!.id;
 
-  // 2. Navegar a /buys/:id y abrir el dialog de confirmación.
-  await page.goto(`/buys/${buyId}`);
-  await page.getByRole('button', { name: /Eliminar compra/ }).click();
+  // 2. Ir a /buys y borrar desde la fila (el botón "Borrar" de la columna
+  // "Acciones"). El nombre accesible del botón identifica el registro.
+  await page.goto('/buys');
+  await page.getByRole('button', { name: 'Borrar Para Borrar' }).click();
 
-  // 3. Confirmar el borrado en el dialog inline.
-  await expect(page.getByText(/No se puede deshacer/)).toBeVisible();
-  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+  // 3. La modal de confirmación pide la confirmación (S1: el borrado
+  // siempre pasa por una modal).
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(/No se puede deshacer/)).toBeVisible();
+  await dialog.getByRole('button', { name: /Sí, eliminar/ }).click();
 
-  // 4. Vuelve a /buys y la fila ya no aparece.
-  await expect(page).toHaveURL(/\/buys$/);
+  // 4. La compra desaparece de la lista (la página se queda en /buys).
+  await expect(dialog).toBeHidden();
   await expect(page.getByText('Para Borrar')).not.toBeVisible();
 });
 
-test('borrar venta: /solds/:id "Eliminar venta" + "Sí, eliminar" libera el stock del buy', async ({
+test('borrar venta: desde la tabla de /solds la confirmación libera el stock del buy', async ({
   page,
   request,
 }) => {
@@ -489,13 +490,18 @@ test('borrar venta: /solds/:id "Eliminar venta" + "Sí, eliminar" libera el stoc
   const soldBody = (await soldRes.json()) as { data: { id: number } };
   const soldId = soldBody.data.id;
 
-  // 2. Navegar a /solds/:id y borrar la venta.
-  await page.goto(`/solds/${soldId}`);
-  await page.getByRole('button', { name: /Eliminar venta/ }).click();
-  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+  // 2. Ir a /solds y borrar desde la fila.
+  await page.goto('/solds');
+  await page.getByRole('button', { name: `Borrar venta #${soldId}` }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('¿Eliminar esta venta? No se puede deshacer.')).toBeVisible();
+  await dialog.getByRole('button', { name: /Sí, eliminar/ }).click();
 
   // 3. Verificar: /solds no muestra la venta, y /buys muestra el stock
   // completo (10 disponibles, no 5).
+  await expect(dialog).toBeHidden();
   await expect(page).toHaveURL(/\/solds$/);
   await expect(page.getByText('Comprador Delete')).not.toBeVisible();
 
@@ -594,10 +600,10 @@ test('borrar compra con ventas asociadas: 409 → modal de cascada → borra com
   expect(saleRes.ok(), `POST /api/solds falló: ${saleRes.status()}`).toBe(true);
   const saleId = ((await saleRes.json()) as { data: { id: number } }).data.id;
 
-  // 2. /buys/:id → "Eliminar compra" → "Sí, eliminar". El server responde
-  // 409 (no borra en silencio) y la UI abre la modal de cascada.
-  await page.goto(`/buys/${buyId}`);
-  await page.getByRole('button', { name: /Eliminar compra/ }).click();
+  // 2. /buys → botón "Borrar" de la fila → "Sí, eliminar". El server
+  // responde 409 (no borra en silencio) y la UI abre la modal de cascada.
+  await page.goto('/buys');
+  await page.getByRole('button', { name: 'Borrar Cascade E2E' }).click();
   await page.getByRole('button', { name: /Sí, eliminar/ }).click();
 
   // 3. La modal nombra QUÉ se va a borrar (S2: el texto tiene que nombrar
@@ -611,8 +617,8 @@ test('borrar compra con ventas asociadas: 409 → modal de cascada → borra com
   // 4. Confirmar el borrado en cascada.
   await page.getByRole('button', { name: 'Borrar también las ventas y la compra' }).click();
 
-  // 5. Vuelve a /buys y la compra ya no está.
-  await expect(page).toHaveURL(/\/buys$/);
+  // 5. La compra ya no está en la lista (la página se queda en /buys).
+  await expect(dialog).toBeHidden();
   await expect(page.getByText('Cascade E2E')).not.toBeVisible();
 
   // 6. La venta asociada también se borró (cascade real, no solo la compra).
@@ -671,4 +677,74 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
     .locator('[data-testid="cashflow-chart"] .recharts-yAxis-tick-labels text')
     .filter({ hasText: /^-/ });
   await expect(negativeTick.first()).toBeVisible();
+});
+
+test('la tabla entra en el viewport: la columna Acciones se ve completa (sin scroll horizontal)', async ({
+  page,
+  request,
+}) => {
+  // Datos: una compra y una venta (para que /solds tenga filas).
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Funda iPhone 15',
+    purchase_cost: 45.5,
+    quantity: 20,
+  });
+  const customerId = await createCustomerViaApi(request, { name: 'Lucía Fernández' });
+  await request.post('/api/solds', {
+    data: {
+      customer_id: customerId,
+      sale_price: 89.9,
+      items: [{ buy_id: buyId, quantity: 3 }],
+    },
+  });
+
+  // El bug: al sumar el botón "Borrar" a la columna "Acciones", el total
+  // de anchos (`minWidth` de la tabla = Σ de los `size` de las columnas)
+  // pasó el ancho disponible. La tabla no se desplazaba: la columna
+  // "Acciones" quedaba CORTADA ("Editar Borra").
+  //
+  // Por qué se mide y no se comprueba solo el texto: el síntoma es
+  // puramente visual (una celda que se sale del borde del contenedor).
+  for (const url of ['/buys', '/solds']) {
+    await page.goto(url);
+    await page.locator('tbody tr').first().waitFor();
+
+    const medidas = await page.evaluate(() => {
+      const table = document.querySelector('table') as HTMLTableElement;
+      // El contenedor con scroll es el padre directo de la <table>
+      // (`overflow-auto` en `VirtualTable`).
+      const scroll = table.parentElement as HTMLElement;
+      const celdas = Array.from(table.querySelectorAll('tbody tr td'));
+      const ultima = celdas[celdas.length - 1] as HTMLElement;
+      return {
+        client: scroll.clientWidth,
+        scrollWidth: scroll.scrollWidth,
+        // Borde derecho de la última celda (la de "Acciones").
+        celdaDerecha: Math.round(ultima.getBoundingClientRect().right),
+        // Borde derecho del contenedor con scroll.
+        contenedorDerecha: Math.round(scroll.getBoundingClientRect().right),
+        // La celda de "Acciones" tiene que CABER su contenido: si no,
+        // "Borrar" se sale de la celda (aunque la celda quepa).
+        celdaScroll: ultima.scrollWidth,
+        celdaClient: ultima.clientWidth,
+      };
+    });
+
+    // 1) La tabla NO desborda el contenedor (no hay scroll horizontal).
+    expect(
+      medidas.scrollWidth,
+      `${url}: la tabla desborda el ancho disponible (hay scroll horizontal)`,
+    ).toBeLessThanOrEqual(medidas.client);
+
+    // 2) La columna "Acciones" llega hasta el borde del contenedor: no
+    // está cortada.
+    expect(medidas.celdaDerecha, `${url}: la columna Acciones queda cortada`).toBeLessThanOrEqual(
+      medidas.contenedorDerecha + 1,
+    );
+
+    // 3) Dentro de la celda cabe todo su contenido ("Editar" + "Borrar").
+    expect(medidas.celdaScroll, `${url}: el contenido de Acciones no cabe`).toBeLessThanOrEqual(
+      medidas.celdaClient + 1,
+    );
+  }
 });
