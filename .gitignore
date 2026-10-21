@@ -56,3 +56,6 @@ wallapop-session.json
 # Capturas de la verificación visual (artefactos locales, nunca se commitean)
 web/visual/shots/
 web/visual/.output/
+
+# Worktrees de revisión (nunca se commitean)
+.worktrees/
