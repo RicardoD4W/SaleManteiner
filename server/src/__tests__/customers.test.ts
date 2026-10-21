@@ -312,6 +312,51 @@ describe('customers repo', () => {
       expect(soldsRepo.getById(sale.id)).not.toBeNull();
       expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
     });
+
+    it('es transaccional también con el borrado del cliente (el último paso)', () => {
+      // El test anterior aborta el PRIMER delete (las ventas). Este aborta
+      // el ÚLTIMO (el cliente): si el delete del cliente estuviera fuera de
+      // la transacción, la venta ya borrada no se podría recuperar.
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const sale = seedSale(customer.id, 1);
+      db.exec(
+        `CREATE TRIGGER block_customer_delete BEFORE DELETE ON customers
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      expect(() => repo.removeWithCascade(customer.id)).toThrow();
+
+      // Rollback: la venta y su item volvieron (el cliente no se borró).
+      expect(repo.getById(customer.id)).not.toBeNull();
+      expect(soldsRepo.getById(sale.id)).not.toBeNull();
+      expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
+    });
+
+    it('no deja filas huérfanas: ni items sin venta ni ventas sin cliente', () => {
+      const customer = repo.create(validCreate({ name: 'Ana' }));
+      const other = repo.create(validCreate({ name: 'Beto' }));
+      seedSale(customer.id, 2);
+      seedSale(other.id, 1);
+
+      expect(repo.removeWithCascade(customer.id)).toBe(true);
+
+      // 0 huérfanos en las tres direcciones.
+      expect(
+        count(
+          'SELECT COUNT(*) AS c FROM sale_items WHERE sold_id NOT IN (SELECT id FROM solds)',
+        ),
+      ).toBe(0);
+      expect(
+        count(
+          'SELECT COUNT(*) AS c FROM sale_items WHERE buy_id NOT IN (SELECT id FROM buys)',
+        ),
+      ).toBe(0);
+      expect(
+        count(
+          'SELECT COUNT(*) AS c FROM solds WHERE customer_id NOT IN (SELECT id FROM customers)',
+        ),
+      ).toBe(0);
+    });
   });
 });
 
