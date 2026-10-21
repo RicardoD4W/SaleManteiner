@@ -9,6 +9,7 @@ import { BuysListPage } from './pages/buys/BuysListPage';
 import { BuyEditPage } from './pages/buys/BuyEditPage';
 import { SoldsListPage } from './pages/solds/SoldsListPage';
 import { SoldEditPage } from './pages/solds/SoldEditPage';
+import { CustomersListPage } from './pages/customers/CustomersListPage';
 
 /**
  * Tabs anidadas bajo `/` (raíz). La ruta `/dashboard` se eliminó: el
@@ -31,6 +32,7 @@ const dashboardChildren: RouteObject[] = [
  *  - `/buys/:id`      → form de edición de compra.
  *  - `/solds`         → lista de ventas (el "+ Nueva venta" abre modal).
  *  - `/solds/:id`     → form de edición de venta.
+ *  - `/customers`     → lista de clientes (el "+ Nuevo cliente" abre modal).
  *
  *  Las rutas `/buys/new` y `/solds/new` se eliminaron (S3): la creación
  *  se hace en modales (BuyNewModal / SaleNewModal).
@@ -47,6 +49,7 @@ const router = createBrowserRouter([
       { path: 'buys/:id', element: <BuyEditPage /> },
       { path: 'solds', element: <SoldsListPage /> },
       { path: 'solds/:id', element: <SoldEditPage /> },
+      { path: 'customers', element: <CustomersListPage /> },
     ],
   },
 ]);

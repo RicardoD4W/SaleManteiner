@@ -25,6 +25,9 @@ export function Layout() {
               <NavLink to="/solds" viewTransition className={cn}>
                 Ventas
               </NavLink>
+              <NavLink to="/customers" viewTransition className={cn}>
+                Clientes
+              </NavLink>
             </nav>
             <ThemeToggle />
           </div>
