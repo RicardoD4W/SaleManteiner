@@ -359,16 +359,22 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 ## 12. Próximo paso inmediato
 
-**Estado actual**: el modelo `buys + solds + sale_items + customers` está activo en `master` (el legacy `sales` se dropeó en la migración 003). El feature `delete-cascade-and-ux-polish` está **cerrado, mergeado en `master` y pusheado a `origin/master`** (10 commits en la tanda): borrado de compras con ventas asociadas en dos modos (409 explicativo + cascada con confirmación, con audit trail en el log), columna "Productos" en `/solds`, `times_sold` contando unidades, y pulido de navegación (view transitions, sort idle, autocomplete que se contrae). La branch `feature/delete-cascade-and-ux-polish` quedó en origin como registro del feature.
+**Estado actual**: el modelo `buys + solds + sale_items + customers` está activo en `master`. La app tiene **cuatro vistas** en el header (Dashboard · Compras · Ventas · Clientes) y el borrado vive **en las tablas** (no en las páginas de edición), con doble confirmación cuando el registro tiene ventas asociadas.
 
-**Verificación al cierre del feature**: 140 server + 78 web tests + 15/15 e2e + 0 typecheck/lint (+ verificación independiente del commit de riesgo: 0 bloqueantes). Refs: `odd/tasks/feature-delete-cascade-and-ux-polish.md` (S1-S13, T1-T12).
+Cerrados en esta tanda (2026-10-21, aún sin pushear):
 
-**Próximo paso inmediato**: no hay nada pendiente de código. Opcional (tu decisión): borrar la branch del feature ya mergeada (`git branch -d feature/delete-cascade-and-ux-polish` local y `git push origin --delete feature/delete-cascade-and-ux-polish` en remote) y, si querés, un smoke manual de los flujos en `localhost:5173`.
+- `feature-acciones-en-listas` — el borrado desde las tablas con modales compartidas (`ConfirmDeleteModal`, `DeleteBuyModal`, `DeleteDialogs`), el indicador de orden en la misma línea que la cabecera y la view transition de elemento compartido al editar. Refs: `odd/tasks/feature-acciones-en-listas.md`.
+- `feature-clientes-crud` — vista de Clientes (alta, edición y borrado en cascada, en el server y en el web). Refs: `odd/tasks/feature-clientes-crud.md`.
+
+**Verificación de la tanda**: 176 server + 198 web tests + 31/31 e2e + 0 typecheck/lint/format, verificación visual (15 capturas mirada) y **verificadores independientes** de las dos unidades de riesgo (borrado en cascada de compras y de clientes): sin bloqueantes en ninguna.
+
+**Próximo paso inmediato**: revisar la tanda en `master` y decidir el push (queda a tu criterio). Opcional: un smoke manual de los flujos en `localhost:5173` (los e2e y las capturas cubren lo principal).
 
 Decisiones que quedaron pendientes (no bloquean nada):
 
-1. **Smoke manual opcional** de los flujos en `localhost:5173` cuando se quiera validar UX de los features cerrados (los 15 e2e ya cubren el flujo principal; el smoke es redundante salvo para probar interacciones no cubiertas como dark mode toggle o Responsive behavior en mobile). Sin fecha límite.
-2. **El borrado en cascada no tiene undo.** El server deja audit trail (log Pino con el id de compra y las ventas afectadas) y la UI avisa "Esta acción no se puede deshacer", pero no hay soft-delete ni papelera. **Riesgo asumido explícitamente por el usuario** al cerrar el feature (Log L11 del feature doc): es una decisión de producto, no una deuda abierta.
+1. **Smoke manual opcional** de los flujos en `localhost:5173` cuando se quiera validar UX de los features cerrados. Sin fecha límite.
+2. **El borrado en cascada no tiene undo.** El server deja audit trail (log Pino con el id y las ventas afectadas) y la UI avisa "Esta acción no se puede deshacer", pero no hay soft-delete ni papelera. **Riesgo asumido explícitamente por el usuario** al cerrar el feature `delete-cascade-and-ux-polish` (Log L11 de su feature doc): es una decisión de producto, no una deuda abierta. Lo mismo aplica al borrado en cascada de clientes (2026-10-21).
+3. **La vuelta desde el formulario por el logo del header no arma la fila** (la id del registro no puede viajar en el `state` de esa navegación): esa vuelta degrada a cross-fade. Solo afecta a la view transition, no a la funcionalidad.
 
 ## 13. Notas recientes
 
