@@ -24,28 +24,13 @@ import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useSolds } from '../../hooks/useSolds';
 import { useSortable, type SortDir } from '../../hooks/useSortable';
-import {
-  useDeleteCustomer,
-  useDeleteCustomerCascade,
-  isDeleteCustomer409,
-  type AssociatedCustomerSale,
-} from '../../hooks/useDeleteCustomer';
 import { Spinner } from '../../components/ui/Spinner';
 import { tableHeadClass } from '../../components/ui/tableStyles';
-import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
 import { CustomerFormModal } from '../../components/sales/CustomerFormModal';
-import { DeleteCustomerModal } from '../../components/sales/DeleteCustomerModal';
-import { ApiError } from '../../api/client';
+import { DeleteCustomerDialogs } from '../../components/sales/DeleteCustomerDialogs';
 import { formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Customer } from '../../schemas/customers';
-
-/** Extrae el mensaje de un error de la API. */
-function mensajeDeError(err: unknown, fallback: string): string {
-  if (err instanceof ApiError) return err.body.error;
-  if (err instanceof Error) return err.message;
-  return fallback;
-}
 
 /** Fila de la tabla: el cliente + sus métricas de ventas. */
 interface CustomerRow {
@@ -96,22 +81,12 @@ export function CustomersListPage() {
   /** ¿Está abierto el modal de alta? */
   const [isCreating, setIsCreating] = useState(false);
   /**
-   * Cliente que se va a borrar (S3 del feature clientes-crud). La modal se
-   * renderiza a NIVEL DE PÁGINA (fuera de la tabla): dentro de la celda
-   * el `position: fixed` del backdrop se rompería.
+   * Cliente que se va a borrar (S3 del feature `clientes-crud`). El flujo
+   * (confirmación → 409 → cascada) vive en `DeleteCustomerDialogs`, que se
+   * renderiza a NIVEL DE PÁGINA: dentro de la celda, el `position: fixed`
+   * del backdrop se rompería.
    */
   const [deleting, setDeleting] = useState<Customer | null>(null);
-  /** `true` = paso 2 (el cliente tiene ventas y hay que confirmar la cascada). */
-  const [enCascada, setEnCascada] = useState(false);
-  /** Ventas asociadas del 409 (para listar en la modal de cascada). */
-  const [ventasAsociadas, setVentasAsociadas] = useState<AssociatedCustomerSale[] | null>(null);
-  /** Error del borrado simple (red, 5xx). Se muestra en la modal de confirmación. */
-  const [errorBorrado, setErrorBorrado] = useState<string | null>(null);
-  /** Error del borrado en cascada. Se muestra en la modal de cascada. */
-  const [errorCascada, setErrorCascada] = useState<string | null>(null);
-
-  const deleteCustomer = useDeleteCustomer();
-  const deleteCustomerCascade = useDeleteCustomerCascade();
 
   /**
    * Métricas por cliente: número de ventas y total gastado.
@@ -153,54 +128,6 @@ export function CustomersListPage() {
   const closeModals = () => {
     setIsCreating(false);
     setEditing(null);
-  };
-
-  /** Cierra el flujo de borrado y limpia su estado. */
-  const closeDelete = () => {
-    setDeleting(null);
-    setEnCascada(false);
-    setVentasAsociadas(null);
-    setErrorBorrado(null);
-    setErrorCascada(null);
-  };
-
-  /** Paso 1: confirmación del borrado simple. */
-  const handleConfirmDelete = async () => {
-    if (!deleting) return;
-    setErrorBorrado(null);
-    try {
-      await deleteCustomer.mutateAsync(deleting.id);
-      closeDelete();
-    } catch (err) {
-      // 409 con ventas asociadas → la modal de cascada ES la confirmación:
-      // no se muestra el error del server, se pasa al paso 2.
-      // Si el 409 NO trae `associated_sales` (guard estricto), el mensaje
-      // del server se muestra en la modal de confirmación.
-      if (isDeleteCustomer409(err)) {
-        setVentasAsociadas(err.body.associated_sales);
-        setEnCascada(true);
-        return;
-      }
-      setErrorBorrado(mensajeDeError(err, 'Error al eliminar'));
-    }
-  };
-
-  /** Paso 2: confirmación del borrado en cascada. */
-  const handleConfirmCascade = async () => {
-    if (!deleting) return;
-    setErrorCascada(null);
-    try {
-      await deleteCustomerCascade.mutateAsync(deleting.id);
-      closeDelete();
-    } catch (err) {
-      setErrorCascada(mensajeDeError(err, 'Error al eliminar en cascada'));
-    }
-  };
-
-  /** Cierre de la modal de cascada (Escape, backdrop o "Cancelar"). */
-  const handleCascadeClose = () => {
-    if (deleteCustomerCascade.isPending) return; // No cerrar mientras está en curso.
-    closeDelete();
   };
 
   if (isLoading) {
@@ -325,31 +252,7 @@ export function CustomersListPage() {
       {editing ? <CustomerFormModal mode="edit" customer={editing} onClose={closeModals} /> : null}
 
       {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}
-      {deleting && !enCascada ? (
-        <ConfirmDeleteModal
-          title="Eliminar cliente"
-          description={
-            <>
-              ¿Eliminar <strong>"{deleting.name}"</strong>? No se puede deshacer.
-            </>
-          }
-          error={errorBorrado}
-          isPending={deleteCustomer.isPending}
-          confirmLabel="Sí, eliminar"
-          onClose={closeDelete}
-          onConfirm={handleConfirmDelete}
-        />
-      ) : null}
-      {deleting && enCascada && ventasAsociadas ? (
-        <DeleteCustomerModal
-          customerName={deleting.name}
-          sales={ventasAsociadas}
-          isPending={deleteCustomerCascade.isPending}
-          cascadeError={errorCascada}
-          onClose={handleCascadeClose}
-          onConfirm={handleConfirmCascade}
-        />
-      ) : null}
+      <DeleteCustomerDialogs customer={deleting} onClose={() => setDeleting(null)} />
     </div>
   );
 }

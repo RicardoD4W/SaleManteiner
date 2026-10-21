@@ -18,13 +18,35 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
 import os from 'node:os';
+import { rmSync, readdirSync } from 'node:fs';
 
 /** Puerto del backend aislado de la verificación visual. */
 const VISUAL_API_PORT = 4200;
 /** Puerto del Vite de la verificación visual. */
 const VISUAL_WEB_PORT = 5200;
-/** BD temporal (nunca la del usuario). */
-const VISUAL_DB_DIR = path.join(os.tmpdir(), 'salemanteiner-visual');
+/** Raíz de las BDs temporales del visual (nunca la del usuario). */
+const VISUAL_DB_ROOT = path.join(os.tmpdir(), 'salemanteiner-visual');
+/**
+ * Cada corrida usa su PROPIA BD. Los clientes no se pueden borrar sin
+ * pasar por la cascada, así que si la BD persistiera entre corridas las
+ * capturas saldrían con decenas de clientes muertos de corridas anteriores.
+ */
+const VISUAL_DB_DIR = path.join(VISUAL_DB_ROOT, `${process.pid}-${Date.now()}`);
+
+// Limpieza best-effort de las corridas viejas (pueden estar bloqueadas en
+// Windows si un server no cerró del todo: en ese caso se dejan).
+try {
+  for (const entry of readdirSync(VISUAL_DB_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    try {
+      rmSync(path.join(VISUAL_DB_ROOT, entry.name), { recursive: true, force: true });
+    } catch {
+      // bloqueado: se ignora
+    }
+  }
+} catch {
+  // la raíz todavía no existe: no hay nada que limpiar
+}
 
 export default defineConfig({
   testDir: './visual',

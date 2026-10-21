@@ -22,6 +22,20 @@ const SHOTS = 'visual/shots';
 /** Errors de consola Accumulate durante el recorrido. */
 const errores: string[] = [];
 
+/**
+ * Sufijo único por corrida.
+ *
+ * OJO: los clientes NO se limpian entre corridas (no hay endpoint DELETE
+ * para un cliente con ventas: hay que pasar por la cascada). Sin un sufijo
+ * único, la segunda corrida encontraría varias filas con el mismo nombre y
+ * los locators reventarían por strict mode.
+ */
+const SUFIJO = Date.now().toString(36);
+/** Nombre del cliente de las capturas (con ventas). */
+const NOMBRE_LUCIA = `Lucía Fernández ${SUFIJO}`;
+/** Nombre del segundo cliente de las capturas (también con ventas). */
+const NOMBRE_MARCO = `Marco Ruiz ${SUFIJO}`;
+
 /** Captura una pantalla y la nombra. */
 async function capturar(page: Page, nombre: string, fullPage = true): Promise<void> {
   await page.screenshot({ path: `${SHOTS}/${nombre}.png`, fullPage });
@@ -74,8 +88,8 @@ test.beforeAll(async ({ request }) => {
 
   // Datos: acentos (a propósito, para ver la codificación en pantalla),
   // un pack, una venta con poco margen y una con beneficio negativo.
-  const lucia = await crearCliente(request, 'Lucía Fernández');
-  const marco = await crearCliente(request, 'Marco Ruiz');
+  const lucia = await crearCliente(request, NOMBRE_LUCIA);
+  const marco = await crearCliente(request, NOMBRE_MARCO);
 
   const funda = await crearCompra(request, {
     product_name: 'Funda iPhone 15',
@@ -177,12 +191,12 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
 
   // 3. Ventas.
   await page.goto('/solds');
-  await page.getByText('Lucía Fernández').first().waitFor();
+  await page.getByText(NOMBRE_LUCIA).first().waitFor();
   await capturar(page, '03-solds-light');
 
   // 4. Clientes.
   await page.goto('/customers');
-  await page.getByText('Lucía Fernández').first().waitFor();
+  await page.getByText(NOMBRE_LUCIA).first().waitFor();
   await capturar(page, '04-clientes-light');
 
   // 5. Modal de nueva venta (step 1: el picker de productos).
@@ -234,18 +248,34 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await page.keyboard.press('Escape');
 
   await page.goto('/solds');
-  await page.getByText('Lucía Fernández').first().waitFor();
+  await page.getByText(NOMBRE_LUCIA).first().waitFor();
   await capturar(page, '11-solds-dark');
 
   await page.goto('/customers');
-  await page.getByText('Lucía Fernández').first().waitFor();
+  await page.getByText(NOMBRE_LUCIA).first().waitFor();
   await capturar(page, '12-clientes-dark');
 
   // 10. Móvil.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/solds');
-  await page.getByText('Lucía Fernández').first().waitFor();
+  await page.getByText(NOMBRE_LUCIA).first().waitFor();
   await capturar(page, '13-solds-movil');
+
+  // 11. Modales de borrado de un CLIENTE: la confirmación y la cascada
+  // (el cliente tiene ventas → el server responde 409).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/customers');
+  await page.getByRole('button', { name: `Borrar ${NOMBRE_LUCIA}` }).click();
+  await page.getByRole('dialog').waitFor();
+  await capturar(page, '14-modal-borrar-cliente', false);
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: `Borrar ${NOMBRE_MARCO}` }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.getByRole('button', { name: /Sí, eliminar/ }).click();
+  await page.getByText('El cliente tiene ventas asociadas').waitFor({ timeout: 10_000 });
+  await capturar(page, '15-modal-cascada-cliente', false);
+  await page.keyboard.press('Escape');
 
   // Un error de runtime no se ve en una captura: este paso lo detecta.
   expect(errores, `Errores de consola: ${errores.join(' | ')}`).toEqual([]);
