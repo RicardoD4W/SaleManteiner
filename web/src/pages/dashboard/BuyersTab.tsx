@@ -50,9 +50,7 @@ function SortHeader({
       {/* El hueco del indicador se reserva siempre (anchura fija): si no,
           al ordenar aparece el ▼, la columna crece y el navegador
           redistribuye el ancho de todas -> la tabla se desajusta. */}
-      <span className="ml-1 inline-block w-3">
-        {indicator}
-      </span>
+      <span className="ml-1 inline-block w-3">{indicator}</span>
     </th>
   );
 }

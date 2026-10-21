@@ -43,7 +43,8 @@ async function medirCabecera(
     const textos: Text[] = [];
     while (walker.nextNode()) textos.push(walker.currentNode as Text);
 
-    const nodoTexto = textos.find((t) => t.textContent?.trim().startsWith('Asociados')) ??
+    const nodoTexto =
+      textos.find((t) => t.textContent?.trim().startsWith('Asociados')) ??
       textos.find((t) => t.textContent?.trim().startsWith('Precio de venta')) ??
       textos.find((t) => t.textContent?.trim());
     const nodoIndicador = textos.find(
@@ -69,8 +70,7 @@ async function medirCabecera(
       lineas: rects.length,
       textoTop,
       indicadorY,
-      desvio:
-        textoTop !== null && indicadorY !== null ? Math.abs(indicadorY - textoTop) : null,
+      desvio: textoTop !== null && indicadorY !== null ? Math.abs(indicadorY - textoTop) : null,
       recortado,
     };
   });
@@ -135,9 +135,10 @@ test('el indicador de orden se queda en la misma línea que la cabecera', async 
     const medidas = await medirCabecera(page, columna);
 
     // 1) El indicador (▼) está en el MISMO renglón que el texto.
-    expect(medidas.desvio, `${url}: el indicador no está en la línea del texto`).toBeLessThanOrEqual(
-      2,
-    );
+    expect(
+      medidas.desvio,
+      `${url}: el indicador no está en la línea del texto`,
+    ).toBeLessThanOrEqual(2);
     // 2) El texto de la cabecera no se parte en dos renglones.
     expect(medidas.lineas, `${url}: la cabecera se partió en dos líneas`).toBe(1);
     // 3) El texto completo se ve: no se recorta con "…".
