@@ -11,7 +11,7 @@
  *  - Cierre con Escape o click fuera
  *  - `aria-selected` en los items del listbox (checkbox, no listbox pattern)
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
@@ -118,8 +118,43 @@ export function ProductPickerModal({
   /** buy_id → quantity (solo para los tildados) */
   const [quantities, setQuantities] = useState<Record<number, number>>({});
 
+  /**
+   * Ids de los productos que YA estaban seleccionados al abrir el picker
+   * (o sea, los que vinieron en `initialSelection`).
+   *
+   * Se usan para poner esos productos arriba del todo de la lista: al
+   * reabrir el picker con "+ Cambiar productos" lo primero que se ve es
+   * lo que ya tenías elegido, sin tener que buscarlo.
+   *
+   * El orden se CONGELA con la apertura: tildar o destildar dentro del
+   * modal no reordena la lista, así la fila que tenés bajo el puntero no
+   * se te escapa de debajo del cursor.
+   */
+  const idsSeleccionadosIniciales = useMemo(
+    () => new Set((initialSelection ?? []).map((sel) => sel.buy_id)),
+    [initialSelection],
+  );
+
   /** Filtro de búsqueda por nombre */
   const [filter, setFilter] = useState('');
+
+  /**
+   * Lista de productos del picker: filtrada por el buscador y con los ya
+   * seleccionados (al abrir) arriba del todo.
+   *
+   * `Array.prototype.sort` es estable, así que dentro de cada grupo se
+   * respeta el orden original (por id, que es como llega del server).
+   */
+  const buysOrdenados = useMemo(() => {
+    const filtrados = (buysWithStock ?? []).filter((b) =>
+      b.product_name.toLowerCase().includes(filter.toLowerCase()),
+    );
+    if (idsSeleccionadosIniciales.size === 0) return filtrados;
+    return [...filtrados].sort(
+      (a, b) =>
+        Number(idsSeleccionadosIniciales.has(b.id)) - Number(idsSeleccionadosIniciales.has(a.id)),
+    );
+  }, [buysWithStock, filter, idsSeleccionadosIniciales]);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFocusRef = useRef<HTMLInputElement>(null);
@@ -211,9 +246,6 @@ export function ProductPickerModal({
   };
 
   const selectedCount = Object.values(checked).filter(Boolean).length;
-  const filteredBuys = (buysWithStock ?? []).filter((b) =>
-    b.product_name.toLowerCase().includes(filter.toLowerCase()),
-  );
 
   return (
     <div
@@ -292,7 +324,7 @@ export function ProductPickerModal({
                 Reintentar
               </button>
             </div>
-          ) : filteredBuys.length === 0 ? (
+          ) : buysOrdenados.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               {filter
                 ? 'No hay productos que coincidan.'
@@ -300,7 +332,7 @@ export function ProductPickerModal({
             </div>
           ) : (
             <ul>
-              {filteredBuys.map((buy) => (
+              {buysOrdenados.map((buy) => (
                 <li key={buy.id}>
                   <ProductRow
                     item={buy}

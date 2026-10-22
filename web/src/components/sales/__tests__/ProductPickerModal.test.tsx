@@ -284,4 +284,67 @@ describe('ProductPickerModal', () => {
     fireEvent.change(input, { target: { value: '99' } });
     expect(input).toHaveValue(8);
   });
+
+  // Al reabrir el picker con "+ Cambiar productos", lo que ya estaba
+  // marcado se muestra ARRIBA del todo (para no ir a buscarlo).
+  it('muestra arriba del todo los productos que ya venían seleccionados', async () => {
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(
+      <ProductPickerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        initialSelection={[{ buy_id: 2, quantity: 1 }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Cargador USB-C')).toBeInTheDocument();
+    });
+
+    // El primero de la lista es el que ya estaba tildado.
+    const items = screen.getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Cargador USB-C');
+    expect(items[1]).toHaveTextContent('Funda iPhone');
+  });
+
+  // El orden se congela al abrir: tildar o destildar NO reordena la lista,
+  // así la fila que tenés bajo el puntero no se te escapa.
+  it('no reordena la lista al tildar dentro del modal', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(
+      <ProductPickerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        initialSelection={[{ buy_id: 2, quantity: 1 }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Cargador USB-C')).toBeInTheDocument();
+    });
+
+    // Tilda "Funda iPhone" (el que estaba abajo).
+    await user.click(screen.getAllByRole('checkbox')[0]);
+
+    const items = screen.getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Cargador USB-C');
+    expect(items[1]).toHaveTextContent('Funda iPhone');
+  });
 });
