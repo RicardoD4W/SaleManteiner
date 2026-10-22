@@ -98,8 +98,21 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     () => selectedItems.map((i) => ({ buy_id: i.buy_id, quantity: i.quantity })),
     [selectedItems],
   );
-  /** Si el ProductPickerModal está abierto. True al inicio. */
-  const [showPicker, setShowPicker] = useState(true);
+  /**
+   * Por qué está abierto el picker de productos.
+   *
+   * - `'inicial'`: es el primer paso de la venta (todavía no hay nada
+   *   elegido): "Cancelar" cancela la VENTA entera y cierra la modal.
+   * - `'cambio'`: se abrió con "+ Cambiar productos" (ya había productos
+   *   elegidos): "Cancelar" vuelve al formulario con lo que había.
+   * - `null`: el picker está cerrado (se ve el formulario de la venta).
+   *
+   * Antes era un booleano (`showPicker`) y los dos casos compartían el
+   * mismo `onClose`: cancelar el picker INICIAL te dejaba en un formulario
+   * de venta sin productos (no se podía ni enviar ni cerrar sin otro
+   * click).
+   */
+  const [motivoPicker, setMotivoPicker] = useState<'inicial' | 'cambio' | null>('inicial');
   /** Cliente seleccionado. */
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   /** Error 422 de stock insuficiente del server. */
@@ -131,24 +144,24 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
   // Foco al input de precio cuando aparecen los items.
   useEffect(() => {
-    if (selectedItems.length > 0 && !showPicker) {
+    if (selectedItems.length > 0 && motivoPicker === null) {
       priceInputRef.current?.focus();
     }
-  }, [selectedItems, showPicker]);
+  }, [selectedItems, motivoPicker]);
 
   // Escape: si el picker está abierto, el picker lo maneja; si no, cierra el modal.
   useEffect(() => {
-    if (showPicker) return;
+    if (motivoPicker !== null) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose, showPicker]);
+  }, [onClose, motivoPicker]);
 
   // Click en backdrop cierra (solo si el picker no está abierto).
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !showPicker) onClose();
+    if (e.target === e.currentTarget && motivoPicker === null) onClose();
   };
 
   const handlePickerConfirm = (
@@ -166,7 +179,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       max: i.max ?? itemMap.get(i.buy_id)?.max ?? i.quantity,
     }));
     setSelectedItems(merged);
-    setShowPicker(false);
+    setMotivoPicker(null);
     setValue(
       'items',
       merged.map((i) => ({
@@ -219,16 +232,22 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   // Si el picker está abierto, el ProductPickerModal gestiona todo (incluido el
   // backdrop y el Escape); no renderizamos el modal padre para evitar dos
   // dialogs apilados.
-  if (showPicker) {
+  if (motivoPicker !== null) {
     return (
       <ProductPickerModal
         isOpen={true}
         initialSelection={initialSelection}
         onClose={() => {
-          // Cancelar el picker es "volver atrás": se conserva lo elegido y
-          // se vuelve a la modal de venta. El descarte es el "Cancelar" de
-          // la modal de venta.
-          setShowPicker(false);
+          // Cancelar el picker INICIAL cancela la venta entera: no hay nada
+          // elegido, así que lo lógico es cerrar y listo (si no, quedaba un
+          // formulario de venta sin productos que no se podía enviar).
+          // Cancelar el picker de "+ Cambiar productos" vuelve al formulario
+          // conservando lo que ya estaba elegido.
+          if (motivoPicker === 'inicial') {
+            onClose();
+            return;
+          }
+          setMotivoPicker(null);
         }}
         onConfirm={handlePickerConfirm}
       />
@@ -335,7 +354,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               })}
               <button
                 type="button"
-                onClick={() => setShowPicker(true)}
+                onClick={() => setMotivoPicker('cambio')}
                 className="mt-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
               >
                 + Cambiar productos

@@ -145,6 +145,35 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
   await expect(page.getByText(/40,00/).first()).toBeVisible();
 });
 
+test('"+ Nueva venta": cancelar el picker inicial cierra la venta (no deja el form a medias)', async ({
+  page,
+  request,
+}) => {
+  await createBuyViaApi(request, {
+    product_name: 'Funda Cancelable',
+    purchase_cost: 100,
+    quantity: 20,
+  });
+
+  await page.goto('/solds');
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
+
+  // 1) El primer paso es el picker de productos.
+  const picker = page.getByRole('dialog');
+  await expect(picker.getByText('Seleccionar productos')).toBeVisible();
+
+  // 2) Cancelar ahí cancela la VENTA entera: no queda el formulario de
+  // venta sin productos (que no se podía ni enviar ni cerrar sin otro click).
+  await picker.getByRole('button', { name: /cancelar/i }).click();
+  await expect(page.getByRole('dialog')).toBeHidden({ timeout: 5_000 });
+  await expect(page.getByText('Productos (0)')).toBeHidden();
+
+  // 3) Y no se creó ninguna venta.
+  const solds = await request.get('/api/solds?limit=200');
+  const body = (await solds.json()) as { data: Array<{ id: number }> };
+  expect(body.data).toHaveLength(0);
+});
+
 test('"+ Cambiar productos": conserva lo elegido, la cantidad se escribe fácil y cancelar vuelve al form', async ({
   page,
   request,

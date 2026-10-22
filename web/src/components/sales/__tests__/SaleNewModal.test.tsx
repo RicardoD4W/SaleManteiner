@@ -169,4 +169,41 @@ describe('SaleNewModal', () => {
     expect(screen.getByText('Productos (1)')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  // El picker INICIAL (el primer paso de la venta) es otro caso: cancelar
+  // ahí cancela la VENTA entera. Antes se caía al formulario de venta sin
+  // productos: no se podía ni enviar (falta el producto) ni cerrar sin un
+  // click de más.
+  it('cancelar el picker inicial cancela la venta entera', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(<SaleNewModal onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Cancelar/ }));
+
+    // Se cancela la venta (se llama al onClose del padre) y NO queda el
+    // formulario de venta a medias.
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+  });
+
+  // Cerrar el picker inicial con Escape es lo mismo que cancelarlo.
+  it('cerrar el picker inicial con Escape cancela la venta entera', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(<SaleNewModal onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+  });
 });
