@@ -135,3 +135,35 @@
 ::view-transition-old(.celda) {
   opacity: 0 !important;
 }
+
+/* ---------------------------------------------------------------------------
+   El dato que viaja NO se desvanece.
+
+   Por defecto el browser hace un fade-out de la foto vieja mientras
+   vuela: el valor se apagaba justo antes de aterrizar en el campo y no se
+   veía "llegar" el dato (era el bug que reportó el usuario).
+
+   Con esto la foto del texto viaja a opacidad COMPLETA: llega a su
+   destino siempre visible y recién ahí la reemplaza el input real (que ya
+   está en su sitio). Los keyframes son constantes a propósito: el fade
+   default queda desactivado sin importar cuánto dure la transición.
+
+   En la IDA el texto es el pseudo VIEJO del grupo (el destino es el
+   input → clase "caja"). En la VUELTA el texto es el pseudo NUEVO (el
+   destino es la celda → clase "celda"): ahí el fade-in del browser está
+   bien (el valor "aparece" en la fila mientras vuelve).
+   --------------------------------------------------------------------------- */
+
+@keyframes chip-llega {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+::view-transition-old(.caja),
+::view-transition-new(.celda) {
+  animation: chip-llega 250ms linear both;
+}

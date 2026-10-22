@@ -290,6 +290,19 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
   await page.waitForTimeout(600);
 
+  // 08c. El dato LLEGANDO a su campo: tiene que estar a opacidad completa
+  // (no se desvanece al acercarse). Se hace en una navegación aparte para
+  // que la línea de tiempo de la transición sea limpia.
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.05 });
+  await page.goto('/buys');
+  const editar2 = page.getByRole('link', { name: 'Editar' }).first();
+  await editar2.hover();
+  await editar2.click();
+  await page.waitForTimeout(4500);
+  await capturar(page, '08c-dato-llegando', false);
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+  await page.waitForTimeout(600);
+
   // 9. Dark mode (el toggle del header).
   await page.goto('/buys');
   await page
