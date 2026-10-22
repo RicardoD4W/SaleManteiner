@@ -232,6 +232,18 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
 
+  // 5c. El formulario de venta (step 2): se llega eligiendo un producto en
+  // el picker. Es la pantalla con el cliente, el precio, las notas y el
+  // "+ Cambiar productos".
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.getByRole('checkbox').first().check();
+  await page.getByRole('button', { name: /Confirmar/ }).click();
+  await page.getByRole('button', { name: /\+ Cambiar productos/ }).waitFor();
+  await page.waitForTimeout(300);
+  await capturar(page, '05c-form-nueva-venta', false);
+  await page.keyboard.press('Escape');
+
   // 6. Modal de CONFIRMACIÓN de borrado (paso 1 del flujo nuevo): el botón
   // "Borrar" de la fila abre el diálogo de confirmación.
   await page.goto('/buys');
