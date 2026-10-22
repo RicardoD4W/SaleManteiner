@@ -184,6 +184,12 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await page.waitForTimeout(500);
   await capturar(page, '01-dashboard-light');
 
+  // 1b. Una TAB del dashboard (Ingresos): el link "Dashboard" del header
+  // tiene que seguir iluminado (antes se apagaba al entrar a una tab).
+  await page.getByRole('link', { name: 'Ingresos' }).click();
+  await page.waitForTimeout(600);
+  await capturar(page, '01b-dashboard-tab-ingresos');
+
   // 2. Compras.
   await page.goto('/buys');
   await page.getByText('Funda iPhone 15').waitFor();
@@ -204,6 +210,26 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
   await page.getByRole('dialog').waitFor();
   await capturar(page, '05-modal-nueva-venta', false);
+  // Escape cierra el picker y deja el form de venta; otro Escape cierra el
+  // form entero.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+
+  // 5b. El picker reabierto con "+ Cambiar productos": lo que ya estaba
+  // marcado tiene que salir ARRIBA del todo.
+  await page.getByRole('button', { name: /\+ Nueva venta/ }).click();
+  await page.getByRole('dialog').waitFor();
+  // Se tilda el ÚLTIMO producto de la lista (el que menos se ve).
+  const checks = page.getByRole('checkbox');
+  const total = await checks.count();
+  await checks.nth(total - 1).check();
+  await page.getByRole('button', { name: /Confirmar/ }).click();
+  await page.getByRole('button', { name: /\+ Cambiar productos/ }).waitFor();
+  await page.getByRole('button', { name: /\+ Cambiar productos/ }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.waitForTimeout(300);
+  await capturar(page, '05b-picker-orden', false);
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
 
   // 6. Modal de CONFIRMACIÓN de borrado (paso 1 del flujo nuevo): el botón
@@ -233,6 +259,24 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await page.getByRole('button', { name: /Guardar cambios/ }).waitFor();
   await page.waitForTimeout(900);
   await capturar(page, '08-editar-compra');
+
+  // 8b. La transición EN PLENO VUELO: los valores de la fila viajan como
+  // chips de texto hasta los campos del formulario. A velocidad normal dura
+  // 250 ms (no hay forma de capturarla en ese momento), así que se
+  // ralentizan las animaciones 20x por CDP y se captura con los chips en el
+  // aire. Es la captura que pinea el arreglo del morphing (antes el nombre
+  // se estiraba hasta el ancho del input y se salía de la caja).
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Animation.enable');
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.05 });
+  await page.goto('/buys');
+  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  await editar.hover();
+  await editar.click();
+  await page.waitForTimeout(1500);
+  await capturar(page, '08b-transicion-en-vuelo', false);
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+  await page.waitForTimeout(600);
 
   // 9. Dark mode (el toggle del header).
   await page.goto('/buys');

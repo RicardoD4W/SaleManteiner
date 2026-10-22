@@ -11,7 +11,7 @@
  * `SoldWithProfit` para que la columna Beneficio muestre el dato real
  * calculado por el server (sin tener que cargar los items por venta).
  */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -41,9 +41,13 @@ const columnHelper = createColumnHelper<SoldWithCustomer>();
  * La clave es el **id** de la venta: el `view-transition-name` tiene que ser
  * un `custom-ident` válido (sin espacios) y único en el documento, y el
  * nombre del cliente puede repetirse entre filas.
+ *
+ * `campo` distingue los campos que viajan (cliente, precio, asociados…):
+ * cada campo necesita su propio nombre para que el navegador los empareje
+ * por separado (cada input del formulario tiene su pareja en la fila).
  */
-function nombreTransicion(id: number): string {
-  return `sold-client-${id}`;
+function nombreTransicion(campo: string, id: number): string {
+  return `sold-${campo}-${id}`;
 }
 
 /**
@@ -79,23 +83,41 @@ const ContextoArmado = createContext<ContextoArmado>({
 });
 
 /**
- * Celda de cliente: es la que lleva el `view-transition-name` de la fila
- * armada (S3).
+ * Celda que viaja al formulario (view transition de elemento compartido).
+ *
+ * Cuando la fila está "armada", la celda lleva el `view-transition-name`
+ * y viaja como chip de texto hasta el input que le corresponde en el
+ * formulario (ver `index.css`).
  *
  * En `/solds` lo que identifica la venta en la tabla es el cliente (los
- * productos del pack son de solo lectura en el formulario), así que es el
- * dato que viaja al input del cliente de `/solds/:id`.
+ * productos del pack son de solo lectura en el formulario), así que el
+ * cliente es el chip principal; los importes y la fecha viajan también.
  */
-function CeldaCliente({ fila }: { fila: SoldWithCustomer }) {
+function CeldaViajera({
+  fila,
+  campo,
+  className,
+  children,
+}: {
+  fila: SoldWithCustomer;
+  /** Campo del formulario al que viaja (client, price, date…). */
+  campo: string;
+  /** Clases del texto de la celda. */
+  className?: string;
+  children: ReactNode;
+}) {
   const { filaArmada } = useContext(ContextoArmado);
   const armada = fila.id === filaArmada;
+  const nombre = nombreTransicion(campo, fila.id);
   return (
     <span
-      className="text-gray-800 dark:text-gray-200"
-      style={armada ? { viewTransitionName: nombreTransicion(fila.id) } : undefined}
-      data-vt-nombre={armada ? nombreTransicion(fila.id) : undefined}
+      // `vt-celda`: marca el elemento como el que viaja como chip de texto
+      // en la view transition (ver index.css).
+      className={['vt-celda', className ?? ''].join(' ')}
+      style={armada ? { viewTransitionName: nombre } : undefined}
+      data-vt-nombre={armada ? nombre : undefined}
     >
-      {fila.customerName}
+      {children}
     </span>
   );
 }
@@ -237,9 +259,13 @@ export function SoldsListPage() {
         header: 'Fecha',
         size: 115,
         cell: (info) => (
-          <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="date"
+            className="whitespace-nowrap text-gray-700 dark:text-gray-300"
+          >
             {formatDate(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),
@@ -247,7 +273,15 @@ export function SoldsListPage() {
         id: 'customer',
         header: 'Cliente',
         size: 140,
-        cell: (info) => <CeldaCliente fila={info.row.original} />,
+        cell: (info) => (
+          <CeldaViajera
+            fila={info.row.original}
+            campo="client"
+            className="text-gray-800 dark:text-gray-200"
+          >
+            {info.row.original.customerName}
+          </CeldaViajera>
+        ),
         sortingFn: 'basic',
       }),
       // Productos vendidos (S de UI: mostrar en la lista qué se vendió
@@ -287,9 +321,13 @@ export function SoldsListPage() {
         header: 'Precio (€)',
         size: 115,
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="price"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
             {formatEuro(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),
@@ -299,9 +337,13 @@ export function SoldsListPage() {
         // una línea (S4): el texto mide ~85px y el indicador reserva 12px.
         size: 140,
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="associated"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
             {formatEuro(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),

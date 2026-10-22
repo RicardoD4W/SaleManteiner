@@ -115,8 +115,10 @@ async function crearCompra(
   request: import('@playwright/test').APIRequestContext,
   product_name: string,
 ): Promise<number> {
+  // La fecha es fija para que los tests puedan comparar el texto de la
+  // celda (sin fecha, el server pone la de hoy).
   const res = await request.post('/api/buys', {
-    data: { product_name, purchase_cost: 100, quantity: 20 },
+    data: { product_name, purchase_cost: 100, quantity: 20, purchase_date: '2026-10-02' },
   });
   expect(res.ok(), `POST /api/buys falló: ${res.status()}`).toBe(true);
   const body = (await res.json()) as { data: { id: number } };
@@ -211,6 +213,58 @@ test('editar una compra: la celda de producto viaja al input del formulario', as
   const pseudos = (await leerEstado(page)).pseudos;
   expect(pseudos).toContain(`::view-transition-old(${nombre})`);
   expect(pseudos).toContain(`::view-transition-new(${nombre})`);
+});
+
+test('editar una compra: también viajan el coste, la cantidad, los asociados y la fecha', async ({
+  page,
+  request,
+}) => {
+  const buyId = await crearCompra(request, 'Funda iPhone 15');
+
+  await instrumentar(page);
+  await page.goto('/buys');
+
+  const estadoInicial = await leerEstado(page);
+  test.skip(
+    !estadoInicial.soportado,
+    'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
+  );
+
+  // Cada campo editable de la fila tiene su pareja en el formulario: la
+  // celda viaja como chip de texto hasta el input (ver `index.css`).
+  const CAMPOS = [
+    { sufijo: 'product', texto: 'Funda iPhone 15', etiqueta: 'Producto *' },
+    { sufijo: 'cost', texto: '100,00 €', etiqueta: 'Coste (€) *' },
+    { sufijo: 'qty', texto: '20', etiqueta: 'Cantidad *' },
+    { sufijo: 'associated', texto: '0,00 €', etiqueta: 'Costes asociados (€)' },
+    { sufijo: 'date', texto: '02/10/2026', etiqueta: 'Fecha de compra' },
+  ];
+
+  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  await editar.hover();
+
+  for (const campo of CAMPOS) {
+    const nombre = `buy-${campo.sufijo}-${buyId}`;
+    const celda = page.locator(`[data-vt-nombre="${nombre}"]`);
+    await expect(celda).toHaveCount(1);
+    await expect(celda).toHaveText(campo.texto);
+    expect(await nombreComputado(celda)).toBe(nombre);
+    // Cada nombre tiene que ser único en el documento (si dos filas
+    // compartieran nombre, el navegador se saltaría la transición entera).
+    expect(await contarConNombre(page, nombre)).toBe(1);
+  }
+
+  await editar.click();
+  await expect(page).toHaveURL(new RegExp(`/buys/${buyId}$`));
+
+  // En el formulario, cada input lleva el nombre de su celda.
+  for (const campo of CAMPOS) {
+    const nombre = `buy-${campo.sufijo}-${buyId}`;
+    const input = page.getByLabel(campo.etiqueta);
+    await expect(input).toBeVisible();
+    expect(await nombreComputado(input)).toBe(nombre);
+    expect(await contarConNombre(page, nombre)).toBe(1);
+  }
 });
 
 test('volver a la lista desde el formulario deja armada la fila de la compra', async ({

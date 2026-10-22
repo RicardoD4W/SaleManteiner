@@ -77,8 +77,11 @@ export function SoldEditPage() {
    * productos del pack son de solo lectura en el form), así que el elemento
    * que viaja es el input del cliente. Es el MISMO nombre que lleva la
    * celda de cliente de la fila, con el id de la venta como clave.
+   *
+   * `campo` distingue los campos que viajan (cliente, precio, asociados…):
+   * cada campo tiene su pareja en la fila.
    */
-  const nombreTransicion = `sold-client-${soldId}`;
+  const nombreTransicion = (campo: string) => `sold-${campo}-${soldId}`;
 
   /**
    * Vuelve a la lista dejando armada la fila de esta venta (S3): el id
@@ -261,7 +264,7 @@ export function SoldEditPage() {
             */}
             <div
               className="campo-transicion"
-              style={{ '--vt-nombre': nombreTransicion } as CSSProperties}
+              style={{ '--vt-nombre': nombreTransicion('client') } as CSSProperties}
             >
               <CustomerAutocomplete
                 value={selectedCustomer}
@@ -282,6 +285,9 @@ export function SoldEditPage() {
                 autoFocus
                 {...register('sale_price', { valueAsNumber: true })}
                 error={(errors.sale_price as { message?: string } | undefined)?.message}
+                // S3: este input es el destino del chip del precio.
+                className="vt-caja"
+                style={{ viewTransitionName: nombreTransicion('price') }}
               />
               <Input
                 label="Gastos asociados (€)"
@@ -291,6 +297,9 @@ export function SoldEditPage() {
                 {...register('associated_costs', { valueAsNumber: true })}
                 error={(errors.associated_costs as { message?: string } | undefined)?.message}
                 hint="Envío, comisión, etc. (opcional)"
+                // S3: este input es el destino del chip de los asociados.
+                className="vt-caja"
+                style={{ viewTransitionName: nombreTransicion('associated') }}
               />
             </div>
 
@@ -299,6 +308,9 @@ export function SoldEditPage() {
               type="date"
               {...register('sold_at')}
               error={(errors.sold_at as { message?: string } | undefined)?.message}
+              // S3: este input es el destino del chip de la fecha.
+              className="vt-caja"
+              style={{ viewTransitionName: nombreTransicion('date') }}
             />
 
             <Textarea

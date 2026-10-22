@@ -52,12 +52,13 @@ export function BuyEditPage() {
   /**
    * Nombre de la view transition de elemento compartido (S3).
    *
-   * Es el MISMO nombre que lleva la celda de producto de la fila en
-   * `/buys`: así el texto del producto viaja de la tabla al formulario.
-   * La clave es el id de la compra (el nombre del producto no sirve como
-   * `view-transition-name`: tiene espacios y puede repetirse).
+   * Es el MISMO nombre que lleva la celda de la fila en `/buys`: así el
+   * valor de cada campo viaja de la tabla al formulario. La clave es el id
+   * de la compra (el nombre del producto no sirve como
+   * `view-transition-name`: tiene espacios y puede repetirse) y `campo`
+   * distingue los campos (cada input tiene su pareja en la fila).
    */
-  const nombreTransicion = `buy-product-${buyId}`;
+  const nombreTransicion = (campo: string) => `buy-${campo}-${buyId}`;
 
   /**
    * Vuelve a la lista dejando armada la fila de esta compra (S3): el id
@@ -193,7 +194,10 @@ export function BuyEditPage() {
               error={errors.product_name?.message}
               // S3: este input es el destino de la transición de elemento
               // compartido (el mismo nombre que la celda de la fila).
-              style={{ viewTransitionName: nombreTransicion }}
+              // `vt-caja`: el texto de la celda viaja como chip y la
+              // caja del input no se dibuja en el vuelo (ver index.css).
+              className="vt-caja"
+              style={{ viewTransitionName: nombreTransicion('product') }}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -205,6 +209,9 @@ export function BuyEditPage() {
                 {...register('purchase_cost', { valueAsNumber: true })}
                 error={errors.purchase_cost?.message}
                 hint="Total pagado por el lote"
+                // S3: este input es el destino del chip del coste.
+                className="vt-caja"
+                style={{ viewTransitionName: nombreTransicion('cost') }}
               />
               <Input
                 label="Cantidad *"
@@ -214,6 +221,9 @@ export function BuyEditPage() {
                 {...register('quantity', { valueAsNumber: true })}
                 error={errors.quantity?.message}
                 hint="Unidades del lote"
+                // S3: este input es el destino del chip de la cantidad.
+                className="vt-caja"
+                style={{ viewTransitionName: nombreTransicion('qty') }}
               />
             </div>
 
@@ -225,6 +235,9 @@ export function BuyEditPage() {
               {...register('associated_costs', { valueAsNumber: true })}
               error={errors.associated_costs?.message}
               hint="Envío, comisión, etc. (opcional)"
+              // S3: este input es el destino del chip de los asociados.
+              className="vt-caja"
+              style={{ viewTransitionName: nombreTransicion('associated') }}
             />
 
             <Input
@@ -232,6 +245,9 @@ export function BuyEditPage() {
               type="date"
               {...register('purchase_date')}
               error={errors.purchase_date?.message}
+              // S3: este input es el destino del chip de la fecha.
+              className="vt-caja"
+              style={{ viewTransitionName: nombreTransicion('date') }}
             />
 
             {errors.root ? (

@@ -10,7 +10,7 @@
  *  S3 del feature dashboard-iteration-1: el botón "+ Nueva compra" ahora
  *  abre el `BuyNewModal` en vez de navegar a `/buys/new`.
  */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -40,9 +40,13 @@ const columnHelper = createColumnHelper<BuyWithStock>();
  * `view-transition-name` tiene que ser un `custom-ident` válido (sin
  * espacios) y único en el documento, y el nombre del producto puede
  * repetirse entre filas. El id cumple las dos condiciones.
+ *
+ * `campo` distingue los campos que viajan (producto, coste, cantidad…):
+ * cada campo necesita su propio nombre para que el navegador los empareje
+ * por separado (cada input del formulario tiene su pareja en la fila).
  */
-function nombreTransicion(id: number): string {
-  return `buy-product-${id}`;
+function nombreTransicion(campo: string, id: number): string {
+  return `buy-${campo}-${id}`;
 }
 
 /**
@@ -78,23 +82,43 @@ const ContextoArmado = createContext<ContextoArmado>({
 });
 
 /**
- * Celda de producto: es la que lleva el `view-transition-name` de la fila
- * armada (S3).
+ * Celda que viaja al formulario (view transition de elemento compartido).
+ *
+ * Cuando la fila está "armada", la celda lleva el `view-transition-name`
+ * y viaja como chip de texto hasta el input que le corresponde en el
+ * formulario (ver `index.css`).
  *
  * Como la tabla está virtualizada hay varias filas en el DOM, así que solo
  * una —la que se va a abrir— lo lleva: el nombre tiene que ser único en el
  * documento.
  */
-function CeldaProducto({ fila }: { fila: BuyWithStock }) {
+function CeldaViajera({
+  fila,
+  campo,
+  className,
+  children,
+}: {
+  fila: BuyWithStock;
+  /** Campo del formulario al que viaja (product, cost, qty…). */
+  campo: string;
+  /** Clases del texto de la celda. */
+  className?: string;
+  children: ReactNode;
+}) {
   const { filaArmada } = useContext(ContextoArmado);
   const armada = fila.id === filaArmada;
+  const nombre = nombreTransicion(campo, fila.id);
   return (
     <span
-      className="font-medium"
-      style={armada ? { viewTransitionName: nombreTransicion(fila.id) } : undefined}
-      data-vt-nombre={armada ? nombreTransicion(fila.id) : undefined}
+      // `vt-celda`: marca el elemento como el que viaja como chip de texto
+      // en la view transition (ver index.css). El `view-transition-name`
+      // solo se pone en la fila armada (el nombre tiene que ser único en
+      // el documento).
+      className={['vt-celda', className ?? ''].join(' ')}
+      style={armada ? { viewTransitionName: nombre } : undefined}
+      data-vt-nombre={armada ? nombre : undefined}
     >
-      {fila.product_name}
+      {children}
     </span>
   );
 }
@@ -229,16 +253,24 @@ export function BuysListPage() {
         // El nombre NO es link — el user pidió que no se pueda editar
         // haciendo click en el nombre. La edición sigue disponible vía
         // la columna "Acciones" → "Editar".
-        cell: (info) => <CeldaProducto fila={info.row.original} />,
+        cell: (info) => (
+          <CeldaViajera fila={info.row.original} campo="product" className="font-medium">
+            {info.row.original.product_name}
+          </CeldaViajera>
+        ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor('purchase_cost', {
         header: 'Coste (€)',
         size: 120,
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="cost"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
             {formatEuro(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),
@@ -246,7 +278,13 @@ export function BuysListPage() {
         header: 'Cantidad',
         size: 110,
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">{info.getValue()}</span>
+          <CeldaViajera
+            fila={info.row.original}
+            campo="qty"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
+            {info.getValue()}
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),
@@ -256,9 +294,13 @@ export function BuysListPage() {
         // una línea (S4): el texto mide ~85px y el indicador reserva 12px.
         size: 140,
         cell: (info) => (
-          <span className="tabular-nums text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="associated"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
             {formatEuro(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),
@@ -266,9 +308,13 @@ export function BuysListPage() {
         header: 'Fecha compra',
         size: 150,
         cell: (info) => (
-          <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
+          <CeldaViajera
+            fila={info.row.original}
+            campo="date"
+            className="whitespace-nowrap text-gray-700 dark:text-gray-300"
+          >
             {formatDate(info.getValue())}
-          </span>
+          </CeldaViajera>
         ),
         sortingFn: 'basic',
       }),

@@ -68,4 +68,70 @@
    componente compartido no necesita cambios (S3). */
 .campo-transicion input {
   view-transition-name: var(--vt-nombre, none);
+  view-transition-class: caja;
+}
+
+/* ---------------------------------------------------------------------------
+   Elemento compartido "chip": el nombre (del producto o del cliente) viaja
+   de la tabla al formulario como un chip de texto.
+
+   Por defecto el navegador escala la foto del elemento viejo hasta el
+   tamaño del nuevo: la celda de la tabla es un texto chico y el input del
+   formulario es una caja ancha, así que el texto se estira, se aplasta y
+   se sale de la caja (se veía como un borbón ilegible al lado del form).
+
+   La solución son DOS clases (el `view-transition-class` es solo un hook de
+   estilo: el emparejamiento de la transición lo hace el
+   `view-transition-name`):
+
+     - `.celda` → el TEXTO que viaja (la celda de la tabla).
+     - `.caja`  → la CAJA que lo recibe (el input del formulario).
+
+   OJO: Chrome le pone a los DOS pseudo-elementos del grupo (el viejo y el
+   nuevo) la clase del elemento de DESTINO de la navegación. Por eso las
+   reglas están separadas por sentido: en la ida el destino es el input
+   (clase "caja") y en la vuelta el destino es la celda (clase "celda").
+
+   En los dos sentidos pasa lo mismo: el TEXTO conserva su tamaño natural
+   (si se escala hasta el ancho del input, se estira, se aplasta y se sale
+   de la caja: se veía como un borbón ilegible al lado del form) y la CAJA
+   del input no se dibuja (si se dibuja, su foto se deforma al estirarse
+   o encogerse). El input real aparece cuando termina la transición.
+
+   En un navegador que NO siga el comportamiento de Chrome (que le pone la
+   clase del destino a los dos pseudo-elementos), la ida degrada a un
+   cross-fade limpio: no se ve el chip, pero tampoco hay deformación.
+   --------------------------------------------------------------------------- */
+
+/* El texto que viaja (la celda de la tabla). */
+.vt-celda {
+  view-transition-class: celda;
+}
+
+/* La caja que lo recibe (el input del formulario). */
+.vt-caja {
+  view-transition-class: caja;
+}
+
+/* El texto no se escala y queda centrado en el grupo (el input del
+   formulario tiene el texto al centro de la caja). */
+::view-transition-old(.celda),
+::view-transition-old(.caja),
+::view-transition-new(.celda) {
+  inline-size: auto;
+  block-size: auto;
+  max-inline-size: 100%;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+}
+
+/* La caja del input no se dibuja durante el vuelo.
+   `!important` porque la animación del navegador (el fade-in/out del
+   pseudo) gana sobre una declaración normal: sin el `!important` la caja
+   se vería igual. El `!important` no borra la animación (eso sí lo haría
+   `animation: none`), así que el pseudo-elemento sigue siendo observable
+   (lo usan los e2e de la view transition). */
+::view-transition-new(.caja),
+::view-transition-old(.celda) {
+  opacity: 0 !important;
 }
