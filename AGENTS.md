@@ -361,14 +361,15 @@ Subir fotos, chat con compradores, publicar productos, multi-cuenta, push móvil
 
 **Estado actual**: el modelo `buys + solds + sale_items + customers` está activo en `master`. La app tiene **cuatro vistas** en el header (Dashboard · Compras · Ventas · Clientes) y el borrado vive **en las tablas** (no en las páginas de edición), con doble confirmación cuando el registro tiene ventas asociadas.
 
-Cerrados en esta tanda (2026-10-21, aún sin pushear):
+Cerrados en esta tanda (2026-10-21, **pusheados a `origin/master`**):
 
 - `feature-acciones-en-listas` — el borrado desde las tablas con modales compartidas (`ConfirmDeleteModal`, `DeleteBuyModal`, `DeleteDialogs`), el indicador de orden en la misma línea que la cabecera y la view transition de elemento compartido al editar. Refs: `odd/tasks/feature-acciones-en-listas.md`.
 - `feature-clientes-crud` — vista de Clientes (alta, edición y borrado en cascada, en el server y en el web). Refs: `odd/tasks/feature-clientes-crud.md`.
+- La tanda de pulido de UI (cursor, view transition con todos los campos, link del header y orden del picker): 5 commits desde `9a1341d`.
 
-**Verificación de la tanda**: 176 server + 198 web tests + 31/31 e2e + 0 typecheck/lint/format, verificación visual (15 capturas mirada) y **verificadores independientes** de las dos unidades de riesgo (borrado en cascada de compras y de clientes): sin bloqueantes en ninguna.
+**Verificación de la tanda**: 176 server + 209 web tests + 32/32 e2e + 0 typecheck/lint/format, verificación visual (18 capturas mirada, incluida `08b-transicion-en-vuelo` que congela la transición para ver los chips en el aire) y **verificadores independientes** de las dos unidades de riesgo (borrado en cascada de compras y de clientes): sin bloqueantes en ninguna.
 
-**Próximo paso inmediato**: revisar la tanda en `master` y decidir el push (queda a tu criterio). Opcional: un smoke manual de los flujos en `localhost:5173` (los e2e y las capturas cubren lo principal).
+**Próximo paso inmediato**: la app está en `master` y en `origin/master`. Opcional: un smoke manual de los flujos en `localhost:5173` (los e2e y las capturas cubren lo principal).
 
 Decisiones que quedaron pendientes (no bloquean nada):
 
