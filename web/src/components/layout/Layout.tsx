@@ -1,8 +1,18 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { cn } from './NavLink';
 import { ThemeToggle } from './ThemeToggle';
+import { esRutaDashboard } from '../../lib/dashboardTabs';
 
 export function Layout() {
+  const { pathname } = useLocation();
+  /**
+   * El link "Dashboard" del header tiene que quedar iluminado también
+   * cuando estás en una de sus tabs (Ingresos, Productos, Compradores):
+   * con `end` (coincidencia exacta) solo se activaba en `/`, así que al
+   * saltar a una sub-tab el header perdía el resaltado.
+   */
+  const enDashboard = esRutaDashboard(pathname);
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -16,7 +26,14 @@ export function Layout() {
                 página (scroll horizontal de todo el documento), el nav
                 scrollea solo. Los links no se encogen (shrink-0). */}
             <nav className="flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Principal">
-              <NavLink to="/" end viewTransition className={cn}>
+              <NavLink
+                to="/"
+                end
+                viewTransition
+                className={({ isActive }: { isActive: boolean }) =>
+                  cn({ isActive: isActive || enDashboard })
+                }
+              >
                 Dashboard
               </NavLink>
               <NavLink to="/buys" viewTransition className={cn}>

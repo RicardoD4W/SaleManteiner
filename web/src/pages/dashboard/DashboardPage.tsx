@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { DASHBOARD_TABS } from '../../lib/dashboardTabs';
 
 /**
  * Layout del Dashboard (Fase 5 / S1).
@@ -12,14 +13,11 @@ import { NavLink, Outlet } from 'react-router-dom';
  *
  * NavLink con className como función (`isActive`) para highlighting
  * automático según la URL — sin estado local para la tab activa.
+ *
+ * Las rutas de las tabs viven en `lib/dashboardTabs.ts` (fuente única: la
+ * usa también el link "Dashboard" del header para no perder el
+ * resaltado al entrar a una sub-tab).
  */
-const TABS = [
-  { to: '/', label: 'Resumen', end: true },
-  { to: '/revenue', label: 'Ingresos', end: false },
-  { to: '/products', label: 'Productos', end: false },
-  { to: '/buyers', label: 'Compradores', end: false },
-];
-
 export function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -27,7 +25,7 @@ export function DashboardPage() {
 
       <nav className="border-b border-gray-200" aria-label="Tabs del dashboard">
         <ul className="-mb-px flex overflow-x-auto">
-          {TABS.map((tab) => (
+          {DASHBOARD_TABS.map((tab) => (
             <li key={tab.to} className="shrink-0">
               <NavLink
                 to={tab.to}

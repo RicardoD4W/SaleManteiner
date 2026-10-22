@@ -10,6 +10,9 @@ export const cn = ({ isActive }: { isActive: boolean }): string =>
       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100',
   ].join(' ');
 
-export function NavLink(props: NavLinkProps) {
-  return <RouterNavLink {...props} className={cn} />;
+export function NavLink({ className, ...props }: NavLinkProps) {
+  // `className` propio gana: algunos links necesitan decidir el
+  // resaltado por su cuenta (ej. el link "Dashboard" del header, que
+  // también se queda iluminado cuando estás en una sub-tab).
+  return <RouterNavLink {...props} className={className ?? cn} />;
 }
