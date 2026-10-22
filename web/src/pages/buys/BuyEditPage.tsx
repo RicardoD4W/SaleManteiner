@@ -8,11 +8,11 @@
  * desde la tabla de `/buys`, con el mismo diálogo compartido
  * (`components/sales/DeleteDialogs.tsx`).
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useViewTransitionState } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -59,6 +59,17 @@ export function BuyEditPage() {
    * distingue los campos (cada input tiene su pareja en la fila).
    */
   const nombreTransicion = (campo: string) => `buy-${campo}-${buyId}`;
+
+  /**
+   * ¿La página llegó por una view transition? (el router la está entrando).
+   *
+   * Si llega así, los campos del formulario entran con un fade corto al
+   * terminar la transición (ver `.vt-entra` en `index.css`): durante el
+   * vuelo la foto del input se oculta (se deformaría al estirarse) y sin
+   * esto los campos aparecerían de golpe.
+   */
+  const transicionando = useViewTransitionState(`/buys/${buyId}`);
+  const [llegoPorTransicion] = useState(() => transicionando);
 
   /**
    * Vuelve a la lista dejando armada la fila de esta compra (S3): el id
@@ -185,7 +196,10 @@ export function BuyEditPage() {
 
       <Card>
         <CardBody>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className={`space-y-4${llegoPorTransicion ? ' vt-entra' : ''}`}
+          >
             <Input
               label="Producto *"
               placeholder="Funda iPhone 15"

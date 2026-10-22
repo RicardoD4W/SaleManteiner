@@ -287,6 +287,22 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   await editar.click();
   await page.waitForTimeout(1500);
   await capturar(page, '08b-transicion-en-vuelo', false);
+
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
+  await page.waitForTimeout(600);
+
+  // 08c. La ENTRADA de los campos: al terminar el vuelo los inputs entran
+  // con un fade corto (durante el vuelo su foto está oculta porque se
+  // deformaría al estirarse). Sin esto los campos aparecerían de golpe.
+  // Se hace en una navegación aparte para que la línea de tiempo de la
+  // transición sea limpia.
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.05 });
+  await page.goto('/buys');
+  const editar2 = page.getByRole('link', { name: 'Editar' }).first();
+  await editar2.hover();
+  await editar2.click();
+  await page.waitForTimeout(5400);
+  await capturar(page, '08c-entrada-campos', false);
   await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
   await page.waitForTimeout(600);
 
