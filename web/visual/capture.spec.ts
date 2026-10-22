@@ -298,8 +298,11 @@ test('captura las pantallas clave en light y dark', async ({ page }) => {
   const editar2 = page.getByRole('link', { name: 'Editar' }).first();
   await editar2.hover();
   await editar2.click();
-  await page.waitForTimeout(4500);
-  await capturar(page, '08c-dato-llegando', false);
+  // 4.700 ms (ralentizado) = el ~94% del vuelo: es el tramo del relevo,
+  // donde el chip que llega se disuelve y la caja del input aparece (las
+  // dos en el mismo overlay, así que el valor no parpadea).
+  await page.waitForTimeout(4700);
+  await capturar(page, '08c-relevo-campos', false);
   await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 });
   await page.waitForTimeout(600);
 
