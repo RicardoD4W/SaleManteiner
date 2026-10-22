@@ -259,40 +259,53 @@ Reglas (no negociables, §0.1):
 
 ## 9. Skills cargadas
 
-Las skills de cada workspace viven en `<workspace>/.agents/skills/<nombre>/SKILL.md`. Antes de leer o escribir cualquier archivo de un workspace, **SIEMPRE** se carga el `SKILL.md` de cada skill relevante y sus `references/*.md` si la regla general aplica al cambio. Esto NO es opcional.
+Las skills de cada workspace viven en `<workspace>/.agents/skills/<nombre>/SKILL.md`.
 
-### Mapeo de skills por workspace
+### Regla de evaluación por prompt (OBLIGATORIA, en cada pedido)
+
+En **cada** pedido del usuario hay que evaluar **explícitamente** si el cambio toca algo que una skill cubre, y esa evaluación va **antes** de la primera lectura o edición del workspace:
+
+1. Listar las skills candidatas del workspace que se va a tocar (con el mapa de abajo).
+2. Decidir skill por skill: **cargar** o **no cargar**, dejando el motivo.
+3. **En caso de duda → cargar.** Una skill de más cuesta una lectura; una de menos cuesta un error que la skill habría prevenido. La duda nunca es motivo para saltear.
+4. Cargar el `SKILL.md` **antes** de la primera lectura o edición del workspace, y también sus `references/*.md` si la regla general aplica al cambio.
+5. La evaluación es **por pedido**, no una sola vez por sesión: si el pedido cambia de área (un modal, un schema, el server, los tests, el diseño), se re-evalúa.
+6. Dejar en el informe del turno qué skills se cargaron y cuáles se descartaron, con el motivo. Si no se dice nada, se asume que no se evaluó.
+
+### Mapeo de skills por workspace (ruta completa)
 
 **`server/.agents/skills/`** (cargar antes de tocar `server/**`):
 
-- `zod/SKILL.md` — schemas Zod, validaciones, refinements, parse (`safeParse`, `flatten`, `multipleOf`, `brand`, etc.).
-- `typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics, narrowing.
-- `vitest/SKILL.md` — tests Vitest: fixtures, helpers, mocking, organización.
+- `server/.agents/skills/zod/SKILL.md` — schemas Zod, validaciones, refinements, parse (`safeParse`, `flatten`, `multipleOf`, `brand`, etc.).
+- `server/.agents/skills/typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics, narrowing.
+- `server/.agents/skills/vitest/SKILL.md` — tests Vitest: fixtures, helpers, mocking, organización.
 
 **`web/.agents/skills/`** (cargar antes de tocar `web/**`):
 
-- `react-best-practices/SKILL.md` — performance de React (Vercel rules: waterfalls, bundle, memo, derived state, hydration).
-- `composition-patterns/SKILL.md` — APIs de componentes, evitar boolean prop proliferation, compound components, state lifting.
-- `typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics.
-- `vite/SKILL.md` — `vite.config.ts`, plugins, build, dev server, env vars.
-- `tailwind-css-patterns/SKILL.md` — utilities, responsive, dark mode (`@custom-variant dark`), `@theme`, accesibilidad visual.
-- `accessibility/SKILL.md` — WCAG 2.2, ARIA, focus management, contraste, target size, lenguaje, labels, errores.
-- `seo/SKILL.md` — meta tags, OG, JSON-LD. NO aplica a esta SPA salvo que se reactive SSR.
-- `frontend-design/SKILL.md` — jerarquía visual, spacing, tipografía, layout, atomic design.
+- `web/.agents/skills/react-best-practices/SKILL.md` — performance de React (Vercel rules: waterfalls, bundle, memo, derived state, hydration).
+- `web/.agents/skills/composition-patterns/SKILL.md` — APIs de componentes, evitar boolean prop proliferation, compound components, state lifting.
+- `web/.agents/skills/typescript-advanced-types/SKILL.md` — tipos utilitarios, branded types, generics.
+- `web/.agents/skills/vite/SKILL.md` — `vite.config.ts`, plugins, build, dev server, env vars.
+- `web/.agents/skills/tailwind-css-patterns/SKILL.md` — utilities, responsive design, dark mode (`@custom-variant dark`), `@theme`, accesibilidad visual.
+- `web/.agents/skills/accessibility/SKILL.md` — WCAG 2.2, ARIA, focus management, contraste, target size, lenguaje, labels, errores. **Cargar ante cualquier cambio de modal, diálogo, foco, teclado o formulario** (el `Escape`, el foco inicial y el orden de tabulación son territorio suyo).
+- `web/.agents/skills/frontend-design/SKILL.md` — jerarquía visual, spacing, tipografía, layout, atomic design. **Cargar ante cambios de UI visibles**, no solo de lógica.
+- `web/.agents/skills/visual-verification/SKILL.md` — el arnés de capturas (`npm run visual -w web`): qué se captura, cómo se miran las capturas y qué mira cada una. **Cargar en toda feature con UI** (ver §8.1).
+- `web/.agents/skills/seo/SKILL.md` — meta tags, OG, JSON-LD. NO aplica a esta SPA salvo que se reactive SSR.
 
 ### Reglas duras
 
 1. **SIEMPRE** cargar las skills relevantes **antes** de la primera lectura o edición de un archivo del workspace.
-2. Las skills se leen con `read` apuntando a la ruta del SKILL.md (path relativo al repo, ej: `web/.agents/skills/tailwind-css-patterns/SKILL.md`).
+2. Las skills se leen con `read` apuntando a la ruta completa del SKILL.md (ej. `web/.agents/skills/tailwind-css-patterns/SKILL.md`).
 3. Si la skill tiene `references/*.md` cuya regla general aplica al cambio, leer también las references — no solo el SKILL.md raíz.
 4. Al delegar a un subagent del workspace, el task que se le pasa debe incluir la lista de skills relevantes a leer primero (no asumir que el subagent las descubre solo).
 5. Si una skill contradice la intuición técnica, gana la skill (es la convención del repo).
+6. Si al cargarla queda claro que no aplica, no pasa nada: se anota el descarte. No se "descarga" a mitad de camino.
 
 ### Cuándo NO cargar una skill
 
-- Tareas puramente de git (commits, branches, merge).
+- Tareas puramente de git (commits, branches, merge) y documentación que no toca código (`AGENTS.md`, `README.md`, `odd/tasks/`).
 - Búsqueda global de strings en el repo (`grep`/`find`), salvo que el resultado requiera editar archivos del workspace.
-- Trabajo en `odd/tasks/` (es un directorio de docs, no toca código de runtime).
+- Skills que el propio SKILL.md declara fuera de alcance (ej. `seo` en esta SPA: es una SPA sin SSR).
 
 ### Convención de dark mode (Tailwind 4)
 
@@ -379,6 +392,7 @@ Decisiones que quedaron pendientes (no bloquean nada):
 
 ## 13. Notas recientes
 
+- **(2026-10-22) Bug del picker de productos en la venta nueva.** "Cancelar" en el picker **INICIAL** (el primer paso de "+ Nueva venta") te dejaba en el formulario de venta sin productos: no se podía ni enviar (falta el producto) ni cerrar sin otro click. Ahora cancelar ahí cancela la **venta entera** y cierra la modal. El picker de "+ Cambiar productos" se comporta como debe: cancelar vuelve al formulario conservando lo elegido. El picker ahora sabe **por qué** se abrió (`motivoPicker`: `'inicial' | 'cambio' | null`) en vez de un booleano `showPicker`. Verificación: 211 tests web + 176 server + 33/33 e2e + typecheck/lint/format limpios y verificación visual (19 capturas, incluida `05c-form-nueva-venta`: el formulario de venta, que el arnés no capturaba).
 - **(2026-10-21) Tanda de pulido de UI (4 pedidos del usuario).** (1) **Puntero del ratón en "Borrar"/"Editar"**: la causa era el preflight de **Tailwind 4**, que ya no pone `cursor: pointer` en los `<button>` (en v3 lo hacía): los links "Editar" mostraban la manita por defecto del navegador y los botones "Borrar" la flecha. Arreglado en el `Button` compartido y en los botones de fila de `/buys`, `/solds` y `/customers`. (2) **View transition de editar**: los valores de la fila viajan como _chips de texto_ (uno por campo editable) hasta los inputs del formulario, sin deformarse: en `/buys` viajan producto, coste, cantidad, asociados y fecha; en `/solds`, cliente, precio, asociados y fecha. El CSS está en `web/src/index.css` (clases `.vt-celda` / `.vt-caja` + `view-transition-class`). Ojo: **Chrome le pone a los DOS pseudo-elementos del grupo la clase del elemento de DESTINO** de la navegación (por eso las reglas de CSS están separadas por sentido: ida → `caja`, vuelta → `celda`). (3) **El link "Dashboard" del header sigue iluminado** en las tabs del dashboard (Ingresos/Productos/Compradores): con `end` solo se activaba en `/`; ahora las rutas viven en `web/src/lib/dashboardTabs.ts` (fuente única para las tabs y para el link del header). (4) **Picker de productos**: al reabrirlo con "+ Cambiar productos", lo que ya está marcado sale ARRIBA del todo; el orden se congela al abrir (tildar/destildar no reordena la lista, para que la fila bajo el puntero no se escape). Verificación: 209 tests web + 176 server + 32/32 e2e, typecheck/lint/format limpios y **verificación visual con las 18 capturas revisadas** (el arnés tiene ahora `01b-dashboard-tab-ingresos` y `05b-picker-orden` —que pinean los puntos 3 y 4— y `08b-transicion-en-vuelo`, que congela la transición a 1/20 de velocidad por CDP para poder VER los chips en el aire).
 - **(2026-10-21) La verificación visual pasa a ser NO NEGOCIABLE (AGENTS.md §0).** El usuario pidió "literalmente veas la web y compruebes sobre la web si funciona o no". Quedó el arnés (`npm run visual -w web` → 15 capturas en `web/visual/shots/`, que se miran con la herramienta `read`) y la regla en §0: un feature con UI no está cerrado sin las capturas revisadas. El primer uso ya encontró dos cosas que ningún test detectaba (la columna "Acciones" de `/solds` cortada, y el chart del dashboard capturado en su fallback de carga).
 - **(2026-10-21) Tanda cerrada: `acciones-en-listas` + `clientes-crud`.** El borrado de compras y ventas pasó de las páginas de edición a las tablas (con modales compartidas: `ConfirmDeleteModal`, `DeleteBuyModal`, `DeleteDialogs`) y el de clientes, con su vista nueva en el header (alta, edición y borrado en cascada, con el 409 en el server y la cascada transaccional con audit trail). Además: el indicador de orden se queda en la misma línea que la cabecera, y al editar la fila de la tabla viaja al formulario (view transition de elemento compartido). Verificación: 176 server + 198 web + 31/31 e2e, typecheck/lint/format limpios, verificación visual y **verificadores independientes** de las dos unidades de riesgo (0 bloqueantes).
