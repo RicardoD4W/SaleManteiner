@@ -135,7 +135,10 @@ function CeldaAcciones({
         // Nombre accesible: identifica el registro (la fila concreta que se
         // va a borrar), no un "Borrar" ambiguo.
         aria-label={`Borrar ${fila.product_name}`}
-        className="text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+        // `cursor-pointer`: el preflight de Tailwind 4 no lo pone en los
+        // <button> (en v3 sí), así que sin esto el puntero sale como flecha
+        // mientras que el link "Editar" sí muestra la manita.
+        className="cursor-pointer text-sm font-medium text-red-600 hover:underline dark:text-red-400"
       >
         Borrar
       </button>

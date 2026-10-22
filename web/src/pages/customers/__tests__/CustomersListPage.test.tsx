@@ -216,6 +216,19 @@ describe('CustomersListPage', () => {
     expect(screen.getByText(/No se puede deshacer/)).toBeInTheDocument();
   });
 
+  // El preflight de Tailwind 4 no pone `cursor: pointer` en los <button>
+  // (en v3 sí lo hacía): sin esto el puntero sale como flecha.
+  it('los botones de la fila muestran el cursor de puntero', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    expect(screen.getByRole('button', { name: 'Editar Juan Pérez' }).className).toMatch(
+      /cursor-pointer/,
+    );
+    expect(screen.getByRole('button', { name: 'Borrar Juan Pérez' }).className).toMatch(
+      /cursor-pointer/,
+    );
+  });
+
   it('un cliente sin ventas se borra con el DELETE simple', async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue(undefined);

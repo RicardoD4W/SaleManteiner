@@ -51,4 +51,18 @@ describe('Button', () => {
     render(<Button>OK</Button>);
     expect(screen.getByRole('button')).toHaveAttribute('type', 'button');
   });
+
+  // El preflight de Tailwind 4 no pone `cursor: pointer` en los <button>
+  // (en v3 sí lo hacía): sin esto el puntero sale como flecha.
+  it('muestra el cursor de puntero', () => {
+    render(<Button>Crear venta</Button>);
+    expect(screen.getByRole('button').className).toMatch(/cursor-pointer/);
+  });
+
+  it('un botón deshabilitado vuelve al cursor de "no permitido"', () => {
+    render(<Button disabled>Crear venta</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn.className).toMatch(/cursor-pointer/);
+    expect(btn.className).toMatch(/disabled:cursor-not-allowed/);
+  });
 });

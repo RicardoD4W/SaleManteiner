@@ -196,9 +196,7 @@ export function CustomersListPage() {
                   currentDir={sortDir}
                   onSort={onSort}
                 />
-                <th scope="col" className={`${tableHeadClass} text-left`}>
-                  <span className="whitespace-nowrap">Acciones</span>
-                </th>
+                <th scope="col" className={`${tableHeadClass} text-left`}></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -222,7 +220,10 @@ export function CustomersListPage() {
                         // "Editar" por fila y sin esto el lector de pantalla
                         // no dice qué cliente es.
                         aria-label={`Editar ${row.name}`}
-                        className="text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+                        // `cursor-pointer`: el preflight de Tailwind 4 no lo
+                        // pone en los <button> (en v3 sí): sin esto el
+                        // puntero sale como flecha.
+                        className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Editar
                       </button>
@@ -232,7 +233,7 @@ export function CustomersListPage() {
                         // Igual que "Editar": el nombre accesible identifica
                         // al cliente de la fila, no un "Borrar" ambiguo.
                         aria-label={`Borrar ${row.name}`}
-                        className="text-sm font-medium text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer text-sm font-medium text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Borrar
                       </button>
