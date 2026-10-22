@@ -61,62 +61,6 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
-
-  /* Sin transición no hay vuelo: los campos se ven de entrada (el fade de
-     los inputs esperaría al final de una transición que no existe). */
-  .vt-entra input,
-  .vt-entra textarea {
-    animation: none !important;
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Duración de la view transition.
-
-   El browser usa 250 ms por defecto. Se declara explícita (y se aplica a
-   todos los pseudo-elementos de la transición) para poder sincronizar la
-   entrada de los campos del formulario con el FINAL del vuelo: el fade de
-   los inputs tiene que arrancar cuando termina la transición, no antes.
-   --------------------------------------------------------------------------- */
-
-:root {
-  --dur-transicion: 250ms;
-}
-
-::view-transition-group(*),
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation-duration: var(--dur-transicion);
-}
-
-/* ---------------------------------------------------------------------------
-   Entrada de los campos del formulario de editar.
-
-   Cuando la página llega por una view transition, los LABELS entran con el
-   cross-fade de la página, pero los inputs no: su foto se deforma al
-   estirarse hasta el ancho del input, así que se oculta durante el vuelo
-   (ver el bloque de "chip" más abajo). El resultado era que al terminar la
-   transición los campos aparecían DE GOLPE.
-
-   Con esto los inputs (y el textarea) entran con un fade corto que arranca
-   justo cuando termina el vuelo (el delay es la duración de la transición).
-
-   La clase `.vt-entra` la pone la página de editar cuando detecta que
-   llegó por una transición (`useViewTransitionState` de react-router).
-   --------------------------------------------------------------------------- */
-
-@keyframes campo-entra {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.vt-entra input,
-.vt-entra textarea {
-  animation: campo-entra 140ms ease-out var(--dur-transicion) both;
 }
 
 /* El input del campo de cliente (`CustomerAutocomplete`) hereda el nombre de

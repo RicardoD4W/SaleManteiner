@@ -11,7 +11,7 @@
  * (`components/sales/DeleteDialogs.tsx`).
  */
 import { useEffect, useState, type CSSProperties } from 'react';
-import { useNavigate, useParams, Link, useViewTransitionState } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -82,17 +82,6 @@ export function SoldEditPage() {
    * cada campo tiene su pareja en la fila.
    */
   const nombreTransicion = (campo: string) => `sold-${campo}-${soldId}`;
-
-  /**
-   * ¿La página llegó por una view transition? (el router la está entrando).
-   *
-   * Si llega así, los campos del formulario entran con un fade corto al
-   * terminar la transición (ver `.vt-entra` en `index.css`): durante el
-   * vuelo la foto del input se oculta (se deformaría al estirarse) y sin
-   * esto los campos aparecerían de golpe.
-   */
-  const transicionando = useViewTransitionState(`/solds/${soldId}`);
-  const [llegoPorTransicion] = useState(() => transicionando);
 
   /**
    * Vuelve a la lista dejando armada la fila de esta venta (S3): el id
@@ -265,10 +254,7 @@ export function SoldEditPage() {
 
       <Card>
         <CardBody>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className={`space-y-4${llegoPorTransicion ? ' vt-entra' : ''}`}
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/*
               S3: el input del cliente es el destino de la transición de
               elemento compartido. El `CustomerAutocomplete` es un
