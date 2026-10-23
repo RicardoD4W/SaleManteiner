@@ -1,5 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
+import { definedOnly } from '../lib/defined-only.js';
+import type { DateRange } from './types.js';
 import type { Sold } from '../schemas/solds.js';
 import type {
   CreateSoldInput,
@@ -38,33 +40,35 @@ function rowToSold(row: SoldRow): Sold {
   };
 }
 
-export interface DateRange {
-  from?: string;
-  to?: string;
-}
-
-export interface ListFilters {
+export interface SoldListFilters {
   customerId?: number;
   dateRange?: DateRange;
 }
 
-export interface StockInsufficientError {
-  error: 'Stock insuficiente';
-  items: Array<{
-    buy_id: number;
-    product_name: string;
-    disponibles: number;
-    solicitado: number;
-  }>;
+export interface StockInsufficientItem {
+  buy_id: number;
+  product_name: string;
+  disponibles: number;
+  solicitado: number;
+}
+
+export class StockInsufficientError extends Error {
+  readonly error = 'Stock insuficiente';
+  readonly items: StockInsufficientItem[];
+
+  constructor(items: StockInsufficientItem[]) {
+    super('Stock insuficiente');
+    this.name = 'StockInsufficientError';
+    this.items = items;
+  }
 }
 
 export interface SoldsRepo {
-  create(input: CreateSoldInput): Sold;
   createManyWithStockCheck(input: CreateSoldInput): Sold;
   getById(id: number): Sold | null;
   getByIdWithItems(id: number): SoldWithItems | null;
-  list(filters?: ListFilters): Sold[];
-  listWithProfit(filters?: ListFilters): SoldWithProfit[];
+  list(filters?: SoldListFilters): Sold[];
+  listWithProfit(filters?: SoldListFilters): SoldWithProfit[];
   update(id: number, input: UpdateSoldInput): Sold | null;
   remove(id: number): boolean;
   statsDashboard(): DashboardStats;
@@ -138,7 +142,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     return db.transaction(() => {
       const now = new Date().toISOString();
 
-      const stockErrors: StockInsufficientError['items'] = [];
+      const stockErrors: StockInsufficientItem[] = [];
 
       for (const item of input.items) {
         const rows = db
@@ -168,11 +172,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       }
 
       if (stockErrors.length > 0) {
-        const err: StockInsufficientError = {
-          error: 'Stock insuficiente',
-          items: stockErrors,
-        };
-        throw err;
+        throw new StockInsufficientError(stockErrors);
       }
 
       const soldResult = insertSoldStmt.run(
@@ -191,10 +191,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
       return rowToSold(getStmt.get(soldId) as SoldRow);
     })();
-  }
-
-  function create(input: CreateSoldInput): Sold {
-    return createManyWithStockCheck(input);
   }
 
   function getById(id: number): Sold | null {
@@ -236,7 +232,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     };
   }
 
-  function list(filters?: ListFilters): Sold[] {
+  function list(filters?: SoldListFilters): Sold[] {
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
@@ -252,7 +248,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     return rows.map(rowToSold);
   }
 
-  function listWithProfit(filters?: ListFilters): SoldWithProfit[] {
+  function listWithProfit(filters?: SoldListFilters): SoldWithProfit[] {
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
@@ -319,18 +315,14 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const existing = getById(id);
     if (!existing) return null;
 
-    const definedPatch = Object.fromEntries(
-      Object.entries(input).filter(([, v]) => v !== undefined),
-    );
+    const definedPatch = definedOnly(input);
     if (Object.keys(definedPatch).length === 0) return existing;
 
     const next = {
       ...existing,
       ...definedPatch,
-      sale_price: round2((definedPatch.sale_price as number | undefined) ?? existing.sale_price),
-      associated_costs: round2(
-        (definedPatch.associated_costs as number | undefined) ?? existing.associated_costs,
-      ),
+      sale_price: round2(definedPatch.sale_price ?? existing.sale_price),
+      associated_costs: round2(definedPatch.associated_costs ?? existing.associated_costs),
       id: existing.id,
       created_at: existing.created_at,
     };
@@ -352,6 +344,10 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function statsDashboard(): DashboardStats {
+    return db.transaction((): DashboardStats => computeStats())();
+  }
+
+  function computeStats(): DashboardStats {
     const buysRow = db
       .prepare(
         `SELECT
@@ -540,7 +536,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   return {
-    create,
     createManyWithStockCheck,
     getById,
     getByIdWithItems,

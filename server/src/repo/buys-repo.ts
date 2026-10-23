@@ -1,5 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
+import { definedOnly } from '../lib/defined-only.js';
+import type { AssociatedSale, DateRange } from './types.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
@@ -25,24 +27,12 @@ function rowToBuy(row: BuyRow): Buy {
   };
 }
 
-export interface DateRange {
-  from?: string;
-  to?: string;
-}
-
-export interface ListFilters {
+export interface BuyListFilters {
   dateRange?: DateRange;
 }
 
 export interface BuyWithStock extends Buy {
   disponibles: number;
-}
-
-export interface AssociatedSale {
-  id: number;
-  customer_name: string;
-  sold_at: string | null;
-  items_count: number;
 }
 
 export type RemoveBuyResult =
@@ -53,7 +43,7 @@ export type RemoveBuyResult =
 export interface BuysRepo {
   create(input: CreateBuyInput): Buy;
   getById(id: number): Buy | null;
-  listWithStock(filters?: ListFilters): BuyWithStock[];
+  listWithStock(filters?: BuyListFilters): BuyWithStock[];
   getWithStock(): BuyWithStock[];
   update(id: number, input: UpdateBuyInput): Buy | null;
   remove(id: number): RemoveBuyResult;
@@ -97,7 +87,7 @@ export function createBuysRepo(db: Database): BuysRepo {
     return row ? rowToBuy(row) : null;
   }
 
-  function listWithStock(filters?: ListFilters): BuyWithStock[] {
+  function listWithStock(filters?: BuyListFilters): BuyWithStock[] {
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
     const rows = db
@@ -130,20 +120,14 @@ export function createBuysRepo(db: Database): BuysRepo {
     const existing = getById(id);
     if (!existing) return null;
 
-    const definedPatch = Object.fromEntries(
-      Object.entries(input).filter(([, v]) => v !== undefined),
-    );
+    const definedPatch = definedOnly(input);
     if (Object.keys(definedPatch).length === 0) return existing;
 
     const next = {
       ...existing,
       ...definedPatch,
-      purchase_cost: round2(
-        (definedPatch.purchase_cost as number | undefined) ?? existing.purchase_cost,
-      ),
-      associated_costs: round2(
-        (definedPatch.associated_costs as number | undefined) ?? existing.associated_costs,
-      ),
+      purchase_cost: round2(definedPatch.purchase_cost ?? existing.purchase_cost),
+      associated_costs: round2(definedPatch.associated_costs ?? existing.associated_costs),
       id: existing.id,
       created_at: existing.created_at,
     };

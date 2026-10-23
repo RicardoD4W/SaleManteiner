@@ -1,29 +1,11 @@
-import { Router, type NextFunction, type Request, type Response } from 'express';
-import { z } from 'zod';
+import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { BuysRepo } from '../repo/buys-repo.js';
 import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
+import { DateRangeQuery, IdParam, asyncHandler, respondBadRequest } from './_shared.js';
 
 export interface BuysRouterDeps {
   repo: BuysRepo;
-}
-
-const IdParam = z.object({ id: z.coerce.number().int().positive() });
-const ListQuery = z.object({
-  from: z.coerce
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  to: z.coerce
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-});
-
-function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    fn(req, res, next).catch(next);
-  };
 }
 
 export function buysRouter(deps: BuysRouterDeps): Router {
@@ -41,12 +23,9 @@ export function buysRouter(deps: BuysRouterDeps): Router {
   router.get(
     '/',
     asyncHandler(async (req, res) => {
-      const parsed = ListQuery.safeParse(req.query);
+      const parsed = DateRangeQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Parámetros inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Parámetros inválidos', parsed.error.flatten());
       }
       const filters =
         parsed.data.from || parsed.data.to
@@ -62,7 +41,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const data = repo.getById(parsed.data.id);
       if (!data) {
@@ -77,10 +56,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = CreateBuyInput.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Datos de compra inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos de compra inválidos', parsed.error.flatten());
       }
       const data = repo.create(parsed.data);
       res.status(201).json({ data });
@@ -92,14 +68,11 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const params = IdParam.safeParse(req.params);
       if (!params.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: params.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', params.error.flatten());
       }
       const body = UpdateBuyInput.safeParse(req.body);
       if (!body.success) {
-        return res.status(400).json({
-          error: 'Datos de actualización inválidos',
-          issues: body.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos de actualización inválidos', body.error.flatten());
       }
       const data = repo.update(params.data.id, body.data);
       if (!data) {
@@ -114,7 +87,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const id = parsed.data.id;
       if (!repo.getById(id)) {
@@ -152,7 +125,7 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const result = repo.remove(parsed.data.id);
       if (result.ok) {

@@ -1,4 +1,6 @@
 import type { Database } from 'better-sqlite3';
+import { definedOnly } from '../lib/defined-only.js';
+import type { AssociatedSale } from './types.js';
 import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '../schemas/customers.js';
 
 interface CustomerRow {
@@ -15,11 +17,8 @@ function rowToCustomer(row: CustomerRow): Customer {
   };
 }
 
-export interface AssociatedSale {
-  id: number;
-  customer_name: string;
-  sold_at: string | null;
-  items_count: number;
+function escapeLikePattern(value: string): string {
+  return value.replace(/[!%_]/g, (char) => `!${char}`);
 }
 
 export type RemoveCustomerResult =
@@ -44,7 +43,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   `);
   const getStmt = db.prepare('SELECT * FROM customers WHERE id = ?');
   const searchStmt = db.prepare(`
-    SELECT * FROM customers WHERE name LIKE ? ORDER BY name COLLATE NOCASE LIMIT 20
+    SELECT * FROM customers WHERE name LIKE ? ESCAPE '!' ORDER BY name COLLATE NOCASE LIMIT 20
   `);
   const listStmt = db.prepare('SELECT * FROM customers ORDER BY name COLLATE NOCASE');
   const deleteStmt = db.prepare('DELETE FROM customers WHERE id = ?');
@@ -65,7 +64,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   }
 
   function search(name: string): Customer[] {
-    const pattern = `%${name}%`;
+    const pattern = `%${escapeLikePattern(name)}%`;
     const rows = searchStmt.all(pattern) as CustomerRow[];
     return rows.map(rowToCustomer);
   }
@@ -79,9 +78,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
     const existing = getById(id);
     if (!existing) return null;
 
-    const definedPatch = Object.fromEntries(
-      Object.entries(input).filter(([, v]) => v !== undefined),
-    );
+    const definedPatch = definedOnly(input);
     if (Object.keys(definedPatch).length === 0) return existing;
 
     const next = { ...existing, ...definedPatch };

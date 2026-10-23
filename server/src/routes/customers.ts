@@ -1,20 +1,11 @@
-import { Router, type NextFunction, type Request, type Response } from 'express';
-import { z } from 'zod';
+import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { CustomersRepo } from '../repo/customers-repo.js';
 import { CreateCustomerInput, UpdateCustomerInput } from '../schemas/customers.js';
+import { CustomersSearchQuery, IdParam, asyncHandler, respondBadRequest } from './_shared.js';
 
 export interface CustomersRouterDeps {
   repo: CustomersRepo;
-}
-
-const IdParam = z.object({ id: z.coerce.number().int().positive() });
-const SearchQuery = z.object({ name: z.string().min(1).optional() });
-
-function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    fn(req, res, next).catch(next);
-  };
 }
 
 export function customersRouter(deps: CustomersRouterDeps): Router {
@@ -24,12 +15,9 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
   router.get(
     '/',
     asyncHandler(async (req, res) => {
-      const parsed = SearchQuery.safeParse(req.query);
+      const parsed = CustomersSearchQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Parámetros inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Parámetros inválidos', parsed.error.flatten());
       }
       if (parsed.data.name) {
         const data = repo.search(parsed.data.name);
@@ -45,7 +33,7 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const data = repo.getById(parsed.data.id);
       if (!data) {
@@ -60,10 +48,7 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = CreateCustomerInput.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Datos inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos inválidos', parsed.error.flatten());
       }
       const data = repo.create(parsed.data);
       res.status(201).json({ data });
@@ -75,14 +60,11 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const params = IdParam.safeParse(req.params);
       if (!params.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: params.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', params.error.flatten());
       }
       const body = UpdateCustomerInput.safeParse(req.body);
       if (!body.success) {
-        return res.status(400).json({
-          error: 'Datos de actualización inválidos',
-          issues: body.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos de actualización inválidos', body.error.flatten());
       }
       const data = repo.update(params.data.id, body.data);
       if (!data) {
@@ -97,7 +79,7 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const id = parsed.data.id;
       if (!repo.getById(id)) {
@@ -138,7 +120,7 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const result = repo.remove(parsed.data.id);
       if (result.ok) {

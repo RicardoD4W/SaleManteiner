@@ -389,4 +389,35 @@ describe('contrato HTTP del borrado de clientes', () => {
       expect(count('SELECT COUNT(*) AS c FROM customers WHERE id = ?', customer.id)).toBe(1);
     });
   });
+
+  describe('GET /api/customers', () => {
+    it('sin parámetros devuelve todos los clientes', async () => {
+      seedCustomer('Ana');
+      seedCustomer('Beto');
+
+      const res = await api('GET', '/api/customers');
+
+      expect(res.status).toBe(200);
+      expect((res.body?.data as unknown[]).length).toBe(2);
+    });
+
+    it('con ?name filtra por nombre', async () => {
+      seedCustomer('Ana');
+      seedCustomer('Beto');
+
+      const res = await api('GET', '/api/customers?name=Ana');
+
+      expect(res.status).toBe(200);
+      expect((res.body?.data as unknown[]).length).toBe(1);
+    });
+
+    it('con un parámetro desconocido devuelve 400 en vez de ignorarlo', async () => {
+      seedCustomer('Ana');
+
+      const res = await api('GET', '/api/customers?q=Ana');
+
+      expect(res.status).toBe(400);
+      expect(res.body?.error).toBe('Parámetros inválidos');
+    });
+  });
 });

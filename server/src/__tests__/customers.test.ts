@@ -111,8 +111,29 @@ describe('customers repo', () => {
     });
 
     it('devuelve hasta 20 resultados', () => {
+      for (let i = 0; i < 25; i++) {
+        repo.create(validCreate({ name: `Cliente ${i}` }));
+      }
       const results = repo.search('');
-      expect(results.length).toBeGreaterThan(0);
+      expect(results).toHaveLength(20);
+    });
+
+    it('trata el % como un carácter literal y no como comodín', () => {
+      repo.create(validCreate({ name: '50% de descuento' }));
+      repo.create(validCreate({ name: 'Precio normal' }));
+
+      const results = repo.search('50%');
+
+      expect(results.map((c) => c.name)).toEqual(['50% de descuento']);
+    });
+
+    it('trata el _ como un carácter literal y no como comodín', () => {
+      repo.create(validCreate({ name: 'Camisa_Manga' }));
+      repo.create(validCreate({ name: 'CamisaLarga' }));
+
+      const results = repo.search('Camisa_');
+
+      expect(results.map((c) => c.name)).toEqual(['Camisa_Manga']);
     });
   });
 

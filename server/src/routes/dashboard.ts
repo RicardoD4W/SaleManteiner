@@ -1,14 +1,9 @@
-import { Router, type NextFunction, type Request, type Response } from 'express';
+import { Router } from 'express';
 import type { SoldsRepo } from '../repo/solds-repo.js';
+import { asyncHandler } from './_shared.js';
 
 export interface DashboardRouterDeps {
   repo: SoldsRepo;
-}
-
-function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    fn(req, res, next).catch(next);
-  };
 }
 
 export function dashboardRouter(deps: DashboardRouterDeps): Router {

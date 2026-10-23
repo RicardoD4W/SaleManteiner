@@ -1,6 +1,7 @@
 import express, { type ErrorRequestHandler, type Express } from 'express';
 import cors from 'cors';
 import { pinoHttp } from 'pino-http';
+import { createRequire } from 'node:module';
 import { logger } from './logger.js';
 import { healthRouter } from './routes/health.js';
 import { buysRouter } from './routes/buys.js';
@@ -12,7 +13,9 @@ import type { SoldsRepo } from './repo/solds-repo.js';
 import type { CustomersRepo } from './repo/customers-repo.js';
 
 const SERVICE = 'salemanteiner-server';
-const VERSION = '0.1.0';
+const { version: VERSION } = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
 
 export interface CreateAppDeps {
   buysRepo: BuysRepo;
@@ -38,6 +41,15 @@ export function createApp(deps: CreateAppDeps): Express {
   });
 
   const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+    const status = Number(
+      (err as { status?: unknown; statusCode?: unknown }).status ??
+        (err as { statusCode?: unknown }).statusCode,
+    );
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      logger.warn({ path: req.path, status }, 'Invalid request');
+      res.status(status).json({ error: 'Invalid request' });
+      return;
+    }
     logger.error({ err, path: req.path }, 'Unhandled error');
     res.status(500).json({ error: 'Internal Server Error' });
   };

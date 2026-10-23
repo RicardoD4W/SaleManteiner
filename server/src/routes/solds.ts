@@ -1,29 +1,11 @@
-import { Router, type NextFunction, type Request, type Response } from 'express';
-import { z } from 'zod';
-import type { SoldsRepo, StockInsufficientError } from '../repo/solds-repo.js';
+import { Router } from 'express';
+import type { SoldsRepo } from '../repo/solds-repo.js';
+import { StockInsufficientError } from '../repo/solds-repo.js';
 import { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
+import { IdParam, SalesListQuery, asyncHandler, respondBadRequest } from './_shared.js';
 
 export interface SoldsRouterDeps {
   repo: SoldsRepo;
-}
-
-const IdParam = z.object({ id: z.coerce.number().int().positive() });
-const ListQuery = z.object({
-  customerId: z.coerce.number().int().positive().optional(),
-  from: z.coerce
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  to: z.coerce
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-});
-
-function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    fn(req, res, next).catch(next);
-  };
 }
 
 export function soldsRouter(deps: SoldsRouterDeps): Router {
@@ -33,12 +15,9 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
   router.get(
     '/',
     asyncHandler(async (req, res) => {
-      const parsed = ListQuery.safeParse(req.query);
+      const parsed = SalesListQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Parámetros inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Parámetros inválidos', parsed.error.flatten());
       }
       const filters = {
         customerId: parsed.data.customerId,
@@ -56,7 +35,7 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const data = repo.getByIdWithItems(parsed.data.id);
       if (!data) {
@@ -71,21 +50,17 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = CreateSoldInput.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({
-          error: 'Datos de venta inválidos',
-          issues: parsed.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos de venta inválidos', parsed.error.flatten());
       }
 
       try {
         const data = repo.createManyWithStockCheck(parsed.data);
         res.status(201).json({ data });
       } catch (err) {
-        const stockErr = err as Partial<StockInsufficientError> & Error;
-        if (stockErr.error === 'Stock insuficiente') {
+        if (err instanceof StockInsufficientError) {
           return res.status(422).json({
-            error: stockErr.error,
-            items: stockErr.items,
+            error: err.error,
+            items: err.items,
           });
         }
         throw err;
@@ -98,14 +73,11 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const params = IdParam.safeParse(req.params);
       if (!params.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: params.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', params.error.flatten());
       }
       const body = UpdateSoldInput.safeParse(req.body);
       if (!body.success) {
-        return res.status(400).json({
-          error: 'Datos de actualización inválidos',
-          issues: body.error.flatten(),
-        });
+        return respondBadRequest(res, 'Datos de actualización inválidos', body.error.flatten());
       }
       const data = repo.update(params.data.id, body.data);
       if (!data) {
@@ -120,7 +92,7 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
       if (!parsed.success) {
-        return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
       }
       const removed = repo.remove(parsed.data.id);
       if (!removed) {
