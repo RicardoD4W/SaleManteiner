@@ -1,6 +1,3 @@
-/**
- * Tests del repo de customers (CRUD + search).
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
@@ -43,7 +40,6 @@ describe('customers repo', () => {
     db.close();
   });
 
-  /** Compra de stock para poder vender. */
   function seedBuy(quantity = 5) {
     return buysRepo.create({
       product_name: 'Producto',
@@ -53,7 +49,6 @@ describe('customers repo', () => {
     });
   }
 
-  /** Venta de `quantity` unidades de una compra nueva, para un cliente. */
   function seedSale(customer_id: number, quantity = 1, sold_at = '2026-10-20') {
     const buy = seedBuy(quantity + 1);
     return soldsRepo.createManyWithStockCheck({
@@ -117,7 +112,6 @@ describe('customers repo', () => {
 
     it('devuelve hasta 20 resultados', () => {
       const results = repo.search('');
-      // empty search pattern matches all
       expect(results.length).toBeGreaterThan(0);
     });
   });
@@ -191,7 +185,6 @@ describe('customers repo', () => {
           },
         ],
       });
-      // Ni el cliente ni la venta se tocan.
       expect(repo.getById(customer.id)).not.toBeNull();
       expect(soldsRepo.getById(sale.id)).not.toBeNull();
     });
@@ -230,7 +223,6 @@ describe('customers repo', () => {
 
       expect(repo.remove(other.id)).toEqual({ ok: true });
       expect(repo.getById(other.id)).toBeNull();
-      // La venta del otro cliente sigue intacta.
       expect(soldsRepo.getById(sale.id)).not.toBeNull();
       expect(repo.getById(withSales.id)).not.toBeNull();
     });
@@ -299,7 +291,6 @@ describe('customers repo', () => {
     it('es transaccional: si el borrado de las ventas falla, no se borra nada', () => {
       const customer = repo.create(validCreate({ name: 'Ana' }));
       const sale = seedSale(customer.id, 1);
-      // Trigger que aborta el DELETE de la venta → la cascada falla.
       db.exec(
         `CREATE TRIGGER block_sold_delete BEFORE DELETE ON solds
          BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
@@ -307,16 +298,12 @@ describe('customers repo', () => {
 
       expect(() => repo.removeWithCascade(customer.id)).toThrow();
 
-      // Rollback: el cliente, la venta y el item siguen como estaban.
       expect(repo.getById(customer.id)).not.toBeNull();
       expect(soldsRepo.getById(sale.id)).not.toBeNull();
       expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
     });
 
     it('es transaccional también con el borrado del cliente (el último paso)', () => {
-      // El test anterior aborta el PRIMER delete (las ventas). Este aborta
-      // el ÚLTIMO (el cliente): si el delete del cliente estuviera fuera de
-      // la transacción, la venta ya borrada no se podría recuperar.
       const customer = repo.create(validCreate({ name: 'Ana' }));
       const sale = seedSale(customer.id, 1);
       db.exec(
@@ -326,7 +313,6 @@ describe('customers repo', () => {
 
       expect(() => repo.removeWithCascade(customer.id)).toThrow();
 
-      // Rollback: la venta y su item volvieron (el cliente no se borró).
       expect(repo.getById(customer.id)).not.toBeNull();
       expect(soldsRepo.getById(sale.id)).not.toBeNull();
       expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
@@ -340,7 +326,6 @@ describe('customers repo', () => {
 
       expect(repo.removeWithCascade(customer.id)).toBe(true);
 
-      // 0 huérfanos en las tres direcciones.
       expect(
         count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id NOT IN (SELECT id FROM solds)'),
       ).toBe(0);

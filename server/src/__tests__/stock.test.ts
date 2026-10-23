@@ -1,13 +1,3 @@
-/**
- * Tests de validación de stock transaccional (S7 del feature) y prorrateo por unidad (S3, S13).
- *
- * Casos cubiertos:
- *  - Stock insuficiente: lanza StockInsufficientError con detalle del producto.
- *  - Pack multi-producto: venta con 2 items de 2 buys distintas.
- *  - Prorrateo por unidad: compra de 3 unidades a 90€ → unit_cost = 30€;
- *    venta de 2 unidades → coste consumido = 60€ → beneficio coherente.
- *  - Top compradores: ranking por total_gastado.
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
@@ -77,7 +67,7 @@ describe('stock insuficiente (S7)', () => {
         CreateSoldSchema.parse({
           customer_id: customer.id,
           sale_price: 50,
-          items: [{ buy_id: buy.id, quantity: 5 }], // 5 > 3 disponibles
+          items: [{ buy_id: buy.id, quantity: 5 }],
         }),
       );
       expect.fail('Expected StockInsufficientError to be thrown');
@@ -128,8 +118,8 @@ describe('stock insuficiente (S7)', () => {
           customer_id: customer.id,
           sale_price: 100,
           items: [
-            { buy_id: buy1.id, quantity: 5 }, // pide 5, hay 2
-            { buy_id: buy2.id, quantity: 3 }, // pide 3, hay 1
+            { buy_id: buy1.id, quantity: 5 },
+            { buy_id: buy2.id, quantity: 3 },
           ],
         }),
       );
@@ -165,7 +155,7 @@ describe('stock insuficiente (S7)', () => {
     expect(buysRepo.getWithStock()[0]!.disponibles).toBe(2);
 
     makeSold(soldsRepo, customer.id, buy.id, 2, { sale_price: 40 });
-    expect(buysRepo.getWithStock()).toHaveLength(0); // ya no queda stock
+    expect(buysRepo.getWithStock()).toHaveLength(0);
   });
 });
 
@@ -198,8 +188,8 @@ describe('pack multi-producto (S5, S7)', () => {
         sale_price: 80,
         associated_costs: 3,
         items: [
-          { buy_id: buy1.id, quantity: 2 }, // 2 fundas
-          { buy_id: buy2.id, quantity: 1 }, // 1 cargador
+          { buy_id: buy1.id, quantity: 2 },
+          { buy_id: buy2.id, quantity: 1 },
         ],
       }),
     );
@@ -231,8 +221,8 @@ describe('pack multi-producto (S5, S7)', () => {
 
     const stock = buysRepo.getWithStock();
     const stockMap = new Map(stock.map((b) => [b.product_name, b.disponibles]));
-    expect(stockMap.get('A')).toBe(3); // 5 - 2
-    expect(stockMap.get('B')).toBe(2); // 3 - 1
+    expect(stockMap.get('A')).toBe(3);
+    expect(stockMap.get('B')).toBe(2);
   });
 });
 
@@ -255,7 +245,6 @@ describe('prorrateo por unidad (S3, S13)', () => {
   });
 
   it('unit_cost = round2(purchase_cost / quantity)', () => {
-    // Compra: 3 unidades por 90€ total → unit_cost = 30€
     const buy = makeBuy(buysRepo, { product_name: 'Pack 3', purchase_cost: 90, quantity: 3 });
     const customer = makeCustomer(customersRepo);
 
@@ -263,16 +252,15 @@ describe('prorrateo por unidad (S3, S13)', () => {
       CreateSoldSchema.parse({
         customer_id: customer.id,
         sale_price: 75,
-        items: [{ buy_id: buy.id, quantity: 2 }], // vende 2 de 3
+        items: [{ buy_id: buy.id, quantity: 2 }],
       }),
     );
 
     const detail = soldsRepo.getByIdWithItems(sold.id)!;
-    expect(detail.items[0].unit_cost).toBe(30); // 90 / 3 = 30
+    expect(detail.items[0].unit_cost).toBe(30);
   });
 
   it('unit_cost redondeado con round2 mitiga IEEE 754', () => {
-    // Compra: 3 unidades por 10€ → unit_cost = 3.333...
     const buy = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 3 });
     const customer = makeCustomer(customersRepo);
 
@@ -285,12 +273,10 @@ describe('prorrateo por unidad (S3, S13)', () => {
     );
 
     const detail = soldsRepo.getByIdWithItems(sold.id)!;
-    // round2(10/3) = round2(3.333333...) = 3.33
     expect(detail.items[0].unit_cost).toBe(3.33);
   });
 
   it('associated_costs prorrateados = round2(associated_costs / quantity)', () => {
-    // Compra: 5 unidades, 25€ de gastos (5€/u)
     const buy = makeBuy(buysRepo, {
       product_name: 'X',
       purchase_cost: 100,
@@ -308,11 +294,10 @@ describe('prorrateo por unidad (S3, S13)', () => {
     );
 
     const detail = soldsRepo.getByIdWithItems(sold.id)!;
-    expect(detail.items[0].unit_assoc).toBe(5); // 25 / 5 = 5
+    expect(detail.items[0].unit_assoc).toBe(5);
   });
 
   it('beneficio por venta = round2(sale_price - associated_costs - sum(qty * unit_cost) - sum(qty * unit_assoc))', () => {
-    // Compra: 3 unidades, 90€ + 9€ gastos = 99€ total → unit = 33€ + 3€ gastos/u
     const buy = makeBuy(buysRepo, {
       product_name: 'Pack',
       purchase_cost: 99,
@@ -321,7 +306,6 @@ describe('prorrateo por unidad (S3, S13)', () => {
     });
     const customer = makeCustomer(customersRepo);
 
-    // Vender 2 unidades a 100€ + 5€ gastos de envío
     const sold = soldsRepo.createManyWithStockCheck(
       CreateSoldSchema.parse({
         customer_id: customer.id,
@@ -334,13 +318,9 @@ describe('prorrateo por unidad (S3, S13)', () => {
     const detail = soldsRepo.getByIdWithItems(sold.id)!;
     const item = detail.items[0];
 
-    // unit_cost = round2(99/3) = 33 (SQL: ROUND(99/3, 2) = 33.00)
     expect(item.unit_cost).toBe(33);
-    // unit_assoc = round2(9/3) = 3
     expect(item.unit_assoc).toBe(3);
 
-    // Beneficio = round2(100 - 5 - 2*33 - 2*3) = round2(23) = 23
-    // (unit_cost y unit_assoc en SQL ya están redondeados a 2 decimales)
     const expectedBenefit = round2(100 - 5 - 2 * item.unit_cost - 2 * item.unit_assoc);
     expect(expectedBenefit).toBe(23);
   });
@@ -370,14 +350,11 @@ describe('top compradores (S8)', () => {
     const pedro = makeCustomer(customersRepo, 'Pedro');
     const b = makeBuy(buysRepo, { product_name: 'X', quantity: 100 });
 
-    // Ana: 2 ventas, 100+150 = 250€
     makeSold(soldsRepo, ana.id, b.id, 1, { sale_price: 100 });
     makeSold(soldsRepo, ana.id, b.id, 1, { sale_price: 150 });
 
-    // Luis: 1 venta, 300€
     makeSold(soldsRepo, luis.id, b.id, 1, { sale_price: 300 });
 
-    // Pedro: 1 venta, 50€
     makeSold(soldsRepo, pedro.id, b.id, 1, { sale_price: 50 });
 
     const stats = soldsRepo.statsDashboard();
@@ -389,7 +366,6 @@ describe('top compradores (S8)', () => {
   });
 
   it('topBuyers es top 10 (no más)', () => {
-    // Crear 15 clientes con 1 venta cada uno
     for (let i = 0; i < 15; i++) {
       const c = makeCustomer(customersRepo, `Cliente ${i}`);
       const b = makeBuy(buysRepo, { product_name: 'X', quantity: 10 });
@@ -398,13 +374,11 @@ describe('top compradores (S8)', () => {
 
     const stats = soldsRepo.statsDashboard();
     expect(stats.topBuyers).toHaveLength(10);
-    // El primero debería ser el que más gastó (Cliente 14 → 15€)
     expect(stats.topBuyers[0]!.customer_name).toBe('Cliente 14');
     expect(stats.topBuyers[0]!.total_gastado).toBe(15);
   });
 
   it('cliente sin ventas no aparece en topBuyers', () => {
-    // Cliente sin ventas
     makeCustomer(customersRepo, 'Solo mira');
     const c = makeCustomer(customersRepo, 'Comprador');
     const b = makeBuy(buysRepo, { product_name: 'X', quantity: 10 });
@@ -439,8 +413,8 @@ describe('round2 (S2)', () => {
   });
 
   it('funciona en cadena: round2(round2(x) + round2(y))', () => {
-    const a = round2(10 / 3); // 3.33
-    const b = round2(10 / 3); // 3.33
+    const a = round2(10 / 3);
+    const b = round2(10 / 3);
     expect(round2(a + b)).toBe(6.66);
   });
 });

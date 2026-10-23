@@ -30,7 +30,6 @@ export function buysRouter(deps: BuysRouterDeps): Router {
   const { repo } = deps;
   const router = Router();
 
-  // `/stock` va antes de `/:id` para que no se confunda con un id numérico.
   router.get(
     '/stock',
     asyncHandler(async (_req, res) => {
@@ -110,12 +109,6 @@ export function buysRouter(deps: BuysRouterDeps): Router {
     }),
   );
 
-  // La ruta cascade se registra antes que `/:id` por claridad de lectura.
-  // OJO: en Express 5 el parámetro `:id` NO matchea segmentos con '/'
-  // (path-to-regexp v8 usa `[^/]+`), así que '/5/cascade' nunca matchearía
-  // `/:id`. El orden NO es lo que protege esta ruta — lo que la protege es
-  // que el path tenga dos segmentos. El test de rutas
-  // `server/src/__tests__/buys-routes.test.ts` lo verifica por HTTP.
   router.delete(
     '/:id/cascade',
     asyncHandler(async (req, res) => {
@@ -124,15 +117,9 @@ export function buysRouter(deps: BuysRouterDeps): Router {
         return res.status(400).json({ error: 'Id inválido', issues: parsed.error.flatten() });
       }
       const id = parsed.data.id;
-      // Si la compra no existe no hay nada que borrar ni que registrar.
       if (!repo.getById(id)) {
         return res.status(404).json({ error: 'Compra no encontrada', id });
       }
-      // Audit trail WRITE-AHEAD (S13): la cascada NO tiene undo, así que el
-      // log va ANTES del borrado. Con el log después, un crash entre el
-      // commit de la transacción y el log dejaría un borrado sin registrar
-      // (justo lo que un audit trail no puede pasar). Si el borrado falla
-      // después, el log de error deja asentado que no se completó.
       const affected = repo.listAssociatedSales(id);
       logger.warn(
         {
@@ -153,8 +140,6 @@ export function buysRouter(deps: BuysRouterDeps): Router {
         throw err;
       }
       if (!removed) {
-        // Solo puede pasar si la compra se borró entre el check y el
-        // borrado (otro proceso).
         logger.error({ buy_id: id }, 'Borrado en cascada sin efecto: la compra ya no existía');
         return res.status(404).json({ error: 'Compra no encontrada', id });
       }
@@ -176,8 +161,6 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       if (result.code === 'NOT_FOUND') {
         return res.status(404).json({ error: 'Compra no encontrada', id: parsed.data.id });
       }
-      // HAS_ASSOCIATED_SALES: 409 con la lista de ventas para que la UI
-      // pueda mostrar el modal de confirmación cascade.
       return res.status(409).json({
         error:
           'No se puede borrar: la compra tiene ventas asociadas. ¿Querés borrar también las ventas?',

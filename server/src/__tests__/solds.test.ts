@@ -1,6 +1,3 @@
-/**
- * Tests del repo de solds (CRUD + detalle con items).
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
@@ -147,7 +144,7 @@ describe('solds repo', () => {
         buy_id: buy.id,
         product_name: 'Funda',
         quantity: 3,
-        unit_cost: 10, // 50 / 5 = 10
+        unit_cost: 10,
         unit_assoc: 0,
       });
     });
@@ -163,11 +160,9 @@ describe('solds repo', () => {
       });
       const b2 = makeBuy(buysRepo, { product_name: 'carta magic', purchase_cost: 5, quantity: 3 });
 
-      // Venta 1: 2 unidades de b1
       const s1 = soldsRepo.createManyWithStockCheck(
         validSold(c.id, b1.id, { sale_price: 9, items: [{ buy_id: b1.id, quantity: 2 }] }),
       );
-      // Venta 2: pack con un item de cada buy
       const s2 = soldsRepo.createManyWithStockCheck(
         validSold(c.id, b2.id, {
           sale_price: 20,
@@ -190,14 +185,11 @@ describe('solds repo', () => {
 
       const row2 = byId.get(s2.id)!;
       expect(row2.items).toHaveLength(2);
-      // Orden estable por (sold_id, buy_id) en el SQL.
       expect(row2.items[0]).toMatchObject({ buy_id: b1.id, quantity: 1 });
       expect(row2.items[1]).toMatchObject({ buy_id: b2.id, quantity: 1 });
     });
 
     it('mantiene profit calculado aunque items sea []', () => {
-      // La invariante del modelo es que toda venta tiene ≥1 item
-      // (CreateSoldInput.items.min(1)), pero listWithProfit debe ser defensivo.
       const c = makeCustomer(customersRepo);
       const b = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 5 });
       const s = soldsRepo.createManyWithStockCheck(
@@ -209,7 +201,6 @@ describe('solds repo', () => {
       );
       const list = soldsRepo.listWithProfit();
       expect(list[0].id).toBe(s.id);
-      // profit = sale_price - associated - COGS = 100 - 0 - (10/5)*1 = 98
       expect(list[0].profit).toBe(98);
       expect(list[0].items).toHaveLength(1);
     });
@@ -251,9 +242,6 @@ describe('solds repo', () => {
     });
 
     it('lista todas las ventas, sin tope (el buscador necesita el histórico completo)', () => {
-      // Antes la lista venía topeada a 200 filas (LIMIT 200 en la query), así
-      // que el buscador de /solds no encontraba ventas más viejas. Con 250
-      // ventas, la lista tiene que devolverlas todas.
       const c = makeCustomer(customersRepo);
       const b = makeBuy(buysRepo, { quantity: 300 });
 
@@ -285,7 +273,6 @@ describe('solds repo', () => {
 
       const r = soldsRepo.list({ dateRange: { from: '2026-01-01', to: '2026-06-30' } });
       expect(r).toHaveLength(2);
-      // El mismo filtro sobre la query que usa la ruta HTTP.
       expect(
         soldsRepo.listWithProfit({ dateRange: { from: '2026-01-01', to: '2026-06-30' } }),
       ).toHaveLength(2);
@@ -308,9 +295,6 @@ describe('solds repo', () => {
     });
 
     it('el valor del filtro va bindeado: un payload de inyección no ejecuta SQL', () => {
-      // El WHERE es fijo y el valor del filtro viaja como parámetro
-      // bindeado. Este test deja esa propiedad escrita: si alguien cambia
-      // el valor por interpolación, la tabla 'solds' desaparece.
       const c = makeCustomer(customersRepo);
       const b = makeBuy(buysRepo);
       soldsRepo.createManyWithStockCheck(
@@ -319,7 +303,6 @@ describe('solds repo', () => {
 
       const r = soldsRepo.list({ dateRange: { from: "2026-01-01'; DROP TABLE solds; --" } });
       expect(r).toHaveLength(0);
-      // La tabla sigue en pie: el payload se comparó como texto.
       expect(soldsRepo.list()).toHaveLength(1);
     });
   });

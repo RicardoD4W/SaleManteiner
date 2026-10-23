@@ -27,13 +27,6 @@ function loadMigrations(): Migration[] {
     });
 }
 
-/**
- * Aplica las migraciones pendientes en orden. Crea la tabla `_migrations`
- * si no existe, y registra cada migración aplicada con su timestamp.
- *
- * Solo forward: no hay `down`. Si hace falta rollback, se añade una nueva
- * migración que deshaga manualmente.
- */
 export function runMigrations(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS _migrations (

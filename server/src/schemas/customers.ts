@@ -1,9 +1,3 @@
-/**
- * Schemas Zod para clientes (customers).
- *
- * Modelo mínimo (S9 del feature): solo id, name, created_at.
- * Sin contact (no pedido por el usuario).
- */
 import { z } from 'zod';
 import { RowId, ShortText } from './common.js';
 
@@ -19,7 +13,6 @@ export const UpdateCustomerInput = z
   })
   .strict();
 
-/** Output: todos los campos obligatorios (no hay nullable en este modelo mínimo). */
 export const Customer = z.object({
   id: RowId,
   name: ShortText,

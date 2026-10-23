@@ -1,12 +1,13 @@
 import pino from 'pino';
+import { LOG_LEVEL } from './config.js';
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? 'info',
+  level: LOG_LEVEL,
   transport:
     process.env.NODE_ENV === 'production'
       ? undefined
       : {
           target: 'pino/file',
-          options: { destination: 1 }, // stdout
+          options: { destination: 1 },
         },
 });

@@ -1,19 +1,3 @@
-/**
- * Tests del CONTRATO HTTP de las rutas de buys (S10 del feature
- * `delete-cascade-and-ux-polish`).
- *
- * Por qué existe: los tests del server son a nivel repo (en este repo no
- * hay supertest), así que el mapeo de la ruta a status/body —el 409 con
- * `associated_sales`, el 404, el 400 y el orden de `/:id/cascade` antes de
- * `/:id`— no estaba pinneado en ningún lado. Este test levanta la app real
- * (Express, con los routers montados) sobre una BD `:memory:` y habla HTTP
- * con `fetch`, o sea que verifica lo que el cliente ve, no internos.
- *
- * Los imports son dinámicos a propósito: las variables de entorno tienen que
- * estar seteadas ANTES de que se cargue `logger.ts` (pino), que se evalúa en
- * el import. Con `LOG_LEVEL=silent` y `NODE_ENV=production` (sin transport)
- * el test no ensucia la salida.
- */
 process.env.LOG_LEVEL = 'silent';
 process.env.NODE_ENV = 'production';
 
@@ -70,7 +54,6 @@ describe('contrato HTTP del borrado de compras', () => {
     db.close();
   });
 
-  /** Helper HTTP: devuelve status + body parseado (null si no hay body). */
   async function api(
     method: string,
     path: string,
@@ -149,7 +132,6 @@ describe('contrato HTTP del borrado de compras', () => {
         ],
       });
 
-      // La compra NO se borra (el 409 es una negativa, no un borrado parcial).
       const get = await api('GET', `/api/buys/${buy.id}`);
       expect(get.status).toBe(200);
     });
@@ -163,7 +145,6 @@ describe('contrato HTTP del borrado de compras', () => {
       const del = await api('DELETE', `/api/buys/${buy.id}`);
 
       expect(del.status).toBe(409);
-      // Todas las ventas afectadas, de la más reciente a la más vieja.
       expect(del.body?.associated_sales).toEqual([
         {
           id: sale2.id,
@@ -179,7 +160,6 @@ describe('contrato HTTP del borrado de compras', () => {
         },
       ]);
 
-      // Ni la compra ni las ventas se tocan: el 409 no borra nada.
       expect((await api('GET', `/api/buys/${buy.id}`)).status).toBe(200);
       expect((await api('GET', `/api/solds/${sale1.id}`)).status).toBe(200);
       expect((await api('GET', `/api/solds/${sale2.id}`)).status).toBe(200);
@@ -249,7 +229,6 @@ describe('contrato HTTP del borrado de compras', () => {
 
       expect(del.status).toBe(204);
       expect((await api('GET', `/api/buys/${buyA.id}`)).status).toBe(404);
-      // La venta sigue viva con el item de buyB.
       const get = await api('GET', `/api/solds/${sale.id}`);
       expect(get.status).toBe(200);
       const data = get.body?.data as { items: Array<{ buy_id: number; quantity: number }> };
@@ -258,10 +237,6 @@ describe('contrato HTTP del borrado de compras', () => {
     });
 
     it('el path /:id/cascade lo maneja la ruta cascade, no se interpreta como un id', async () => {
-      // En Express 5 el parámetro `:id` no matchea segmentos con '/', así que
-      // '/5/cascade' no puede caer en la ruta `/:id`. Este test lo verifica
-      // por HTTP: si la ruta cascade no existiera (o el path se interpretara
-      // como id), la respuesta sería 404/400 y no 204.
       const buy = seedBuy('Path de la ruta cascade', 2);
       const customer = seedCustomer('Eva');
       seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
@@ -305,9 +280,6 @@ describe('contrato HTTP del borrado de compras', () => {
     });
 
     it('el registro se escribe ANTES del borrado (write-ahead)', async () => {
-      // El audit trail va antes de la mutación: si el proceso muere entre
-      // el commit y el log, el borrado no quedaría registrado. Para
-      // comprobarlo, el spy mira si la compra seguía en la BD al loguear.
       let existedAtLogTime: boolean | null = null;
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {
         existedAtLogTime =
@@ -332,7 +304,6 @@ describe('contrato HTTP del borrado de compras', () => {
       const buy = seedBuy('Audit fallo', 3);
       const customer = seedCustomer('Inés');
       const sale = seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
-      // Trigger que aborta el DELETE de la venta → la cascada falla.
       db.exec(
         `CREATE TRIGGER block_sold_delete BEFORE DELETE ON solds
          BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
@@ -341,11 +312,9 @@ describe('contrato HTTP del borrado de compras', () => {
       const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
 
       expect(del.status).toBe(500);
-      // El log de intención está (write-ahead) y además el de error.
       expect(warn).toHaveBeenCalledTimes(1);
       const errorPayloads = error.mock.calls.map((c) => c[0] as { buy_id?: number });
       expect(errorPayloads.some((p) => p.buy_id === buy.id)).toBe(true);
-      // Y nada se borró (la transacción hizo rollback).
       expect((await api('GET', `/api/solds/${sale.id}`)).status).toBe(200);
     });
 
@@ -355,9 +324,7 @@ describe('contrato HTTP del borrado de compras', () => {
       const customer = seedCustomer('Gina');
       seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
 
-      // 409: el delete normal no borra nada → no hay audit trail.
       expect((await api('DELETE', `/api/buys/${buy.id}`)).status).toBe(409);
-      // 404: la cascada sobre una compra inexistente no borra nada.
       expect((await api('DELETE', '/api/buys/9999/cascade')).status).toBe(404);
 
       expect(warn).not.toHaveBeenCalled();
@@ -366,9 +333,6 @@ describe('contrato HTTP del borrado de compras', () => {
 
   describe('atomicidad del cascade (S2)', () => {
     it('si el borrado falla a mitad de camino, no queda nada a medias', async () => {
-      // Un trigger que aborta el DELETE de la venta simula un fallo en
-      // medio de la transacción. Tiene que quedar todo como estaba: la
-      // compra, la venta y el item.
       const buy = seedBuy('Rollback', 3);
       const customer = seedCustomer('Huma');
       const sale = seedSale(customer.id, [{ buy_id: buy.id, quantity: 1 }]);
@@ -380,7 +344,6 @@ describe('contrato HTTP del borrado de compras', () => {
       const del = await api('DELETE', `/api/buys/${buy.id}/cascade`);
 
       expect(del.status).toBe(500);
-      // Nada se borró: la transacción hizo rollback.
       expect((await api('GET', `/api/buys/${buy.id}`)).status).toBe(200);
       expect((await api('GET', `/api/solds/${sale.id}`)).status).toBe(200);
       const items = db
@@ -407,7 +370,6 @@ describe('contrato HTTP del borrado de compras', () => {
         (db.prepare(sql).get(...args) as { c: number }).c;
       expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE buy_id = ?', buyA.id)).toBe(0);
       expect(count('SELECT COUNT(*) AS c FROM buys WHERE id = ?', buyA.id)).toBe(0);
-      // La venta sigue viva con el item de buyB.
       expect(count('SELECT COUNT(*) AS c FROM solds WHERE id = ?', sale.id)).toBe(1);
       expect(count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?', sale.id)).toBe(1);
     });
@@ -423,8 +385,6 @@ describe('contrato HTTP del borrado de compras', () => {
       const data = ok.body?.data as Array<{ product_name: string }>;
       expect(data.map((b) => b.product_name)).toEqual(['Junio']);
 
-      // La regex de la ruta es la primera barrera: un valor inválido no
-      // llega al repo.
       const bad = await api('GET', '/api/buys?from=abc');
       expect(bad.status).toBe(400);
       expect(bad.body?.error).toBe('Parámetros inválidos');

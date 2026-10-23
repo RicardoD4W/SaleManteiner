@@ -1,6 +1,3 @@
-/**
- * Tests del repo de buys (CRUD + getWithStock).
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
@@ -116,9 +113,6 @@ describe('buys repo', () => {
     });
 
     it('el valor del filtro va bindeado: un payload de inyección no ejecuta SQL', () => {
-      // El WHERE es fijo y el valor del filtro viaja como parámetro
-      // bindeado. Este test deja esa propiedad escrita: si alguien cambia
-      // el valor por interpolación, la tabla 'buys' desaparece.
       repo.create(validCreate({ product_name: 'A', purchase_date: '2026-01-01' }));
 
       const r = repo.listWithStock({
@@ -126,7 +120,6 @@ describe('buys repo', () => {
       });
 
       expect(r).toHaveLength(0);
-      // La tabla sigue en pie: el payload se comparó como texto.
       expect(repo.listWithStock()).toHaveLength(1);
     });
   });
@@ -198,7 +191,6 @@ describe('buys repo', () => {
         code: 'HAS_ASSOCIATED_SALES',
         sales: [{ id: 1, customer_name: 'Test', sold_at: null, items_count: 2 }],
       });
-      // La compra NO se borró (rollback implícito).
       expect(repo.getById(buy.id)).not.toBeNull();
     });
 
@@ -239,8 +231,6 @@ describe('buys repo', () => {
     });
 
     it('con associated_sales: items_count suma SOLO los items de este buy (no del pack)', () => {
-      // Pack: el sold 1 tiene items de buyA (qty 2) y buyB (qty 3).
-      // remove(buyA) debe reportar items_count=2 para sold 1, NO 5.
       db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
         1,
         'Test',
@@ -330,13 +320,9 @@ describe('buys repo', () => {
 
       expect(repo.removeWithCascade(buyA.id)).toBe(true);
 
-      // buyA borrada
       expect(repo.getById(buyA.id)).toBeNull();
-      // buyB sigue existiendo
       expect(repo.getById(buyB.id)).not.toBeNull();
-      // Venta sigue existiendo
       expect(db.prepare('SELECT * FROM solds WHERE id = 1').get()).toBeDefined();
-      // Solo queda el item de buyB en el pack
       const items = db.prepare('SELECT * FROM sale_items').all() as Array<{
         sold_id: number;
         buy_id: number;
@@ -383,7 +369,6 @@ describe('buys repo', () => {
     });
 
     it('devuelve buy parcialmente vendido con stock = quantity - vendidos', () => {
-      // Insertar un customer + sold para poder insertar en sale_items (FK constraint)
       db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
         1,
         'Test',
@@ -397,7 +382,6 @@ describe('buys repo', () => {
       ).run(2, 1, 0, 0, new Date().toISOString());
 
       const b = repo.create(validCreate({ product_name: 'X', quantity: 10 }));
-      // Simular que hay 3 vendidos en sale_items (con FK a solds)
       db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
         1,
         b.id,
@@ -410,7 +394,7 @@ describe('buys repo', () => {
       );
       const result = repo.getWithStock();
       expect(result).toHaveLength(1);
-      expect(result[0]!.disponibles).toBe(3); // 10 - 3 - 4 = 3
+      expect(result[0]!.disponibles).toBe(3);
     });
   });
 });

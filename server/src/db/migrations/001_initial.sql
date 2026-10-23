@@ -1,6 +1,3 @@
--- Migración 001: esquema inicial de la tabla sales (MVP manual)
--- Tabla única. Sin source, sin item_id, sin wallapop_status ni user_status:
--- el scraping/CSV se añaden en migraciones futuras si se reactiva esa dirección.
 
 CREATE TABLE sales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

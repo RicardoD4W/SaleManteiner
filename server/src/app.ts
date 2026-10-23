@@ -33,12 +33,10 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
   app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
 
-  // 404
   app.use((req, res) => {
     res.status(404).json({ error: 'Not Found', path: req.path });
   });
 
-  // Error handler global. Necesita la firma de 4 args para que Express lo reconozca.
   const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     logger.error({ err, path: req.path }, 'Unhandled error');
     res.status(500).json({ error: 'Internal Server Error' });

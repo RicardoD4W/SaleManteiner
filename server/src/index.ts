@@ -19,7 +19,6 @@ const server = app.listen(PORT, HOST, () => {
   logger.info({ port: PORT, host: HOST, dbPath: DB_PATH }, 'SaleManteiner server listening');
 });
 
-// Apagado limpio
 function shutdown(signal: string): void {
   logger.info({ signal }, 'Cerrando servidor…');
   server.close((err) => {

@@ -15,20 +15,6 @@ export function dashboardRouter(deps: DashboardRouterDeps): Router {
   const { repo } = deps;
   const router = Router();
 
-  /**
-   * GET /api/stats/dashboard — KPIs del nuevo modelo (S11 del feature).
-   *
-   * Payload:
-   * {
-   *   kpis: { compras_total_eur, ventas_total_eur, beneficio_total_eur, stock_pendiente_count },
-   *   revenueByMonth: [{ month: 'YYYY-MM', revenue, profit }],
-   *   topProducts: [{ product_name, times_sold, total_revenue, total_profit }],
-   *   topBuyers: [{ customer_id, customer_name, ventas, total_gastado }],
-   * }
-   *
-   * Series mensuales: últimos 12 meses calendario, incluyendo meses sin ventas (0).
-   * topProducts y topBuyers: top 10.
-   */
   router.get(
     '/dashboard',
     asyncHandler(async (_req, res) => {

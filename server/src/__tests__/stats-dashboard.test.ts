@@ -1,19 +1,3 @@
-/**
- * Tests del dashboard stats del nuevo modelo (S11 del feature buys-and-solds
- * + S5 del feature dashboard-iteration-1).
- *
- * Cobertura:
- *  - BD vacía: KPIs en 0, 12 meses con compras/ventas/neto = 0, sin top
- *    products/buyers.
- *  - cashFlowByMonth: últimos 12 meses, formato YYYY-MM, ordenado ascendente.
- *  - Meses sin actividad: relleno con 0 (incluye mes actual).
- *  - KPIs: compras_total_eur, ventas_total_eur, beneficio_total_eur,
- *    stock_pendiente_count.
- *  - Compras-only (sin ventas): compras > 0, ventas = 0, neto = compras.
- *  - Ventas-only (sin compras del mes): compras = 0, ventas > 0, neto = -ventas.
- *  - topProducts / topBuyers: orden, prorrateo, top 10.
- *  - beneficio_total_eur: no resta stock pendiente; S13 aplicado a packs.
- */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
 import { openDb } from '../db/index.js';
@@ -29,7 +13,6 @@ function todayLocalDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Resta N meses al día actual en formato YYYY-MM-DD (para tests con meses anteriores). */
 function dateMonthsAgo(n: number): string {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
@@ -128,9 +111,6 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
-    // compras del mes = (5 + 0) de buys + 1 de solds.associated_costs = 6.
-    // profit de la venta = 8 - 1 - (1 * 0.5) - (1 * 0) = 6.5 (cost/unit = 5/10 = 0.5).
-    // neto = 6 - 6.5 = -0.5.
     expect(currentMonth.compras).toBe(6);
     expect(currentMonth.ventas).toBe(6.5);
     expect(currentMonth.neto).toBe(-0.5);
@@ -155,14 +135,10 @@ describe('statsDashboard (nuevo modelo)', () => {
     buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 50, associated_costs: 5 }));
 
     const stats = soldsRepo.statsDashboard();
-    expect(stats.kpis.compras_total_eur).toBe(165); // 100+10 + 50+5
+    expect(stats.kpis.compras_total_eur).toBe(165);
   });
 
   it('compras_total_eur incluye también los costes asociados de las ventas', () => {
-    // Definición de la KPI (usuario): el dinero total invertido = el coste de
-    // los productos comprados + sus costes asociados + los costes asociados
-    // de las ventas de esos productos. Es la misma suma que la serie
-    // `compras` del cash flow mensual.
     const buy = buysRepo.create(
       validBuy({ product_name: 'A', purchase_cost: 100, associated_costs: 10, quantity: 10 }),
     );
@@ -179,16 +155,13 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
 
     const stats = soldsRepo.statsDashboard();
-    // 100 (producto) + 10 (asociados de la compra) + 7 (asociados de la venta).
     expect(stats.kpis.compras_total_eur).toBe(117);
   });
 
   it('stock_pendiente_count cuenta buys con disponibles > 0', () => {
-    // Buy con 3 unidades
     const buy = buysRepo.create(validBuy({ product_name: 'X', purchase_cost: 30, quantity: 3 }));
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
-    // Vender 2 → queda 1 disponible
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -255,7 +228,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
     const buy = buysRepo.create(validBuy({ product_name: 'Pack', purchase_cost: 60, quantity: 5 }));
 
-    // Vender 1 unidad
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -263,7 +235,6 @@ describe('statsDashboard (nuevo modelo)', () => {
         items: [{ buy_id: buy.id, quantity: 1 }],
       }),
     );
-    // Vender 1 unidad más
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -276,15 +247,11 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.topProducts).toHaveLength(1);
     expect(stats.topProducts[0]).toMatchObject({
       product_name: 'Pack',
-      times_sold: 2, // 1 + 1 unidades
+      times_sold: 2,
     });
   });
 
   it('topProducts.times_sold = unidades vendidas (SUM(quantity)), no count de sale_items', () => {
-    // Reporte de usuario: vendió 2 sobres y el chart mostraba 1x. La causa era
-    // COUNT(*) sobre sale_items (cuenta filas del pack) en vez de SUM(quantity)
-    // (suma las unidades). Tras el fix, una sola fila de sale_items con
-    // quantity=2 debe contar como times_sold=2.
     const buy = buysRepo.create(
       validBuy({ product_name: 'sobre pokemon', purchase_cost: 10, quantity: 10 }),
     );
@@ -302,12 +269,11 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.topProducts).toHaveLength(1);
     expect(stats.topProducts[0]).toMatchObject({
       product_name: 'sobre pokemon',
-      times_sold: 2, // SUM(quantity) = 2 (no COUNT(*) = 1)
+      times_sold: 2,
     });
   });
 
   it('beneficio_total_eur: NO resta el coste de compras sin vender (solo COGS)', () => {
-    // Buy 20 unidades por 100€ (cost/unit = 5€). Vender solo 5 unidades.
     const buy = buysRepo.create(
       validBuy({ product_name: 'Funda', purchase_cost: 100, quantity: 20 }),
     );
@@ -323,18 +289,12 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
 
     const stats = soldsRepo.statsDashboard();
-    // beneficio = sale_price - associated_costs - COGS = 50 - 0 - (5 * 5) = 25
-    // NO se resta el coste total de la compra (100€) porque 15 unidades siguen en stock.
     expect(stats.kpis.beneficio_total_eur).toBe(25);
-    // compras_total_eur SÍ incluye toda la inversión (incluyendo stock pendiente).
     expect(stats.kpis.compras_total_eur).toBe(100);
-    // stock_pendiente_count = 1 (la compra de 20 unidades, con 5 vendidas, tiene 15 disponibles).
     expect(stats.kpis.stock_pendiente_count).toBe(1);
   });
 
   it('topProducts con pack multi-item: prorratea revenue por unidad entre los items', () => {
-    // Pack: vender 2 items de A + 1 item de B en una sola venta de 30€.
-    // A debería tener 20€ de revenue (2/3 de 30) y B debería tener 10€ (1/3 de 30).
     const buyA = buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 10, quantity: 5 }));
     const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 6, quantity: 5 }));
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
@@ -355,12 +315,9 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.topProducts).toHaveLength(2);
     const a = stats.topProducts.find((p) => p.product_name === 'A')!;
     const b = stats.topProducts.find((p) => p.product_name === 'B')!;
-    // Revenue prorrateado: 2/3 * 30 = 20, 1/3 * 30 = 10
     expect(a.total_revenue).toBe(20);
     expect(b.total_revenue).toBe(10);
-    // Profit A = 20 - 0 - (2 * 2) - 0 = 16 (cost/unit = 10/5 = 2)
     expect(a.total_profit).toBe(16);
-    // Profit B = 10 - 0 - (1 * 1.2) - 0 = 8.8 (cost/unit = 6/5 = 1.2)
     expect(b.total_profit).toBeCloseTo(8.8, 2);
   });
 
@@ -369,8 +326,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 6, quantity: 5 }));
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
-    // Pack: 2 de A + 1 de B, venta 30€, gastos 3€.
-    // COGS: 2*2 + 1*1.2 = 5.2. Beneficio: 30 - 3 - 5.2 = 21.8
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -387,10 +342,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.kpis.beneficio_total_eur).toBeCloseTo(21.8, 2);
   });
 
-  // ── S5 del feature dashboard-iteration-1: cash flow por mes ───────────
-
   it('cashFlowByMonth: solo compras en el mes, sin ventas → compras > 0, ventas = 0, neto = compras', () => {
-    // Compra de 100€ en el mes actual, sin ventas.
     buysRepo.create(
       validBuy({
         product_name: 'Lote',
@@ -408,7 +360,6 @@ describe('statsDashboard (nuevo modelo)', () => {
   });
 
   it('cashFlowByMonth: solo ventas en el mes (sin buys nuevos) → compras = 0, ventas > 0, neto = -ventas', () => {
-    // Buy de un mes anterior (no cuenta en el mes actual) + venta en el mes actual.
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Lote',
@@ -419,7 +370,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
-    // Venta en el mes actual: 80€ - 0 - (1 * 10) = 70€ de profit.
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -432,15 +382,12 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
-    // Sin buys en el mes actual: compras = 0 + asociados de solds (0) = 0.
     expect(currentMonth.compras).toBe(0);
-    // Profit de la venta = 80 - 0 - 10 = 70.
     expect(currentMonth.ventas).toBe(70);
     expect(currentMonth.neto).toBe(-70);
   });
 
   it('cashFlowByMonth: mes con buy y venta contabiliza compras (incluye asociados de solds)', () => {
-    // Compra del mes actual: 30€ cost + 5€ asociados.
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Prod',
@@ -452,7 +399,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
-    // Venta del mes: 50€ - 2€ (asociados) - COGS (1*3 = 3) - buy_assoc (1*0.5) = 44.5€ de profit.
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -465,16 +411,12 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
-    // compras = (30 + 5) + 2 = 37 (buy.total + solds.associated_costs).
     expect(currentMonth.compras).toBe(37);
-    // ventas = 50 - 2 - 3 - 0.5 = 44.5 (cost/unit=3, buy_assoc/unit=0.5).
     expect(currentMonth.ventas).toBe(44.5);
-    // neto = 37 - 44.5 = -7.5.
     expect(currentMonth.neto).toBe(-7.5);
   });
 
   it('cashFlowByMonth: beneficio_real = profit de las ventas - gasto en compras del mes', () => {
-    // Compra del mes: 30€ + 5€ de asociados = 35€ de gasto en compras.
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Prod',
@@ -486,7 +428,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
-    // Venta del mes: 50€ - 2€ (asociados) - COGS (1*3) - buy_assoc (1*0.5) = 44.5€ de profit.
     soldsRepo.createManyWithStockCheck(
       validSold({
         customer_id: customer.id,
@@ -499,17 +440,11 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
-    // Profit realizado del mes (la serie `ventas`).
     expect(currentMonth.ventas).toBe(44.5);
-    // Beneficio real = profit realizado - gasto en compras del mes = 44.5 - 35 = 9.5.
-    // NO es 7.5 (`ventas - compras`): los 2€ de asociados de la venta ya están
-    // descontados dentro de `ventas`, así que restarlos otra vez los contaría
-    // dos veces.
     expect(currentMonth.beneficio_real).toBe(9.5);
   });
 
   it('cashFlowByMonth: meses sin actividad se rellenan con 0', () => {
-    // Actividad en el mes actual únicamente; los 11 meses anteriores deben ser 0/0/0.
     const buy = buysRepo.create(
       validBuy({
         product_name: 'X',
@@ -529,7 +464,6 @@ describe('statsDashboard (nuevo modelo)', () => {
     );
 
     const stats = soldsRepo.statsDashboard();
-    // 11 meses anteriores al actual: todos en 0.
     for (let i = 0; i < 11; i++) {
       expect(stats.cashFlowByMonth[i]).toMatchObject({ compras: 0, ventas: 0, neto: 0 });
     }

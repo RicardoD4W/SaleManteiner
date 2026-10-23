@@ -66,13 +66,6 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     }),
   );
 
-  /**
-   * POST /api/solds — Creación de venta con validación de stock transaccional (S7).
-   * Dentro de db.transaction:
-   *   1. Lee stock disponible de cada buy_id.
-   *   2. Si alguno no cubre → 422 con detalle del stock insuficiente.
-   *   3. Si todos cubren → INSERT solds + INSERTs sale_items.
-   */
   router.post(
     '/',
     asyncHandler(async (req, res) => {
@@ -88,8 +81,6 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
         const data = repo.createManyWithStockCheck(parsed.data);
         res.status(201).json({ data });
       } catch (err) {
-        // El repo lanza StockInsufficientError cuando el stock no cubre.
-        // Detectamos por la propiedad discriminada.
         const stockErr = err as Partial<StockInsufficientError> & Error;
         if (stockErr.error === 'Stock insuficiente') {
           return res.status(422).json({
@@ -97,7 +88,7 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
             items: stockErr.items,
           });
         }
-        throw err; // Rethrow para el error handler global
+        throw err;
       }
     }),
   );

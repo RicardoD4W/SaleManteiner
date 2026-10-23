@@ -1,12 +1,6 @@
 import path from 'node:path';
 import os from 'node:os';
 
-/**
- * Configuración del servidor SaleManteiner.
- *
- * La BD vive en `~/.salemanteiner/` por defecto para no perder datos si
- * el usuario mueve o borra la carpeta del proyecto.
- */
 const HOME = os.homedir();
 export const SALEMANTEINER_DIR = process.env.SALEMANTEINER_DIR
   ? path.resolve(process.env.SALEMANTEINER_DIR)

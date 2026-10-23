@@ -48,7 +48,6 @@ export interface ListFilters {
   dateRange?: DateRange;
 }
 
-/** Error de stock insuficiente (S7). */
 export interface StockInsufficientError {
   error: 'Stock insuficiente';
   items: Array<{
@@ -61,23 +60,18 @@ export interface StockInsufficientError {
 
 export interface SoldsRepo {
   create(input: CreateSoldInput): Sold;
-  /** Creación transaccional con validación de stock (S7). Lanza StockInsufficientError si no cubre. */
   createManyWithStockCheck(input: CreateSoldInput): Sold;
   getById(id: number): Sold | null;
-  /** Venta con sus items y nombre del cliente (S8 detail query). */
   getByIdWithItems(id: number): SoldWithItems | null;
   list(filters?: ListFilters): Sold[];
-  /** Listado de ventas con el profit calculado (S13) por venta. Alimenta /solds (SoldsListPage). */
   listWithProfit(filters?: ListFilters): SoldWithProfit[];
   update(id: number, input: UpdateSoldInput): Sold | null;
   remove(id: number): boolean;
   statsDashboard(): DashboardStats;
 }
 
-/** Sold con el profit calculado (S13) — sale_price - associated - COGS - buy.associated. */
 export interface SoldWithProfit extends Sold {
   profit: number;
-  /** Items vendidos (nombre + cantidad + coste prorrateado). S de UI: la tabla de /solds los muestra para que se vea qué se vendió sin tener que abrir el detalle. */
   items: SaleItemOutput[];
 }
 
@@ -88,16 +82,6 @@ export interface DashboardStats {
     beneficio_total_eur: number;
     stock_pendiente_count: number;
   };
-  /**
-   * Cash flow mensual (S5 del feature dashboard-iteration-1).
-   *  - compras = inversión del mes (buys.purchase_cost + buys.associated_costs
-   *    de las compras con purchase_date en el mes, más solds.associated_costs
-   *    de las ventas con sold_at en el mes).
-   *  - ventas = profit realizado por las ventas del mes (fórmula S13).
-   *  - neto = compras - ventas (convención del spec del feature: abajo de cero
-   *    se colorea rojo = "zona de pérdida"; arriba de cero se colorea verde =
-   *    "zona de ganancia").
-   */
   cashFlowByMonth: Array<{
     month: string;
     compras: number;
@@ -150,18 +134,10 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     WHERE id = ?
   `);
 
-  /**
-   * Crea una venta con validación de stock transaccional (S7).
-   * Dentro de db.transaction:
-   *   1. Lee stock disponible de cada buy_id.
-   *   2. Si alguno no cubre → rollback + lanza StockInsufficientError.
-   *   3. Si todos cubren → INSERT solds + INSERT sale_items.
-   */
   function createManyWithStockCheck(input: CreateSoldInput): Sold {
     return db.transaction(() => {
       const now = new Date().toISOString();
 
-      // 1. Validar stock de cada item
       const stockErrors: StockInsufficientError['items'] = [];
 
       for (const item of input.items) {
@@ -175,7 +151,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
           { buy_id: number; product_name: string; disponibles: number } | undefined;
 
         if (!rows) {
-          // El buy_id no existe → tratar como stock 0
           stockErrors.push({
             buy_id: item.buy_id,
             product_name: `id:${item.buy_id}`,
@@ -193,8 +168,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       }
 
       if (stockErrors.length > 0) {
-        // Lanzamos el error plano con propiedad `error` + `items` para que la
-        // ruta pueda leer `err.error === 'Stock insuficiente'` y extraer `err.items`.
         const err: StockInsufficientError = {
           error: 'Stock insuficiente',
           items: stockErrors,
@@ -202,7 +175,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
         throw err;
       }
 
-      // 2. INSERT solds
       const soldResult = insertSoldStmt.run(
         input.customer_id,
         round2(input.sale_price),
@@ -213,7 +185,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       );
       const soldId = Number(soldResult.lastInsertRowid);
 
-      // 3. INSERT sale_items
       for (const item of input.items) {
         insertItemStmt.run(soldId, item.buy_id, item.quantity);
       }
@@ -266,13 +237,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function list(filters?: ListFilters): Sold[] {
-    // Filtros con WHERE fijo + parámetros bindeados: no hay ningún fragmento
-    // de SQL armado por concatenación (mismo criterio que `listWithStock` en
-    // buys-repo). `|| null` (y no `?? null`) a propósito para las fechas: el
-    // filtro anterior usaba un check de truthiness, así que la cadena vacía
-    // significaba "sin filtro" y con `||` la equivalencia es exacta. Para
-    // `customerId` el check anterior era `!== undefined`, así que ahí va
-    // `?? null`.
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
@@ -289,7 +253,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function listWithProfit(filters?: ListFilters): SoldWithProfit[] {
-    // Mismo criterio de filtros que en `list()` (WHERE fijo + params bindeados).
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
@@ -312,11 +275,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
     if (rows.length === 0) return [];
 
-    // Items de los solds en una sola query (evita N+1). Orden estable por
-    // (sold_id, buy_id) para que la UI renderice consistente.
-    // json_each expande el array JSON en filas; un solo placeholder evita
-    // interpolar el conteo de `?` en el SQL (que el linter marcaría como
-    // risk). JSON1 viene habilitado por default en better-sqlite3.
     const soldIds = rows.map((r) => r.id);
     const itemRows = db
       .prepare(
@@ -394,7 +352,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function statsDashboard(): DashboardStats {
-    // ── KPIs ────────────────────────────────────────────────────────────────
     const buysRow = db
       .prepare(
         `SELECT
@@ -420,11 +377,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       )
       .get() as { cnt: number };
 
-    // beneficio_total_eur = SUMA de beneficio por venta (S13). El beneficio
-    // de cada venta es: sale_price - associated_costs - COGS_prorrateado.
-    // NO restamos la inversión total de buys (incluye stock pendiente que
-    // todavía no se vendió); eso va en `compras_total_eur` por separado.
-    const beneficioRow = db
+    const profitRow = db
       .prepare(
         `SELECT COALESCE(SUM(profit), 0) AS total
          FROM (
@@ -443,46 +396,15 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       .get() as { total: number };
 
     const kpis = {
-      // Compras totales = TODO el dinero invertido en el producto:
-      //   coste de los productos comprados
-      // + sus costes asociados (los de la compra)
-      // + los costes asociados de las ventas de esos productos.
-      // Es la misma definición que usa la serie `compras` del cash flow
-      // mensual, así que la KPI y el chart cuentan exactamente lo mismo.
       compras_total_eur: round2(
         buysRow.compras_total + buysRow.gastos_asociados_total + sellsRow.gastos_asociados_total,
       ),
-      // Ventas totales = el dinero que entró por las ventas (importe bruto,
-      // antes de restar ningún coste).
       ventas_total_eur: round2(sellsRow.ventas_total),
-      // Beneficio = el dinero que ganaste vendiendo: los ingresos menos los
-      // costes asociados de las ventas y el coste de los productos vendidos.
-      // NO resta el stock que todavía no vendiste (eso está en
-      // compras_total_eur y en stock_pendiente_count).
-      beneficio_total_eur: round2(beneficioRow.total),
+      beneficio_total_eur: round2(profitRow.total),
       stock_pendiente_count: stockRow.cnt,
     };
 
-    // ── Cash flow by month (últimos 12 meses, S5 del feature) ────────────
-    //
-    // Para cada mes calendario queremos:
-    //   compras = SUM(buys.purchase_cost + buys.associated_costs) +
-    //             SUM(solds.associated_costs) donde las fechas caen en ese mes.
-    //   ventas  = SUM del profit realizado por venta del mes (fórmula S13).
-    //   beneficio_real = profit realizado - gasto en compras del mes. NO es
-    //             `ventas - compras`: los asociados de las ventas ya están
-    //             descontados dentro de `ventas`, así que restar `compras`
-    //             (que los incluye) los contaría dos veces.
-    //   neto    = compras - ventas (convención del spec: negativo=pérdida,
-    //             positivo=ganancia → el chart colorea rojo bajo cero y verde
-    //             sobre cero).
-    //
-    // Meses sin actividad se rellenan con 0 (no se omiten) para mantener
-    // siempre 12 puntos consecutivos en el eje X.
-
-    // 1) Compras por mes: un UNION ALL entre buys y la parte de asociados de
-    //    solds, agrupado por mes calendario.
-    const comprasRows = db
+    const purchasesRows = db
       .prepare(
         `SELECT month,
                 COALESCE(SUM(compras_de_buys), 0) AS compras_de_buys,
@@ -504,11 +426,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       )
       .all() as Array<{ month: string; compras_de_buys: number; asociados_de_solds: number }>;
 
-    // 2) Ventas por mes: profit realizado por cada venta del mes (S13). El
-    //    subquery `cogs_calc` agrupa por sold_id el coste prorrateado de cada
-    //    item, y la query principal suma sale_price - associated_costs - cogs
-    //    agrupando por mes calendario.
-    const ventasRows = db
+    const salesRows = db
       .prepare(
         `SELECT
            strftime('%Y-%m', s.sold_at) AS month,
@@ -527,28 +445,27 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       )
       .all() as Array<{ month: string; ventas: number }>;
 
-    const comprasMap = new Map(comprasRows.map((r) => [r.month, r]));
-    const ventasMap = new Map(ventasRows.map((r) => [r.month, r]));
+    const purchasesMap = new Map(purchasesRows.map((r) => [r.month, r]));
+    const salesMap = new Map(salesRows.map((r) => [r.month, r]));
     const months = lastNMonths(12);
     const cashFlowByMonth = months.map((month) => {
-      const c = comprasMap.get(month);
-      const v = ventasMap.get(month);
-      const compras = round2((c?.compras_de_buys ?? 0) + (c?.asociados_de_solds ?? 0));
-      const ventas = round2(v?.ventas ?? 0);
-      const neto = round2(compras - ventas);
-      // Beneficio real del mes = profit realizado en las ventas - gasto en
-      // compras del mes. OJO: NO es `ventas - compras` (eso contaría dos
-      // veces los asociados de las ventas, que ya están descontados
-      // dentro de `ventas`).
-      const beneficioReal = round2(ventas - (c?.compras_de_buys ?? 0));
-      return { month, compras, ventas, neto, beneficio_real: beneficioReal };
+      const purchase = purchasesMap.get(month);
+      const sale = salesMap.get(month);
+      const purchases = round2(
+        (purchase?.compras_de_buys ?? 0) + (purchase?.asociados_de_solds ?? 0),
+      );
+      const sales = round2(sale?.ventas ?? 0);
+      const net = round2(purchases - sales);
+      const realProfit = round2(sales - (purchase?.compras_de_buys ?? 0));
+      return {
+        month,
+        compras: purchases,
+        ventas: sales,
+        neto: net,
+        beneficio_real: realProfit,
+      };
     });
 
-    // ── Top products (prorrateo por unidad para packs) ────────────────────
-    // Para una venta con N items (sum_quantity = total_qty), el revenue y
-    // los associated_costs se prorratean por unidad entre los items. Sin
-    // este prorrateo, una venta de pack de 2 items con sale_price=100€
-    // contaría 100€ de revenue para CADA producto (over-count).
     const topProducts = db
       .prepare(
         `SELECT
@@ -588,7 +505,6 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       ),
     }));
 
-    // ── Top buyers (S8) ────────────────────────────────────────────────────
     const topBuyers = db
       .prepare(
         `SELECT c.id AS customer_id, c.name AS customer_name,
