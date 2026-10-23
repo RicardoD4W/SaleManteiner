@@ -66,11 +66,11 @@ Regla: AGENTS.md §0.1/§8.1 pasan a decir que la verificación visual es obliga
 
 ## Estado al 2026-10-23 (fin de sesión)
 
-- Rama `refactor/limpieza-y-ingles`, **sin pushear** (5 commits, árbol limpio).
+- Rama `refactor/limpieza-y-ingles`, **publicada en `origin`** (6 commits, árbol limpio, **sin mergear a `master`**: la decisión del usuario fue "solo push de la rama", el PR queda para cuando quieras).
 - **WU5 (`88e70ff`)**: el barrido estaba incompleto — la revisión del diff encontró que el **CSS nunca se había tocado** (22 comentarios + identificadores en español) y que quedaban 6 identificadores en español en TS (`tipo`, `campo`, `valor`). Todo cerrado: CSS sin comentarios y en inglés (`--color-chart-purchases/-sales/-profit`, `view-transition-class: cell/box`, `--dur-transition`, `chip-arrives`/`box-enters`), identificadores TS renombrados, y comentarios fuera de los configs (`vite`/`vitest`/`playwright`), de `web/index.html` y de `server/scripts/copy-assets.mjs`.
 - Gates del WU5: typecheck, lint, format:check, 211 web + 176 server + 33/33 e2e, **+ verificación visual** (dashboard con los colores del chart resueltos y la view transition en vuelo sin deformar el chip).
 - **Pendiente para la próxima sesión**:
-  1. Decidir el push / el PR (decisión del usuario).
+  1. El merge (o el PR) a `master` queda para cuando lo decidas: la rama ya está en `origin`.
   2. Cuando se mergee: la nota en AGENTS.md §13 (el refactor) y borrar la rama.
 
 ## Estado al 2026-10-22 (fin de sesión)
@@ -88,3 +88,4 @@ Regla: AGENTS.md §0.1/§8.1 pasan a decir que la verificación visual es obliga
 - **L6** (2026-10-22) — El padre terminó lo que faltaba del barrido de `web/`: unificó la clave del state de navegación en `armedRowId` (el subagente la había renombrado a medias: el writer usaba `armedRowId` y el reader miraba `armedRow`), renombró las clases CSS (`.vt-celda` → `.vt-cell`, `.vt-caja` → `.vt-box`, `.campo-transicion` → `.transition-field`), la custom property `--vt-nombre` → `--vt-name` y los identificadores sueltos que quedaban en español (`prefijo`, `ultima`, `celdaDerecha`, `filasEnDom`, `cliente`).
 - **L7** (2026-10-22) — Estado final: `typecheck`, `lint`, `format:check`, 211 tests web + 176 server y 33/33 e2e verdes. Quedan en el código solo las directivas de eslint/TypeScript (funcionales, no son comentarios) y los strings de UI y los títulos de test en español.
 - **L8** (2026-10-23) — "sabes por donde nos quedamos ayer? podemos continuar o necvesitas mas informacion?" → se retoma la spec: la revisión del diff (T4) encontró que el barrido había dejado el CSS y los configs sin tocar, y 6 identificadores en español. El conocimiento que estaba en los comentarios del CSS, del `index.html` y de los configs se guardó en Engram (obs 869) y después se borraron (S2). WU5 cerrado con los gates + la verificación visual (el renombrado de las variables del chart y de las clases de la view transition sí toca la UI: se miraron las capturas).
+- **L9** (2026-10-23) — Decisión del usuario: "Solo push de la rama" → la rama `refactor/limpieza-y-ingles` queda publicada en `origin` (6 commits) y **sin mergear** a `master`. El PR se puede abrir cuando quieras: <https://github.com/RicardoD4W/SaleManteiner/pull/new/refactor/limpieza-y-ingles>
