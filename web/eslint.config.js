@@ -24,7 +24,6 @@ export default [
       'plugin:react-hooks/recommended',
     ],
     parser: '@typescript-eslint/parser',
-    settings: { react: { version: 'detect' } },
     plugins: ['@typescript-eslint', 'react-hooks'],
     rules: {
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
