@@ -6,7 +6,10 @@ export function DashboardPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h2>
 
-      <nav className="border-b border-gray-200 dark:border-gray-800" aria-label="Tabs del dashboard">
+      <nav
+        className="border-b border-gray-200 dark:border-gray-800"
+        aria-label="Tabs del dashboard"
+      >
         <ul className="-mb-px flex overflow-x-auto">
           {DASHBOARD_TABS.map((tab) => (
             <li key={tab.to} className="shrink-0">

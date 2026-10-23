@@ -14,7 +14,9 @@ export function Layout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <div className="flex items-baseline gap-3">
             <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400">SaleManteiner</h1>
-            <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">tracker de ventas</span>
+            <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">
+              tracker de ventas
+            </span>
           </div>
           <div className="flex min-w-0 items-center gap-2">
             <nav className="flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Principal">

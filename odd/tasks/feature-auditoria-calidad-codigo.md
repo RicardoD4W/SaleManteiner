@@ -94,6 +94,7 @@ Rama `refactor/limpieza-y-ingles` (los 6 commits del refactor previo + los de es
 **Auditoría** (3 frentes en paralelo, superficies disjuntas): `web/src` sin tests, `server/src` sin tests, y tests + configs + dependencias. Salieron ~110 hallazgos: se corrigieron los de severidad blocker/should y se documentaron los que son features (paginación, vistas SQL, índices, unificación de los dos mecanismos de ordenamiento).
 
 **Corregido y commiteado**:
+
 - `fb63b6e` + `6dc03c9`: contrato del dashboard (`neto` invertido → `ingresos`/`beneficio`/`resultado`), el bug del color del tooltip (`bg-chart-compras` ya no existía), deps muertas fuera y deps implícitas declaradas, `test` en la raíz.
 - `de5af35` (server): `repo/types.ts` y `routes/_shared.ts` (tipos y helpers duplicados), `definedOnly` tipado, `StockInsufficientError` como clase, `LocalDate` con rango real, `ShortText` que rechaza el vacío, `EuroMoney` en los updates, query de clientes `.strict()`, `LIKE` escapado, status de body-parser, `statsDashboard` en transacción, `PORT` validado, `busy_timeout`, `VERSION` del package.json.
 - `7c0a8f6` (web): código muerto fuera (`Badge`, `CardHeader`, `customersApi.search`, `setLight`/`setDark`, `isOpen`, `enabled`, helpers legacy de formato, `ISODateTime`), identificadores en inglés, y la página de edición de venta sin doble fetch (el `.catch(() => {})` se tragaba el error) con la caché del detalle primada con la fila completa.
