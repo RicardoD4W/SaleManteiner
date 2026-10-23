@@ -60,7 +60,7 @@ export function BuyersTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">Error: {error.message}</p>
           <button
             onClick={() => refetch()}
             className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"

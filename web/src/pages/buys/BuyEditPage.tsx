@@ -92,7 +92,7 @@ export function BuyEditPage() {
   if (!Number.isFinite(buyId) || buyId <= 0) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600 dark:text-red-400">Id de compra inválido.</p>
+        <p className="text-sm text-red-700 dark:text-red-400">Id de compra inválido.</p>
         <Link
           to="/buys"
           state={{ armedRowId: buyId }}
@@ -116,7 +116,7 @@ export function BuyEditPage() {
   if (isError) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600 dark:text-red-400">
+        <p className="text-sm text-red-700 dark:text-red-400">
           No se pudo cargar la compra: {error.message}
         </p>
         <Link

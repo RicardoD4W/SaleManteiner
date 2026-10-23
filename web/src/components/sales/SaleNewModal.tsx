@@ -304,7 +304,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               </button>
             </div>
             {errors.items?.message ? (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.items.message}</p>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-400">{errors.items.message}</p>
             ) : null}
           </fieldset>
 

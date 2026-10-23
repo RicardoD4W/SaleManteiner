@@ -60,7 +60,7 @@ export function ProductsTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">Error: {error.message}</p>
           <button
             onClick={() => refetch()}
             className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -140,7 +140,7 @@ export function ProductsTab() {
                           'px-4 py-2 tabular-nums',
                           p.total_profit >= 0
                             ? 'text-gray-700 dark:text-gray-300'
-                            : 'text-red-600 dark:text-red-400',
+                            : 'text-red-700 dark:text-red-400',
                         ].join(' ')}
                       >
                         {formatEuro(p.total_profit)}

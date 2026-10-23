@@ -324,7 +324,7 @@ La estrategia usa `@custom-variant dark` (clase-based), ya configurado en `web/s
 - **Default**: si no hay nada en `localStorage`, respetar `prefers-color-scheme`; si tampoco hay match, arrancar en dark.
 - **Persistencia**: clave `salemanteiner-theme` en `localStorage`, valores `"light"` | `"dark"`.
 
-**Tokens canónicos** (no inventar variantes):
+**Tokens canónicos** (no inventar variantes). Cada fila es UN rol: si el mismo color aparecía con dos tonos distintos, se unificó en el par de esta tabla.
 
 | Light                             | Dark                     | Uso                                   |
 | --------------------------------- | ------------------------ | ------------------------------------- |
@@ -334,12 +334,18 @@ La estrategia usa `@custom-variant dark` (clase-based), ya configurado en `web/s
 | `text-gray-900`                   | `dark:text-gray-100`     | texto principal                       |
 | `text-gray-700`                   | `dark:text-gray-300`     | texto secundario (labels, valores)    |
 | `text-gray-500`                   | `dark:text-gray-400`     | texto auxiliar (hints, placeholders)  |
+| `text-gray-400`                   | `dark:text-gray-500`     | íconos y punteros                     |
 | `border-gray-200`                 | `dark:border-gray-800`   | bordes de cards, header, divider      |
 | `border-gray-300`                 | `dark:border-gray-700`   | bordes de inputs, botones secundarios |
 | `bg-red-50`                       | `dark:bg-red-950/30`     | fondo de error (alerts)               |
-| `text-red-700`                    | `dark:text-red-400`      | texto de error                        |
+| `text-red-700`                    | `dark:text-red-400`      | texto de error y pérdida              |
+| `text-red-400`                    | `dark:text-red-200`      | total gastado (KPI de compras)        |
 | `bg-emerald-100` / `bg-green-100` | `dark:bg-emerald-900/30` | fondo badge success                   |
-| `text-emerald-800`                | `dark:text-emerald-300`  | texto badge success                   |
+| `text-emerald-800`                | `dark:text-emerald-300`  | texto success (beneficio positivo)    |
+| `text-orange-500`                 | `dark:text-orange-400`   | valor cero o neutro                   |
+| `text-yellow-600`                 | `dark:text-yellow-400`   | aviso de stock bajo                   |
+| `text-blue-400`                   | `dark:text-blue-300`     | KPI informativo                       |
+| `text-brand-600`                  | `dark:text-brand-400`    | link de acción                        |
 
 **SVG / charts**: los `fill="#..."` y `stroke="#..."` hardcodeados se mantienen como fallback. Agregar `className="dark:fill-... dark:stroke-..."` que Tailwind traduce a `.dark\:fill-... { fill: ... }` con CSS specificity que sobreescribe el atributo. Patrón aplicado en `web/src/components/dashboard/CashFlowChart.tsx`.
 

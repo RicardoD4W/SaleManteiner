@@ -186,7 +186,7 @@ export function CustomersListPage() {
                         type="button"
                         onClick={() => setDeleting(row.customer)}
                         aria-label={`Borrar ${row.name}`}
-                        className="cursor-pointer text-sm font-medium text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Borrar
                       </button>

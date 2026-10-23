@@ -236,7 +236,7 @@ export function ProductPickerModal({
 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <div className="flex items-center gap-3 px-4 py-8 text-sm text-gray-500">
+            <div className="flex items-center gap-3 px-4 py-8 text-sm text-gray-500 dark:text-gray-400">
               <Spinner size="sm" /> Cargando productos…
             </div>
           ) : isError ? (

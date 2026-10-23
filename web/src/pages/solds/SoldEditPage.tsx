@@ -99,7 +99,7 @@ export function SoldEditPage() {
   if (!Number.isFinite(soldId) || soldId <= 0) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
+        <p className="text-sm text-red-700 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
           state={{ armedRowId: soldId }}
@@ -123,7 +123,7 @@ export function SoldEditPage() {
   if (isError) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm text-red-600 dark:text-red-400">
+        <p className="text-sm text-red-700 dark:text-red-400">
           No se pudo cargar la venta: {error.message}
         </p>
         <Link

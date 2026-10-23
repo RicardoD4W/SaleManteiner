@@ -36,9 +36,9 @@ function StatCard({ label, value, hint, valueClassName, cardClassName }: StatCar
 }
 
 function profitColorClass(value: number): string {
-  if (value < 0) return 'text-red-600 dark:text-red-400';
+  if (value < 0) return 'text-red-700 dark:text-red-400';
   if (value === 0) return 'text-orange-500 dark:text-orange-400';
-  return 'text-emerald-600 dark:text-emerald-400';
+  return 'text-emerald-800 dark:text-emerald-300';
 }
 
 export function OverviewTab() {
@@ -56,7 +56,7 @@ export function OverviewTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600 dark:text-red-400">
+          <p className="text-sm text-red-700 dark:text-red-400">
             No se pudo cargar el dashboard: {error.message}
           </p>
           <button
@@ -88,7 +88,7 @@ export function OverviewTab() {
           label="Ventas totales"
           value={formatEuro(k.ventas_total_eur)}
           hint="Ingresos brutos de las ventas"
-          valueClassName="dark:text-green-200 text-green-400"
+          valueClassName="dark:text-emerald-300 text-emerald-800"
         />
         <StatCard
           label="Beneficio"

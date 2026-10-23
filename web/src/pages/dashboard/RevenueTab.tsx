@@ -19,7 +19,7 @@ export function RevenueTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-600 dark:text-red-400">Error: {error.message}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">Error: {error.message}</p>
           <button
             onClick={() => refetch()}
             className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -65,7 +65,7 @@ export function RevenueTab() {
                 'mt-1 text-2xl font-semibold tabular-nums',
                 ytdProfit >= 0
                   ? 'text-gray-900 dark:text-gray-100'
-                  : 'text-red-600 dark:text-red-400',
+                  : 'text-red-700 dark:text-red-400',
               ].join(' ')}
             >
               {formatEuro(ytdProfit)}

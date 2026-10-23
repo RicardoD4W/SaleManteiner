@@ -155,7 +155,7 @@ export function CustomerAutocomplete({
             <Spinner size="sm" />
           </span>
         ) : (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-400">
             <svg
               aria-hidden="true"
               className="h-4 w-4"
@@ -245,7 +245,7 @@ export function CustomerAutocomplete({
       {error ? (
         <p
           id={`${listboxId}-error`}
-          className="text-sm text-red-600 dark:text-red-400"
+          className="text-sm text-red-700 dark:text-red-400"
           role="alert"
         >
           {error}

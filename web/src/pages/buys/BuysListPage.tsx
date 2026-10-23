@@ -93,7 +93,7 @@ function ActionsCell({
         type="button"
         onClick={() => onBorrar(row)}
         aria-label={`Borrar ${row.product_name}`}
-        className="cursor-pointer text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+        className="cursor-pointer text-sm font-medium text-red-700 hover:underline dark:text-red-400"
       >
         Borrar
       </button>

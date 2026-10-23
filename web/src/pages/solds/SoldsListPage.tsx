@@ -94,7 +94,7 @@ function ActionsCell({
         type="button"
         onClick={() => onBorrar(row)}
         aria-label={`Borrar venta #${row.id}`}
-        className="cursor-pointer text-sm font-medium text-red-600 hover:underline dark:text-red-400"
+        className="cursor-pointer text-sm font-medium text-red-700 hover:underline dark:text-red-400"
       >
         Borrar
       </button>
@@ -254,9 +254,9 @@ export function SoldsListPage() {
           const profit = info.getValue() as number;
           const colorClass =
             profit > 0
-              ? 'text-emerald-600 dark:text-emerald-400'
+              ? 'text-emerald-800 dark:text-emerald-300'
               : profit < 0
-                ? 'text-red-600 dark:text-red-400'
+                ? 'text-red-700 dark:text-red-400'
                 : 'text-gray-500 dark:text-gray-400';
           return (
             <span className={`tabular-nums font-medium ${colorClass}`}>{formatEuro(profit)}</span>
