@@ -18,8 +18,8 @@ vi.mock('recharts', async (importOriginal) => {
 import { LazyCashFlowChart } from '../LazyCashFlowChart';
 
 const DATA = [
-  { month: '2026-01', compras: 100, ventas: 50, beneficio_real: -20 },
-  { month: '2026-02', compras: 200, ventas: 150, beneficio_real: -50 },
+  { month: '2026-01', ingresos: 80, compras: 100, beneficio: 50, resultado: -20 },
+  { month: '2026-02', ingresos: 180, compras: 200, beneficio: 150, resultado: -50 },
 ];
 
 describe('LazyCashFlowChart', () => {

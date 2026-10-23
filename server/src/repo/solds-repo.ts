@@ -84,10 +84,10 @@ export interface DashboardStats {
   };
   cashFlowByMonth: Array<{
     month: string;
+    ingresos: number;
     compras: number;
-    ventas: number;
-    neto: number;
-    beneficio_real: number;
+    beneficio: number;
+    resultado: number;
   }>;
   topProducts: Array<{
     product_name: string;
@@ -430,7 +430,8 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       .prepare(
         `SELECT
            strftime('%Y-%m', s.sold_at) AS month,
-           COALESCE(SUM(s.sale_price - s.associated_costs - cogs_calc.cogs), 0) AS ventas
+           COALESCE(SUM(s.sale_price), 0) AS ingresos,
+           COALESCE(SUM(s.sale_price - s.associated_costs - cogs_calc.cogs), 0) AS beneficio
          FROM solds s
          JOIN (
            SELECT si.sold_id,
@@ -443,7 +444,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
          WHERE s.sold_at IS NOT NULL
          GROUP BY month`,
       )
-      .all() as Array<{ month: string; ventas: number }>;
+      .all() as Array<{ month: string; ingresos: number; beneficio: number }>;
 
     const purchasesMap = new Map(purchasesRows.map((r) => [r.month, r]));
     const salesMap = new Map(salesRows.map((r) => [r.month, r]));
@@ -451,18 +452,18 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const cashFlowByMonth = months.map((month) => {
       const purchase = purchasesMap.get(month);
       const sale = salesMap.get(month);
-      const purchases = round2(
+      const compras = round2(
         (purchase?.compras_de_buys ?? 0) + (purchase?.asociados_de_solds ?? 0),
       );
-      const sales = round2(sale?.ventas ?? 0);
-      const net = round2(purchases - sales);
-      const realProfit = round2(sales - (purchase?.compras_de_buys ?? 0));
+      const ingresos = round2(sale?.ingresos ?? 0);
+      const beneficio = round2(sale?.beneficio ?? 0);
+      const resultado = round2(beneficio - (purchase?.compras_de_buys ?? 0));
       return {
         month,
-        compras: purchases,
-        ventas: sales,
-        neto: net,
-        beneficio_real: realProfit,
+        ingresos,
+        compras,
+        beneficio,
+        resultado,
       };
     });
 

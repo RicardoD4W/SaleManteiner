@@ -11,12 +11,9 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSold } from '../../hooks/useSold';
 import { useUpdateSold } from '../../hooks/useUpdateSold';
-import { useCustomers } from '../../hooks/useCustomers';
 import { formatDate } from '../../lib/format';
 import { ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
-import { soldsApi } from '../../api/solds';
-import type { SoldWithItems } from '../../schemas/solds';
 
 const SoldEditFormSchema = z.object({
   customer_id: z.number({ error: 'El cliente es obligatorio' }).int().positive(),
@@ -41,14 +38,13 @@ export function SoldEditPage() {
   const { data: sold, isLoading, isError, error } = useSold(soldId);
   const update = useUpdateSold();
   const navigate = useNavigate();
-  const [soldWithItems, setSoldWithItems] = useState<SoldWithItems | null>(null);
-
-  const { data: customers } = useCustomers();
-
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(() => {
-    const customer = customers?.find((c) => c.id === sold?.customer_id);
-    return customer ? { id: customer.id, name: customer.name, created_at: '' } : null;
-  });
+  const [customerChoice, setCustomerChoice] = useState<Customer | null>();
+  const selectedCustomer =
+    customerChoice !== undefined
+      ? customerChoice
+      : sold
+        ? { id: sold.customer_id, name: sold.customer_name, created_at: '' }
+        : null;
 
   const transitionName = (field: string) => `sold-${field}-${soldId}`;
 
@@ -67,28 +63,15 @@ export function SoldEditPage() {
   });
 
   useEffect(() => {
-    if (!Number.isFinite(soldId) || soldId <= 0) return;
     if (!sold) return;
-    soldsApi
-      .getByIdWithItems(soldId)
-      .then((detailed) => {
-        setSoldWithItems(detailed);
-        setSelectedCustomer({
-          id: detailed.customer_id,
-          name: detailed.customer_name,
-          created_at: '',
-        });
-        reset({
-          customer_id: detailed.customer_id,
-          sale_price: detailed.sale_price,
-          associated_costs: detailed.associated_costs,
-          sold_at: detailed.sold_at ?? '',
-          notes: detailed.notes ?? '',
-        });
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sold]);
+    reset({
+      customer_id: sold.customer_id,
+      sale_price: sold.sale_price,
+      associated_costs: sold.associated_costs,
+      sold_at: sold.sold_at ?? '',
+      notes: sold.notes ?? '',
+    });
+  }, [sold, reset]);
 
   const onSubmit: SubmitHandler<SoldEditFormOutput> = async (values) => {
     const payload = {
@@ -190,14 +173,14 @@ export function SoldEditPage() {
         </CardBody>
       </Card>
 
-      {soldWithItems && soldWithItems.items.length > 0 && (
+      {sold.items.length > 0 && (
         <Card>
           <CardBody>
             <h3 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Productos ({soldWithItems.items.length})
+              Productos ({sold.items.length})
             </h3>
             <ul className="space-y-1">
-              {soldWithItems.items.map((item) => (
+              {sold.items.map((item) => (
                 <li
                   key={item.buy_id}
                   className="flex justify-between rounded border border-gray-100 bg-gray-50 px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
@@ -221,7 +204,7 @@ export function SoldEditPage() {
               <CustomerAutocomplete
                 value={selectedCustomer}
                 onChange={(c) => {
-                  setSelectedCustomer(c);
+                  setCustomerChoice(c);
                   if (c) setValue('customer_id' as keyof SoldEditFormOutput, c.id);
                 }}
                 error={(errors.customer_id as { message?: string } | undefined)?.message}

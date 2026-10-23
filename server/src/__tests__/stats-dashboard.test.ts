@@ -69,8 +69,9 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.cashFlowByMonth).toHaveLength(12);
     stats.cashFlowByMonth.forEach((m) => {
       expect(m.compras).toBe(0);
-      expect(m.ventas).toBe(0);
-      expect(m.neto).toBe(0);
+      expect(m.ingresos).toBe(0);
+      expect(m.beneficio).toBe(0);
+      expect(m.resultado).toBe(0);
     });
     expect(stats.topProducts).toHaveLength(0);
     expect(stats.topBuyers).toHaveLength(0);
@@ -112,8 +113,9 @@ describe('statsDashboard (nuevo modelo)', () => {
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
     expect(currentMonth.compras).toBe(6);
-    expect(currentMonth.ventas).toBe(6.5);
-    expect(currentMonth.neto).toBe(-0.5);
+    expect(currentMonth.ingresos).toBe(8);
+    expect(currentMonth.beneficio).toBe(6.5);
+    expect(currentMonth.resultado).toBe(1.5);
 
     expect(stats.topProducts).toHaveLength(1);
     expect(stats.topProducts[0]).toMatchObject({
@@ -342,7 +344,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     expect(stats.kpis.beneficio_total_eur).toBeCloseTo(21.8, 2);
   });
 
-  it('cashFlowByMonth: solo compras en el mes, sin ventas → compras > 0, ventas = 0, neto = compras', () => {
+  it('cashFlowByMonth: solo compras en el mes, sin ventas → compras > 0, beneficio = 0, resultado = -compras', () => {
     buysRepo.create(
       validBuy({
         product_name: 'Lote',
@@ -355,11 +357,12 @@ describe('statsDashboard (nuevo modelo)', () => {
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
     expect(currentMonth.compras).toBe(100);
-    expect(currentMonth.ventas).toBe(0);
-    expect(currentMonth.neto).toBe(100);
+    expect(currentMonth.ingresos).toBe(0);
+    expect(currentMonth.beneficio).toBe(0);
+    expect(currentMonth.resultado).toBe(-100);
   });
 
-  it('cashFlowByMonth: solo ventas en el mes (sin buys nuevos) → compras = 0, ventas > 0, neto = -ventas', () => {
+  it('cashFlowByMonth: solo ventas en el mes (sin buys nuevos) → compras = 0, beneficio > 0', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Lote',
@@ -383,8 +386,9 @@ describe('statsDashboard (nuevo modelo)', () => {
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
     expect(currentMonth.compras).toBe(0);
-    expect(currentMonth.ventas).toBe(70);
-    expect(currentMonth.neto).toBe(-70);
+    expect(currentMonth.ingresos).toBe(80);
+    expect(currentMonth.beneficio).toBe(70);
+    expect(currentMonth.resultado).toBe(70);
   });
 
   it('cashFlowByMonth: mes con buy y venta contabiliza compras (incluye asociados de solds)', () => {
@@ -412,11 +416,12 @@ describe('statsDashboard (nuevo modelo)', () => {
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
     expect(currentMonth.compras).toBe(37);
-    expect(currentMonth.ventas).toBe(44.5);
-    expect(currentMonth.neto).toBe(-7.5);
+    expect(currentMonth.ingresos).toBe(50);
+    expect(currentMonth.beneficio).toBe(44.5);
+    expect(currentMonth.resultado).toBe(9.5);
   });
 
-  it('cashFlowByMonth: beneficio_real = profit de las ventas - gasto en compras del mes', () => {
+  it('cashFlowByMonth: resultado = profit de las ventas - gasto en compras del mes', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Prod',
@@ -440,8 +445,9 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     const currentMonth = stats.cashFlowByMonth[11]!;
-    expect(currentMonth.ventas).toBe(44.5);
-    expect(currentMonth.beneficio_real).toBe(9.5);
+    expect(currentMonth.ingresos).toBe(50);
+    expect(currentMonth.beneficio).toBe(44.5);
+    expect(currentMonth.resultado).toBe(9.5);
   });
 
   it('cashFlowByMonth: meses sin actividad se rellenan con 0', () => {
@@ -465,7 +471,12 @@ describe('statsDashboard (nuevo modelo)', () => {
 
     const stats = soldsRepo.statsDashboard();
     for (let i = 0; i < 11; i++) {
-      expect(stats.cashFlowByMonth[i]).toMatchObject({ compras: 0, ventas: 0, neto: 0 });
+      expect(stats.cashFlowByMonth[i]).toMatchObject({
+        compras: 0,
+        ingresos: 0,
+        beneficio: 0,
+        resultado: 0,
+      });
     }
   });
 });

@@ -33,11 +33,11 @@ export function RevenueTab() {
 
   if (!data) return null;
 
-  const ytdRevenue = data.cashFlowByMonth.reduce((acc, m) => acc + m.ventas, 0);
-  const ytdProfit = data.cashFlowByMonth.reduce((acc, m) => acc + m.neto, 0);
-  const monthsWithSales = data.cashFlowByMonth.filter((m) => m.ventas > 0);
+  const ytdRevenue = data.cashFlowByMonth.reduce((acc, m) => acc + m.ingresos, 0);
+  const ytdProfit = data.cashFlowByMonth.reduce((acc, m) => acc + m.beneficio, 0);
+  const monthsWithSales = data.cashFlowByMonth.filter((m) => m.ingresos > 0);
   const bestMonth = monthsWithSales.reduce(
-    (best, m) => (m.ventas > best.ventas ? m : best),
+    (best, m) => (m.ingresos > best.ingresos ? m : best),
     monthsWithSales[0] ?? null,
   );
 
@@ -81,7 +81,7 @@ export function RevenueTab() {
               Mejor mes
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {bestMonth ? formatEuro(bestMonth.ventas) : '—'}
+              {bestMonth ? formatEuro(bestMonth.ingresos) : '—'}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {bestMonth ? bestMonth.month : 'sin ventas registradas'}

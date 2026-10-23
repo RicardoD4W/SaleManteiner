@@ -18,9 +18,9 @@ vi.mock('recharts', async (importOriginal) => {
 import { CashFlowChart } from '../CashFlowChart';
 
 const DATA = [
-  { month: '2026-01', compras: 100, ventas: 50, beneficio_real: -20 },
-  { month: '2026-02', compras: 200, ventas: 150, beneficio_real: -50 },
-  { month: '2026-03', compras: 150, ventas: 180, beneficio_real: 30 },
+  { month: '2026-01', ingresos: 80, compras: 100, beneficio: 50, resultado: -20 },
+  { month: '2026-02', ingresos: 180, compras: 200, beneficio: 150, resultado: -50 },
+  { month: '2026-03', ingresos: 220, compras: 150, beneficio: 180, resultado: 30 },
 ];
 
 describe('CashFlowChart (recharts)', () => {
@@ -41,7 +41,7 @@ describe('CashFlowChart (recharts)', () => {
     expect(screen.getByText('Resultado del mes')).toBeInTheDocument();
   });
 
-  it('la serie de beneficio real se dibuja con el naranja de marca', () => {
+  it('la serie de resultado del mes se dibuja con el naranja de marca', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
@@ -50,12 +50,12 @@ describe('CashFlowChart (recharts)', () => {
     expect(strokes).toContain('var(--color-chart-profit)');
   });
 
-  it('el eje Y cubre el beneficio real cuando es más negativo que las ventas', () => {
+  it('el eje Y cubre el resultado cuando es más negativo que el beneficio', () => {
     const { container } = render(
       <CashFlowChart
         data={[
-          { month: '2026-01', compras: 0, ventas: 0, beneficio_real: -500 },
-          { month: '2026-02', compras: 0, ventas: 0, beneficio_real: -500 },
+          { month: '2026-01', ingresos: 0, compras: 0, beneficio: 0, resultado: -500 },
+          { month: '2026-02', ingresos: 0, compras: 0, beneficio: 0, resultado: -500 },
         ]}
       />,
     );
@@ -64,7 +64,7 @@ describe('CashFlowChart (recharts)', () => {
       container.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
     ).map((el) => el.textContent ?? '');
 
-    expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
+    expect(tickValues.some((t) => t.trim().startsWith('-500'))).toBe(true);
   });
 
   it('muestra los meses en español en el eje X', () => {
@@ -82,12 +82,12 @@ describe('CashFlowChart (recharts)', () => {
     expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(0);
   });
 
-  it('con ventas negativas: el eje Y incluye valores negativos', () => {
+  it('con beneficio negativo: el eje Y incluye valores negativos', () => {
     const { container } = render(
       <CashFlowChart
         data={[
-          { month: '2026-01', compras: 100, ventas: -10, beneficio_real: -50 },
-          { month: '2026-02', compras: 200, ventas: 150, beneficio_real: -50 },
+          { month: '2026-01', ingresos: 0, compras: 100, beneficio: -10, resultado: -50 },
+          { month: '2026-02', ingresos: 180, compras: 200, beneficio: 150, resultado: -50 },
         ]}
       />,
     );

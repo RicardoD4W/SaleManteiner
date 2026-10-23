@@ -31,11 +31,10 @@ export interface DashboardStats {
 
   cashFlowByMonth: Array<{
     month: string;
+    ingresos: number;
     compras: number;
-    ventas: number;
-    neto: number;
-
-    beneficio_real: number;
+    beneficio: number;
+    resultado: number;
   }>;
   topProducts: Array<{
     product_name: string;
@@ -53,8 +52,6 @@ export interface DashboardStats {
 
 export const soldsApi = {
   list: () => apiFetch<ListResponse>('/api/solds').then((r) => r.data),
-
-  getById: (id: number) => apiFetch<ItemResponse>(`/api/solds/${id}`).then((r) => r.data),
 
   getByIdWithItems: (id: number) =>
     apiFetch<ItemWithItemsResponse>(`/api/solds/${id}`).then((r) => r.data),

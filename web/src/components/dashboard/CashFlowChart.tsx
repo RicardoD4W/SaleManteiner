@@ -15,18 +15,20 @@ export interface CashFlowChartProps {
   data: Array<{
     month: string;
 
+    ingresos: number;
+
     compras: number;
 
-    ventas: number;
+    beneficio: number;
 
-    beneficio_real: number;
+    resultado: number;
   }>;
 }
 
 const SERIES_COLOR_CLASS: Record<string, string> = {
-  compras: 'bg-chart-compras',
-  ventas: 'bg-chart-ventas',
-  beneficio_real: 'bg-chart-beneficio',
+  compras: 'bg-chart-purchases',
+  beneficio: 'bg-chart-sales',
+  resultado: 'bg-chart-profit',
 };
 
 const MONTH_LABELS = [
@@ -70,7 +72,7 @@ function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
             <span
               className={[
                 'h-2 w-2 shrink-0 rounded-full',
-                SERIES_COLOR_CLASS[String(entry.dataKey)] ?? SERIES_COLOR_CLASS.ventas,
+                SERIES_COLOR_CLASS[String(entry.dataKey)] ?? SERIES_COLOR_CLASS.beneficio,
               ].join(' ')}
               aria-hidden="true"
             />
@@ -94,8 +96,11 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
     );
   }
 
-  const yMin = Math.min(0, ...data.flatMap((d) => [d.ventas, d.beneficio_real]));
-  const yMax = Math.max(1, ...data.flatMap((d) => [d.compras, d.ventas, d.beneficio_real]));
+  const yMin = Math.min(0, ...data.flatMap((d) => [d.beneficio, d.resultado]));
+  const yMax = Math.max(
+    1,
+    ...data.flatMap((d) => [d.compras, d.ingresos, d.beneficio, d.resultado]),
+  );
 
   return (
     <div
@@ -136,7 +141,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
           />
           <Line
             type="linear"
-            dataKey="ventas"
+            dataKey="beneficio"
             name="Beneficio"
             stroke="var(--color-chart-sales)"
             strokeWidth={2.5}
@@ -147,7 +152,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
 
           <Line
             type="linear"
-            dataKey="beneficio_real"
+            dataKey="resultado"
             name="Resultado del mes"
             stroke="var(--color-chart-profit)"
             strokeWidth={2.5}
