@@ -104,6 +104,20 @@ Rama `refactor/limpieza-y-ingles` (los 6 commits del refactor previo + los de es
 
 **Pendiente**: la deduplicación grande (shell de modal compartido + tabla de filas armada parametrizada) y la verificación visual final.
 
+### Deuda reportada (no es limpieza: son features o refactors con riesgo propio)
+
+Se documentan para que queden decididas a propósito, no por olvido:
+
+- **Paginación** (decisión D7 de AGENTS.md): las tres listas del repo devuelven todo sin `LIMIT`. Es una feature (cambia el contrato y el comportamiento), no un bug de limpieza.
+- **Vistas SQL para el prorrateo**: la fórmula de COGS está copiada 6 veces en `solds-repo.ts` y la de beneficio en 3 (con distinto agrupamiento). Una vista (`v_item_costs`) lo unifica; es un refactor con su propio riesgo.
+- **Índices**: `idx_sale_items_sold` duplica el prefijo del PK `(sold_id, buy_id)` (índice inútil) y los índices de fecha no los puede usar el planner con los filtros actuales (`(? IS NULL OR col ...)` o `strftime()`). Confirmarlo requiere `EXPLAIN QUERY PLAN` sobre una BD sembrada.
+- **Dos mecanismos de ordenamiento**: `useSortable` (dashboard y clientes) y el `SortingState` de TanStack Table (`/buys`, `/solds`). Unificarlos es un refactor de las tres tablas.
+- **Schemas de formulario duplicados**: los forms de compra y venta redeclaran en local lo que ya está en `web/src/schemas/` (y ya divergieron: `.default(0)` en un lado y no en el otro).
+- **TOCTOU**: las rutas comprueban existencia y el repo la vuelve a comprobar.
+- **Statements no cacheados**: `better-sqlite3` no cachea el SQL preparado; los `db.prepare` dentro de las funciones se recompilan en cada request (el de stock, una vez por item).
+- **CORS abierto**: `origin: true, credentials: true` refleja cualquier Origin. La app es local y sin auth, pero se puede cerrar a `localhost:5173`.
+- **Doble mecanismo de foco en los modales**: 3 de los 6 modales manejan el Escape a mano y no atrapan el Tab (los otros sí). Se unifica con el shell compartido (el trap respeta `isPending`, el manual no).
+
 ## Log
 
 - **L1** (2026-10-23) — "has mirado que este todo sin comentarios? que no haya naming de cosas en español (variables, fuciones, etc), eliminado codigo que no se use? y verificado si hay redundancia? (funciones declarados dos veces, una variable css de un color y el uso de una clase de tailwind de ese mismo color en otro lado...) y que todo sigua unas buenas practicas y buena arquitectura? esto tmb aplica a test y craga las skills necesarias antes de ponerte con esto"
