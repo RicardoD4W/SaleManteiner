@@ -1,17 +1,9 @@
-/**
- * Tests del Layout (header + nav).
- *
- * Cubre el resaltado del link "Dashboard" del header: tiene que seguir
- * iluminado cuando estás en una de las tabs del dashboard (Ingresos,
- * Productos, Compradores), no solo en la raíz `/`.
- */
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { renderWithProviders } from '@/test-utils/render';
 
-/** Monta el Layout en la ruta indicada. */
 function renderLayout(ruta: string) {
   return renderWithProviders(
     <Routes>
@@ -26,7 +18,6 @@ function renderLayout(ruta: string) {
   );
 }
 
-/** El link "Dashboard" del header. */
 function linkDashboard(): HTMLElement {
   return screen.getByRole('link', { name: 'Dashboard' });
 }

@@ -1,15 +1,3 @@
-/**
- * Página de edición de venta.
- *
- * Carga la venta con `soldsApi.getByIdWithItems` para obtener los items del pack.
- * Permite editar: cliente, precio, asociados, fecha, notas.
- * Los items del pack NO se pueden editar (son inmutables una vez creada la venta).
- *
- * El borrado NO vive acá: el usuario lo pidió así ("quitar el boton borrar
- * del apartado de editar", L5 del feature `acciones-en-listas`). Se borra
- * desde la tabla de `/solds`, con el mismo diálogo compartido
- * (`components/sales/DeleteDialogs.tsx`).
- */
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -54,42 +42,18 @@ export function SoldEditPage() {
   const update = useUpdateSold();
   const navigate = useNavigate();
   const [soldWithItems, setSoldWithItems] = useState<SoldWithItems | null>(null);
-  /** Clientes (los carga la tabla de `/solds`; aquí salen de la caché). */
+
   const { data: customers } = useCustomers();
 
-  /**
-   * Cliente seleccionado.
-   *
-   * Se inicializa con el cliente que ya está en la caché (la tabla de
-   * `/solds` carga los clientes) para que el input del cliente tenga el
-   * nombre desde el primer render: si no, el `view-transition-name`
-   * viajaría a un input vacío y la transición no relacionaría nada.
-   */
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(() => {
-    const cliente = customers?.find((c) => c.id === sold?.customer_id);
-    return cliente ? { id: cliente.id, name: cliente.name, created_at: '' } : null;
+    const customer = customers?.find((c) => c.id === sold?.customer_id);
+    return customer ? { id: customer.id, name: customer.name, created_at: '' } : null;
   });
 
-  /**
-   * Nombre de la view transition de elemento compartido (S3).
-   *
-   * En `/solds` lo que identifica la venta en la tabla es el CLIENTE (los
-   * productos del pack son de solo lectura en el form), así que el elemento
-   * que viaja es el input del cliente. Es el MISMO nombre que lleva la
-   * celda de cliente de la fila, con el id de la venta como clave.
-   *
-   * `campo` distingue los campos que viajan (cliente, precio, asociados…):
-   * cada campo tiene su pareja en la fila.
-   */
-  const nombreTransicion = (campo: string) => `sold-${campo}-${soldId}`;
+  const transitionName = (campo: string) => `sold-${campo}-${soldId}`;
 
-  /**
-   * Vuelve a la lista dejando armada la fila de esta venta (S3): el id
-   * viaja en el `state` de la navegación y la lista lo lee para armar la
-   * fila (y que el cliente vuelva a la celda).
-   */
-  const volverALista = () =>
-    navigate('/solds', { viewTransition: true, state: { filaArmada: soldId } });
+  const backToList = () =>
+    navigate('/solds', { viewTransition: true, state: { armedRowId: soldId } });
 
   const {
     register,
@@ -102,7 +66,6 @@ export function SoldEditPage() {
     resolver: zodResolver(SoldEditFormSchema),
   });
 
-  // Cargar detalle con items.
   useEffect(() => {
     if (!Number.isFinite(soldId) || soldId <= 0) return;
     if (!sold) return;
@@ -123,10 +86,8 @@ export function SoldEditPage() {
           notes: detailed.notes ?? '',
         });
       })
-      .catch(() => {
-        // Silenciar error de items; el form sigue funcionando sin el detalle.
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo se ejecuta cuando cambia `sold`
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sold]);
 
   const onSubmit: SubmitHandler<SoldEditFormOutput> = async (values) => {
@@ -140,7 +101,7 @@ export function SoldEditPage() {
 
     try {
       await update.mutateAsync({ id: soldId, input: payload });
-      volverALista();
+      backToList();
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -158,7 +119,7 @@ export function SoldEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
-          state={{ filaArmada: soldId }}
+          state={{ armedRowId: soldId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -184,7 +145,7 @@ export function SoldEditPage() {
         </p>
         <Link
           to="/solds"
-          state={{ filaArmada: soldId }}
+          state={{ armedRowId: soldId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -202,7 +163,7 @@ export function SoldEditPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
         <Link
           to="/solds"
-          state={{ filaArmada: soldId }}
+          state={{ armedRowId: soldId }}
           viewTransition
           className="text-sm text-gray-500 hover:underline dark:text-gray-400"
         >
@@ -210,7 +171,6 @@ export function SoldEditPage() {
         </Link>
       </div>
 
-      {/* Info de registro */}
       <Card>
         <CardBody className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <div className="flex justify-between">
@@ -230,7 +190,6 @@ export function SoldEditPage() {
         </CardBody>
       </Card>
 
-      {/* Items del pack (solo lectura) */}
       {soldWithItems && soldWithItems.items.length > 0 && (
         <Card>
           <CardBody>
@@ -255,16 +214,9 @@ export function SoldEditPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/*
-              S3: el input del cliente es el destino de la transición de
-              elemento compartido. El `CustomerAutocomplete` es un
-              componente compartido que no acepta props de estilo, así que
-              el nombre viaja por una custom property (`.campo-transicion
-              input` en index.css) y el input la hereda.
-            */}
             <div
-              className="campo-transicion"
-              style={{ '--vt-nombre': nombreTransicion('client') } as CSSProperties}
+              className="transition-field"
+              style={{ '--vt-name': transitionName('client') } as CSSProperties}
             >
               <CustomerAutocomplete
                 value={selectedCustomer}
@@ -285,9 +237,8 @@ export function SoldEditPage() {
                 autoFocus
                 {...register('sale_price', { valueAsNumber: true })}
                 error={(errors.sale_price as { message?: string } | undefined)?.message}
-                // S3: este input es el destino del chip del precio.
-                className="vt-caja"
-                style={{ viewTransitionName: nombreTransicion('price') }}
+                className="vt-box"
+                style={{ viewTransitionName: transitionName('price') }}
               />
               <Input
                 label="Gastos asociados (€)"
@@ -297,9 +248,8 @@ export function SoldEditPage() {
                 {...register('associated_costs', { valueAsNumber: true })}
                 error={(errors.associated_costs as { message?: string } | undefined)?.message}
                 hint="Envío, comisión, etc. (opcional)"
-                // S3: este input es el destino del chip de los asociados.
-                className="vt-caja"
-                style={{ viewTransitionName: nombreTransicion('associated') }}
+                className="vt-box"
+                style={{ viewTransitionName: transitionName('associated') }}
               />
             </div>
 
@@ -308,9 +258,8 @@ export function SoldEditPage() {
               type="date"
               {...register('sold_at')}
               error={(errors.sold_at as { message?: string } | undefined)?.message}
-              // S3: este input es el destino del chip de la fecha.
-              className="vt-caja"
-              style={{ viewTransitionName: nombreTransicion('date') }}
+              className="vt-box"
+              style={{ viewTransitionName: transitionName('date') }}
             />
 
             <Textarea
@@ -327,7 +276,7 @@ export function SoldEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={volverALista}>
+              <Button type="button" variant="ghost" onClick={backToList}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

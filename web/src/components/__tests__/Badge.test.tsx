@@ -1,6 +1,3 @@
-/**
- * Tests del componente Badge.
- */
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from '@/components/ui/Badge';

@@ -1,25 +1,3 @@
-/**
- * Vista de Clientes (S1 del feature clientes-crud).
- *
- * Lista los clientes con:
- *  - Nombre.
- *  - Número de ventas: se cuenta cruzando las ventas con el cliente
- *    (`useSolds` + `useCustomers`). La API de clientes no expone esta
- *    métrica y `topBuyers` del dashboard está limitado a 10, así que se
- *    calcula en el cliente con los datos que ya trae `GET /api/solds`.
- *  - Total gastado: suma de `sale_price` de las ventas de ese cliente.
- *  - Acción "Editar" (abre el `CustomerFormModal`).
- *
- * Tabla simple (no virtualizada): la lista de clientes es corta y una
- * tabla semántica se lee mejor con lectores de pantalla.
- *
- * El borrado de clientes (S3) borra en cascada: si el cliente tiene ventas
- * asociadas, el server responde 409 y la vista pide una segunda
- * confirmación antes de borrar el cliente, sus ventas y sus items.
- *
- * Estados de carga y de error como en el resto de páginas (`Spinner` +
- * botón "Reintentar").
- */
 import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useSolds } from '../../hooks/useSolds';
@@ -32,17 +10,15 @@ import { formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Customer } from '../../schemas/customers';
 
-/** Fila de la tabla: el cliente + sus métricas de ventas. */
 interface CustomerRow {
   id: number;
   name: string;
   ventas: number;
   total_gastado: number;
-  /** Cliente original (para abrir el modal de edición). */
+
   customer: Customer;
 }
 
-/** Cabecera ordenable (sort de 3 estados, como en las tabs del dashboard). */
 function SortHeader({
   label,
   sortKey,
@@ -66,8 +42,7 @@ function SortHeader({
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <span className="whitespace-nowrap">{label}</span>
-      {/* El hueco del indicador se reserva siempre (anchura fija): si no, al
-          ordenar aparece el ▼, la columna crece y la tabla se desajusta. */}
+
       <span className="ml-1 inline-block w-3">{indicator}</span>
     </th>
   );
@@ -76,23 +51,13 @@ function SortHeader({
 export function CustomersListPage() {
   const { data: customers, isLoading, isError, error, refetch } = useCustomers();
   const { data: solds } = useSolds();
-  /** Cliente en edición (null = el modal de edición está cerrado). */
+
   const [editing, setEditing] = useState<Customer | null>(null);
-  /** ¿Está abierto el modal de alta? */
+
   const [isCreating, setIsCreating] = useState(false);
-  /**
-   * Cliente que se va a borrar (S3 del feature `clientes-crud`). El flujo
-   * (confirmación → 409 → cascada) vive en `DeleteCustomerDialogs`, que se
-   * renderiza a NIVEL DE PÁGINA: dentro de la celda, el `position: fixed`
-   * del backdrop se rompería.
-   */
+
   const [deleting, setDeleting] = useState<Customer | null>(null);
 
-  /**
-   * Métricas por cliente: número de ventas y total gastado.
-   * Se cruzan las ventas (`GET /api/solds`) con los clientes; no hay
-   * endpoint de server que devuelva estas dos métricas por cliente.
-   */
   const metricsByCustomer = useMemo(() => {
     const map = new Map<number, { ventas: number; total_gastado: number }>();
     for (const sold of solds ?? []) {
@@ -120,11 +85,8 @@ export function CustomersListPage() {
     [customers, metricsByCustomer],
   );
 
-  // Sin sort por defecto: el server ya devuelve los clientes ordenados por
-  // nombre (COLLATE NOCASE), así que sin sort se ven en ese orden.
   const { sortedItems, sortKey, sortDir, onSort } = useSortable<CustomerRow>(rows);
 
-  /** Cierra el modal que estuviera abierto (alta o edición). */
   const closeModals = () => {
     setIsCreating(false);
     setEditing(null);
@@ -154,7 +116,6 @@ export function CustomersListPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Clientes</h2>
         <button
@@ -216,13 +177,7 @@ export function CustomersListPage() {
                       <button
                         type="button"
                         onClick={() => setEditing(row.customer)}
-                        // El nombre accesible dice a QUIÉN se edita: hay un
-                        // "Editar" por fila y sin esto el lector de pantalla
-                        // no dice qué cliente es.
                         aria-label={`Editar ${row.name}`}
-                        // `cursor-pointer`: el preflight de Tailwind 4 no lo
-                        // pone en los <button> (en v3 sí): sin esto el
-                        // puntero sale como flecha.
                         className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Editar
@@ -230,8 +185,6 @@ export function CustomersListPage() {
                       <button
                         type="button"
                         onClick={() => setDeleting(row.customer)}
-                        // Igual que "Editar": el nombre accesible identifica
-                        // al cliente de la fila, no un "Borrar" ambiguo.
                         aria-label={`Borrar ${row.name}`}
                         className="cursor-pointer text-sm font-medium text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
                       >
@@ -252,7 +205,6 @@ export function CustomersListPage() {
       {isCreating ? <CustomerFormModal mode="create" onClose={closeModals} /> : null}
       {editing ? <CustomerFormModal mode="edit" customer={editing} onClose={closeModals} /> : null}
 
-      {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}
       <DeleteCustomerDialogs customer={deleting} onClose={() => setDeleting(null)} />
     </div>
   );

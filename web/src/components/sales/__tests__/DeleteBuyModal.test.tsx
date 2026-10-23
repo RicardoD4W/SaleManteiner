@@ -1,11 +1,3 @@
-/**
- * Tests de la modal de borrado en cascada de una compra (S2 del feature
- * `acciones-en-listas`).
- *
- * La modal se extrajo del componente local de `BuyEditPage`: ahora la usa
- * la tabla de `/buys` con el mismo texto, la misma lista de ventas y el
- * mismo botón destructivo.
- */
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,7 +24,6 @@ describe('DeleteBuyModal', () => {
     );
 
     expect(screen.getByText('La compra tiene ventas asociadas')).toBeInTheDocument();
-    // El nombre de la compra va entre comillas dentro del <strong>.
     expect(screen.getByText('"Funda iPhone"')).toBeInTheDocument();
     expect(screen.getByText('Venta #7')).toBeInTheDocument();
     expect(screen.getByText('Venta #9')).toBeInTheDocument();
@@ -94,18 +85,14 @@ describe('DeleteBuyModal', () => {
       name: 'Borrar también las ventas y la compra',
     });
 
-    // El botón destructivo tiene el foco al abrir.
     expect(confirmButton).toHaveFocus();
 
-    // Tab en el último → vuelve al primero.
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(closeButton).toHaveFocus();
 
-    // Shift+Tab en el primero → vuelve al último.
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(confirmButton).toHaveFocus();
 
-    // El foco nunca salió del diálogo.
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
     expect(cancelButton).toBeInTheDocument();
   });

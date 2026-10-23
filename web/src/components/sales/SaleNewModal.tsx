@@ -1,20 +1,3 @@
-/**
- * Modal multi-step para crear una nueva venta (S3 del feature
- * dashboard-iteration-1).
- *
- * Sustituye al flujo anterior SoldNewPage que navegaba a `/solds/new`.
- * Internamente orquesta el `ProductPickerModal` (step 1) y un form de venta
- * (step 2) con `CustomerAutocomplete`.
- *
- * Pasos:
- *  1. `ProductPickerModal` para seleccionar productos con cantidad.
- *  2. Form de venta (cliente, precio, gastos, notas, lista de items).
- *  3. Submit → `useCreateSold`, invalida ['solds'] y ['buys'].
- *
- * Patrón de montaje: el padre solo renderiza este componente cuando
- * isModalOpen es true, así cada apertura arranca con state fresco. No
- * necesitamos un useEffect para resetear el form.
- */
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +19,7 @@ const SoldFormSchema = z.object({
         buy_id: z.number(),
         product_name: z.string(),
         quantity: z.number().int().min(1),
-        /** Máximo disponible (para validar). */
+
         max: z.number().int().min(1),
       }),
     )
@@ -58,7 +41,6 @@ const SoldFormSchema = z.object({
 type SoldFormInput = z.input<typeof SoldFormSchema>;
 type SoldFormOutput = z.output<typeof SoldFormSchema>;
 
-/** Item seleccionado del ProductPickerModal. */
 interface SelectedItem {
   buy_id: number;
   product_name: string;
@@ -66,7 +48,6 @@ interface SelectedItem {
   max: number;
 }
 
-/** Estructura de error 422 del server para stock insuficiente. */
 interface StockErrorBody {
   error: string;
   items: Array<{
@@ -87,35 +68,17 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   const titleId = useId();
   const priceInputRef = useRef<HTMLInputElement>(null);
 
-  /** Items del pack confirmados en el ProductPickerModal. */
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  /**
-   * Selección inicial para el picker (S1): lo que ya está elegido. Va
-   * memoizada porque el picker reinicia su estado cuando cambia la
-   * referencia de la prop.
-   */
+
   const initialSelection = useMemo(
     () => selectedItems.map((i) => ({ buy_id: i.buy_id, quantity: i.quantity })),
     [selectedItems],
   );
-  /**
-   * Por qué está abierto el picker de productos.
-   *
-   * - `'inicial'`: es el primer paso de la venta (todavía no hay nada
-   *   elegido): "Cancelar" cancela la VENTA entera y cierra la modal.
-   * - `'cambio'`: se abrió con "+ Cambiar productos" (ya había productos
-   *   elegidos): "Cancelar" vuelve al formulario con lo que había.
-   * - `null`: el picker está cerrado (se ve el formulario de la venta).
-   *
-   * Antes era un booleano (`showPicker`) y los dos casos compartían el
-   * mismo `onClose`: cancelar el picker INICIAL te dejaba en un formulario
-   * de venta sin productos (no se podía ni enviar ni cerrar sin otro
-   * click).
-   */
-  const [motivoPicker, setMotivoPicker] = useState<'inicial' | 'cambio' | null>('inicial');
-  /** Cliente seleccionado. */
+
+  const [pickerReason, setPickerReason] = useState<'initial' | 'change' | null>('initial');
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  /** Error 422 de stock insuficiente del server. */
+
   const [stockError, setStockError] = useState<StockErrorBody | null>(null);
 
   const {
@@ -135,33 +98,29 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     },
   });
 
-  // Ref combinado para el input de sale_price (register ref + focus ref).
   const salePriceReg = register('sale_price', { valueAsNumber: true });
   const setPriceInputRef = (node: HTMLInputElement | null) => {
     salePriceReg.ref(node);
     priceInputRef.current = node;
   };
 
-  // Foco al input de precio cuando aparecen los items.
   useEffect(() => {
-    if (selectedItems.length > 0 && motivoPicker === null) {
+    if (selectedItems.length > 0 && pickerReason === null) {
       priceInputRef.current?.focus();
     }
-  }, [selectedItems, motivoPicker]);
+  }, [selectedItems, pickerReason]);
 
-  // Escape: si el picker está abierto, el picker lo maneja; si no, cierra el modal.
   useEffect(() => {
-    if (motivoPicker !== null) return;
+    if (pickerReason !== null) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose, motivoPicker]);
+  }, [onClose, pickerReason]);
 
-  // Click en backdrop cierra (solo si el picker no está abierto).
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && motivoPicker === null) onClose();
+    if (e.target === e.currentTarget && pickerReason === null) onClose();
   };
 
   const handlePickerConfirm = (
@@ -173,13 +132,10 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       product_name:
         i.product_name || itemMap.get(i.buy_id)?.product_name || `Producto #${i.buy_id}`,
       quantity: i.quantity,
-      // Tope de la cantidad: el stock disponible que manda el picker. Antes
-      // caía a la cantidad (1) cuando no había selección previa, y el item
-      // quedaba "fijado en 1 unidad" sin input para cambiarla.
       max: i.max ?? itemMap.get(i.buy_id)?.max ?? i.quantity,
     }));
     setSelectedItems(merged);
-    setMotivoPicker(null);
+    setPickerReason(null);
     setValue(
       'items',
       merged.map((i) => ({
@@ -229,25 +185,17 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     }
   };
 
-  // Si el picker está abierto, el ProductPickerModal gestiona todo (incluido el
-  // backdrop y el Escape); no renderizamos el modal padre para evitar dos
-  // dialogs apilados.
-  if (motivoPicker !== null) {
+  if (pickerReason !== null) {
     return (
       <ProductPickerModal
         isOpen={true}
         initialSelection={initialSelection}
         onClose={() => {
-          // Cancelar el picker INICIAL cancela la venta entera: no hay nada
-          // elegido, así que lo lógico es cerrar y listo (si no, quedaba un
-          // formulario de venta sin productos que no se podía enviar).
-          // Cancelar el picker de "+ Cambiar productos" vuelve al formulario
-          // conservando lo que ya estaba elegido.
-          if (motivoPicker === 'inicial') {
+          if (pickerReason === 'initial') {
             onClose();
             return;
           }
-          setMotivoPicker(null);
+          setPickerReason(null);
         }}
         onConfirm={handlePickerConfirm}
       />
@@ -267,7 +215,6 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
         aria-labelledby={titleId}
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
           <h2 id={titleId} className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Nueva venta
@@ -295,9 +242,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           </button>
         </div>
 
-        {/* Body (form) */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-          {/* Cliente */}
           <CustomerAutocomplete
             value={selectedCustomer}
             onChange={(c) => {
@@ -312,7 +257,6 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
             }
           />
 
-          {/* Items del pack (solo lectura, cantidad editable) */}
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">
               Productos ({selectedItems.length})
@@ -354,7 +298,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               })}
               <button
                 type="button"
-                onClick={() => setMotivoPicker('cambio')}
+                onClick={() => setPickerReason('change')}
                 className="mt-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
               >
                 + Cambiar productos

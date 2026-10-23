@@ -1,15 +1,3 @@
-/**
- * Tests de la modal genérica de confirmación de borrado (S2 del feature
- * `acciones-en-listas`).
- *
- * Cubre el contrato de accesibilidad que comparten las dos modales del
- * borrado:
- *  - Es un `dialog` modal con título y descripción.
- *  - Confirma y avisa el error.
- *  - Escape cierra (salvo mientras la mutación está en curso).
- *  - El focus trap no deja salir el foco.
- *  - El foco vuelve al elemento disparador al cerrar.
- */
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -17,7 +5,6 @@ import { useState } from 'react';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
 import { renderWithProviders } from '@/test-utils/render';
 
-/** Harness: un botón disparador que abre la modal. */
 function Harness({ onConfirm }: { onConfirm: () => void }) {
   const [open, setOpen] = useState(false);
   return (
@@ -56,7 +43,6 @@ describe('ConfirmDeleteModal', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    // El título es el nombre accesible del diálogo.
     expect(dialog).toHaveAccessibleName('Eliminar compra');
     expect(screen.getByText('¿Eliminar esta compra? No se puede deshacer.')).toBeInTheDocument();
   });
@@ -162,19 +148,15 @@ describe('ConfirmDeleteModal', () => {
     const closeButton = screen.getByRole('button', { name: 'Cerrar' });
     const confirmButton = screen.getByRole('button', { name: 'Sí, eliminar' });
 
-    // Al abrir, el foco entra en el diálogo.
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
 
-    // Tab en el último elemento → vuelve al primero (ciclo).
     confirmButton.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(closeButton).toHaveFocus();
 
-    // Shift+Tab en el primero → vuelve al último (ciclo inverso).
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(confirmButton).toHaveFocus();
 
-    // El foco nunca salió del diálogo.
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 

@@ -1,14 +1,3 @@
-/**
- * Tests del CashFlowChart con recharts (S1 del feature `recharts-charts`).
- *
- * El chart se dibuja con recharts, así que el DOM es el de recharts: las
- * curvas son `.recharts-line-curve`, los ticks del eje Y son
- * `.recharts-cartesian-axis-tick-value` dentro de `.recharts-yAxis`.
- *
- * jsdom no tiene layout, así que `ResponsiveContainer` (que mide el
- * contenedor) se mockea con dimensiones fijas: el resto de recharts
- * renderiza de verdad y los assertsOperan sobre el SVG real.
- */
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -38,7 +27,6 @@ describe('CashFlowChart (recharts)', () => {
   it('renderiza el chart con sus tres series y la leyenda', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
-    // El contenedor conserva el contrato que usan los e2e.
     const root = container.querySelector('[data-testid="cashflow-chart"]');
     expect(root).toBeInTheDocument();
     expect(root).toHaveAttribute('role', 'img');
@@ -47,7 +35,6 @@ describe('CashFlowChart (recharts)', () => {
       'Flujo de caja por mes (compras, beneficio y resultado del mes)',
     );
 
-    // Tres curvas: Compras, Beneficio y Resultado del mes.
     expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
     expect(screen.getByText('Compras')).toBeInTheDocument();
     expect(screen.getByText('Beneficio')).toBeInTheDocument();
@@ -77,7 +64,6 @@ describe('CashFlowChart (recharts)', () => {
       container.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
     ).map((el) => el.textContent ?? '');
 
-    // Sin este tick, la línea de beneficio real se saldría del área de dibujo.
     expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
   });
 
@@ -110,8 +96,6 @@ describe('CashFlowChart (recharts)', () => {
       container.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
     ).map((el) => el.textContent ?? '');
 
-    // El cero siempre está (referencia) y hay al menos un tick negativo:
-    // es el fix del dominio Y (antes la venta negativa se salía del área).
     expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
     expect(tickValues.length).toBeGreaterThan(1);
   });

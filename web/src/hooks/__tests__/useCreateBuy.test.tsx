@@ -1,6 +1,3 @@
-/**
- * Tests del hook `useCreateBuy`. Mockeamos `buysApi` para no depender del backend.
- */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -17,8 +14,8 @@ vi.mock('@/api/buys', () => ({
   },
 }));
 
-const { toastRegistrado } = vi.hoisted(() => ({ toastRegistrado: vi.fn() }));
-vi.mock('@/lib/toast', () => ({ toastRegistrado }));
+const { toastCreated } = vi.hoisted(() => ({ toastCreated: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastCreated }));
 
 import { buysApi } from '@/api/buys';
 import { useCreateBuy } from '@/hooks/useCreateBuy';
@@ -78,8 +75,6 @@ describe('useCreateBuy', () => {
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['buys'] });
-      // Con staleTime Infinity, el dashboard solo se refresca si alguien
-      // invalida su clave: si no, sus KPIs quedan congelados.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -95,7 +90,7 @@ describe('useCreateBuy', () => {
     });
 
     await waitFor(() => {
-      expect(toastRegistrado).toHaveBeenCalledWith('compra', 'Funda iPhone');
+      expect(toastCreated).toHaveBeenCalledWith('buy', 'Funda iPhone');
     });
   });
 
@@ -121,7 +116,7 @@ describe('useCreateBuy', () => {
       try {
         await result.current.mutateAsync(CreateBuyInput.parse({ product_name: 'X' }));
       } catch {
-        // expected
+        return;
       }
     });
 

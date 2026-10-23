@@ -1,9 +1,3 @@
-/**
- * Tests del componente Button.
- *
- * Cubre: render de children, click handler, variante ghost, isLoading.
- * Usa @testing-library/user-event para simular clicks reales.
- */
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -42,8 +36,6 @@ describe('Button', () => {
 
   it('isLoading muestra el spinner', () => {
     const { container } = render(<Button isLoading>Guardando</Button>);
-    // El Spinner es un SVG con role="status" (asumiendo Spinner de a11y)
-    // Si no tiene role, al menos verificamos que hay un svg.
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
@@ -52,8 +44,6 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toHaveAttribute('type', 'button');
   });
 
-  // El preflight de Tailwind 4 no pone `cursor: pointer` en los <button>
-  // (en v3 sí lo hacía): sin esto el puntero sale como flecha.
   it('muestra el cursor de puntero', () => {
     render(<Button>Crear venta</Button>);
     expect(screen.getByRole('button').className).toMatch(/cursor-pointer/);

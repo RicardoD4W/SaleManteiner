@@ -1,7 +1,3 @@
-/**
- * Tests del cliente HTTP. Mockeamos `fetch` global para no depender de la red
- * ni del backend.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, apiFetch } from '../client.js';
 
@@ -14,7 +10,6 @@ describe('apiFetch', () => {
     vi.unstubAllGlobals();
   });
 
-  /** Mockea fetch con una respuesta JSON. Para 204 usar `mockFetchNoContent` (Response no permite body con status 204). */
   function mockFetchJson(body: unknown, status = 200) {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(
@@ -26,7 +21,6 @@ describe('apiFetch', () => {
     return fetchMock;
   }
 
-  /** Mockea fetch con 204 No Content. */
   function mockFetchNoContent() {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));

@@ -1,14 +1,3 @@
-/**
- * Tests del modal de alta/edición de cliente (CustomerFormModal).
- *
- * Cubre:
- *  - El diálogo se monta con su título y el campo de nombre.
- *  - La validación del nombre (schema Zod ya existente) con `role="alert"`.
- *  - El alta llama a `useCreateCustomer` y cierra al guardar.
- *  - La edición llama a `useUpdateCustomer` con el id del cliente y cierra.
- *  - El error del servidor se muestra y el modal NO se cierra.
- *  - Escape cierra y el foco vuelve al elemento que abrió el modal.
- */
 import { useState } from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
@@ -33,7 +22,6 @@ const customerFixture = {
   created_at: '2026-10-01T10:00:00.000Z',
 };
 
-/** Objeto mock de una mutación de TanStack Query. */
 function mutationMock(overrides: Record<string, unknown> = {}) {
   return {
     mutateAsync: vi.fn(),
@@ -194,7 +182,6 @@ describe('CustomerFormModal', () => {
     const trigger = screen.getByRole('button', { name: 'Abrir' });
     await user.click(trigger);
 
-    // Al abrir, el foco va al campo de nombre.
     await waitFor(() => {
       expect(screen.getByLabelText('Nombre *')).toHaveFocus();
     });

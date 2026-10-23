@@ -1,14 +1,3 @@
-/**
- * Tab Ingresos (S7 del feature dashboard-iteration-1):
- *  - Todas las labels y hints en español.
- *  - El chart ahora muestra `cashFlowByMonth` (S5): la línea de neto con
- *    áreas verde (ganancia) / rojo (pérdida). El header del chart pasa a
- *    "Cash flow por mes" para reflejar el nuevo contenido.
- *
- * Cálculo de YTD: revenue YTD = suma de `ventas` (profit realizado) de los
- * últimos 12 meses, profit YTD = suma de `neto`. "Mejor mes" se mantiene
- * como el mes con mayor `ventas` (profit realizado).
- */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -44,12 +33,12 @@ export function RevenueTab() {
 
   if (!data) return null;
 
-  const ytdIngresos = data.cashFlowByMonth.reduce((acc, m) => acc + m.ventas, 0);
-  const ytdBeneficio = data.cashFlowByMonth.reduce((acc, m) => acc + m.neto, 0);
-  const monthsWithVentas = data.cashFlowByMonth.filter((m) => m.ventas > 0);
-  const bestMonth = monthsWithVentas.reduce(
+  const ytdRevenue = data.cashFlowByMonth.reduce((acc, m) => acc + m.ventas, 0);
+  const ytdProfit = data.cashFlowByMonth.reduce((acc, m) => acc + m.neto, 0);
+  const monthsWithSales = data.cashFlowByMonth.filter((m) => m.ventas > 0);
+  const bestMonth = monthsWithSales.reduce(
     (best, m) => (m.ventas > best.ventas ? m : best),
-    monthsWithVentas[0] ?? null,
+    monthsWithSales[0] ?? null,
   );
 
   return (
@@ -61,7 +50,7 @@ export function RevenueTab() {
               Ingresos
             </p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {formatEuro(ytdIngresos)}
+              {formatEuro(ytdRevenue)}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">últimos 12 meses</p>
           </CardBody>
@@ -74,12 +63,12 @@ export function RevenueTab() {
             <p
               className={[
                 'mt-1 text-2xl font-semibold tabular-nums',
-                ytdBeneficio >= 0
+                ytdProfit >= 0
                   ? 'text-gray-900 dark:text-gray-100'
                   : 'text-red-600 dark:text-red-400',
               ].join(' ')}
             >
-              {formatEuro(ytdBeneficio)}
+              {formatEuro(ytdProfit)}
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Ingresos menos los costes de cada venta

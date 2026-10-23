@@ -1,16 +1,3 @@
-/**
- * Modal de selección de productos para crear una venta (S5 del feature).
- *
- * Lista todas las compras con stock disponible (disponibles > 0).
- * Cada fila tiene un checkbox para multi-select.
- * Al confirmar, llama a `onConfirm` con los items seleccionados.
- *
- * Accesibilidad (WCAG 2.2):
- *  - `role="dialog"` + `aria-modal="true"` + `aria-labelledby`
- *  - Focus trap al abrir (primer foco en el modal)
- *  - Cierre con Escape o click fuera
- *  - `aria-selected` en los items del listbox (checkbox, no listbox pattern)
- */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
 import { Button } from '../ui/Button';
@@ -20,22 +7,14 @@ import type { BuyWithStock } from '../../api/buys';
 interface ProductPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Se llama al confirmar con los items seleccionados. */
+
   onConfirm: (
     items: Array<{ buy_id: number; product_name: string; quantity: number; max: number }>,
   ) => void;
-  /**
-   * Selección con la que se abre el modal (S1 de feature-modal-venta-ux).
-   * Si viene, esos items aparecen tildados y con su cantidad: al reabrir el
-   * picker desde "+ Cambiar productos" no se pierde lo que ya estaba elegido.
-   *
-   * OJO: el padre tiene que memoizarlo, porque el modal reinicia su estado
-   * cuando cambia la referencia.
-   */
+
   initialSelection?: Array<{ buy_id: number; quantity: number }>;
 }
 
-/** Filtro de texto para buscar por nombre de producto. */
 function ProductRow({
   item,
   checked,
@@ -59,7 +38,6 @@ function ProductRow({
         disabled ? 'cursor-not-allowed opacity-50' : '',
       ].join(' ')}
     >
-      {/* Checkbox */}
       <input
         type="checkbox"
         checked={checked}
@@ -69,13 +47,11 @@ function ProductRow({
         aria-label={`Seleccionar ${item.product_name}`}
       />
 
-      {/* Info del producto */}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.product_name}</p>
         <p className="text-xs text-gray-500 dark:text-gray-400">{item.disponibles} disponibles</p>
       </div>
 
-      {/* Selector de cantidad (solo si está tildado y max > 1) */}
       {checked && item.disponibles > 1 && (
         <div className="flex shrink-0 items-center gap-1">
           <label htmlFor={`qty-${item.id}`} className="sr-only">
@@ -87,9 +63,6 @@ function ProductRow({
             min={1}
             max={item.disponibles}
             value={quantity}
-            // Al enfocar se selecciona el contenido: escribir "2" sobre "1"
-            // REEMPLAZA en vez de concatenar ("12"). Sin esto hay que
-            // seleccionar el texto a mano para cambiar la cantidad.
             onFocus={(e) => e.currentTarget.select()}
             onChange={(e) =>
               onQuantityChange(
@@ -113,54 +86,31 @@ export function ProductPickerModal({
 }: ProductPickerModalProps) {
   const { data: buysWithStock, isLoading, isError, error, refetch } = useBuysStock();
 
-  /** buy_id → checked */
   const [checked, setChecked] = useState<Record<number, boolean>>({});
-  /** buy_id → quantity (solo para los tildados) */
+
   const [quantities, setQuantities] = useState<Record<number, number>>({});
 
-  /**
-   * Ids de los productos que YA estaban seleccionados al abrir el picker
-   * (o sea, los que vinieron en `initialSelection`).
-   *
-   * Se usan para poner esos productos arriba del todo de la lista: al
-   * reabrir el picker con "+ Cambiar productos" lo primero que se ve es
-   * lo que ya tenías elegido, sin tener que buscarlo.
-   *
-   * El orden se CONGELA con la apertura: tildar o destildar dentro del
-   * modal no reordena la lista, así la fila que tenés bajo el puntero no
-   * se te escapa de debajo del cursor.
-   */
-  const idsSeleccionadosIniciales = useMemo(
+  const initiallySelectedIds = useMemo(
     () => new Set((initialSelection ?? []).map((sel) => sel.buy_id)),
     [initialSelection],
   );
 
-  /** Filtro de búsqueda por nombre */
   const [filter, setFilter] = useState('');
 
-  /**
-   * Lista de productos del picker: filtrada por el buscador y con los ya
-   * seleccionados (al abrir) arriba del todo.
-   *
-   * `Array.prototype.sort` es estable, así que dentro de cada grupo se
-   * respeta el orden original (por id, que es como llega del server).
-   */
-  const buysOrdenados = useMemo(() => {
+  const sortedBuys = useMemo(() => {
     const filtrados = (buysWithStock ?? []).filter((b) =>
       b.product_name.toLowerCase().includes(filter.toLowerCase()),
     );
-    if (idsSeleccionadosIniciales.size === 0) return filtrados;
+    if (initiallySelectedIds.size === 0) return filtrados;
     return [...filtrados].sort(
-      (a, b) =>
-        Number(idsSeleccionadosIniciales.has(b.id)) - Number(idsSeleccionadosIniciales.has(a.id)),
+      (a, b) => Number(initiallySelectedIds.has(b.id)) - Number(initiallySelectedIds.has(a.id)),
     );
-  }, [buysWithStock, filter, idsSeleccionadosIniciales]);
+  }, [buysWithStock, filter, initiallySelectedIds]);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFocusRef = useRef<HTMLInputElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Al abrir: se aplica la selección inicial (si viene) o se arranca en vacío.
   useEffect(() => {
     if (isOpen) {
       const nextChecked: Record<number, boolean> = {};
@@ -172,14 +122,12 @@ export function ProductPickerModal({
       setChecked(nextChecked);
       setQuantities(nextQuantities);
       setFilter('');
-      // Enfocar el input de filtro o el botón de cerrar
       requestAnimationFrame(() => {
         (firstFocusRef.current ?? closeButtonRef.current)?.focus();
       });
     }
   }, [isOpen, initialSelection]);
 
-  // Cerrar con Escape
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -189,7 +137,6 @@ export function ProductPickerModal({
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  // Cerrar con click fuera del dialog
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -200,10 +147,8 @@ export function ProductPickerModal({
     setChecked((prev) => {
       const next = { ...prev, [id]: !prev[id] };
       if (next[id]) {
-        // Default quantity = 1
         setQuantities((q) => ({ ...q, [id]: 1 }));
       } else {
-        // Remove quantity
         setQuantities((q) => {
           const { [id]: _removed, ...rest } = q;
           void _removed;
@@ -236,9 +181,6 @@ export function ProductPickerModal({
           buy_id: id,
           product_name: buy?.product_name ?? `Producto #${id}`,
           quantity,
-          // Stock disponible: la modal de venta lo usa como tope de la
-          // cantidad. Antes se mandaba solo la cantidad y el primer item
-          // quedaba "fijado en 1 unidad" (sin input para cambiarla).
           max: buy?.disponibles ?? quantity,
         };
       });
@@ -261,7 +203,6 @@ export function ProductPickerModal({
         aria-labelledby="product-picker-title"
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
           <h2
             id="product-picker-title"
@@ -293,7 +234,6 @@ export function ProductPickerModal({
           </button>
         </div>
 
-        {/* Búsqueda */}
         <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-800">
           <input
             ref={firstFocusRef}
@@ -306,7 +246,6 @@ export function ProductPickerModal({
           />
         </div>
 
-        {/* Lista */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center gap-3 px-4 py-8 text-sm text-gray-500">
@@ -324,7 +263,7 @@ export function ProductPickerModal({
                 Reintentar
               </button>
             </div>
-          ) : buysOrdenados.length === 0 ? (
+          ) : sortedBuys.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               {filter
                 ? 'No hay productos que coincidan.'
@@ -332,7 +271,7 @@ export function ProductPickerModal({
             </div>
           ) : (
             <ul>
-              {buysOrdenados.map((buy) => (
+              {sortedBuys.map((buy) => (
                 <li key={buy.id}>
                   <ProductRow
                     item={buy}
@@ -348,7 +287,6 @@ export function ProductPickerModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-800">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {selectedCount > 0

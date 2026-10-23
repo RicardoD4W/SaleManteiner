@@ -1,15 +1,3 @@
-/**
- * Página de listado de compras (S4 del feature).
- *
- * Tabla con TanStack Table:
- *  - Producto, Coste, Cantidad, Asociados, Fecha compra, Disponibles, Acciones.
- *  - Disponibles = quantity - SUM(sale_items.quantity).
- *  - Acciones → enlace a /buys/:id (editar) + botón de borrar (S1 del
- *    feature `acciones-en-listas`).
- *
- *  S3 del feature dashboard-iteration-1: el botón "+ Nueva compra" ahora
- *  abre el `BuyNewModal` en vez de navegar a `/buys/new`.
- */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -33,135 +21,78 @@ import type { Buy } from '../../schemas/buys';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
 
-/**
- * Nombre de la view transition de elemento compartido (S3).
- *
- * La clave es el **id** de la compra y no el nombre del producto: el
- * `view-transition-name` tiene que ser un `custom-ident` válido (sin
- * espacios) y único en el documento, y el nombre del producto puede
- * repetirse entre filas. El id cumple las dos condiciones.
- *
- * `campo` distingue los campos que viajan (producto, coste, cantidad…):
- * cada campo necesita su propio nombre para que el navegador los empareje
- * por separado (cada input del formulario tiene su pareja en la fila).
- */
-function nombreTransicion(campo: string, id: number): string {
-  return `buy-${campo}-${id}`;
+function transitionName(field: string, id: number): string {
+  return `buy-${field}-${id}`;
 }
 
-/**
- * Lee el id de la fila armada que viaja en el `state` de la navegación
- * (la vuelta desde `/buys/:id`).
- */
-function leerFilaArmada(state: unknown): number | null {
-  if (typeof state !== 'object' || state === null || !('filaArmada' in state)) return null;
-  const valor = (state as { filaArmada?: unknown }).filaArmada;
+function readArmedRow(state: unknown): number | null {
+  if (typeof state !== 'object' || state === null || !('armedRowId' in state)) return null;
+  const valor = (state as { armedRowId?: unknown }).armedRowId;
   return typeof valor === 'number' ? valor : null;
 }
 
-/**
- * Estado de la transición de elemento compartido (S3), para las celdas.
- *
- * Las celdas son COMPONENTES DE MÓDULO (ver `CeldaProducto`): TanStack
- * renderiza el renderer de la celda con `React.createElement`, así que si
- * su identidad cambiara, React lo remontaría y el nodo del enlace "Editar"
- * se recrearía entre el pointerdown y el click → el click se perdería (y
- * con él, la navegación). Por eso el estado llega a las celdas por
- * contexto y las columnas se crean una sola vez.
- */
-interface ContextoArmado {
-  /** Id de la fila armada (la que lleva el `view-transition-name`). */
-  filaArmada: number | null;
-  /** Arma una fila para la transición. */
-  armarFila: (fila: BuyWithStock) => void;
+interface ArmedRowContext {
+  armedRowId: number | null;
+
+  armRow: (row: BuyWithStock) => void;
 }
 
-const ContextoArmado = createContext<ContextoArmado>({
-  filaArmada: null,
-  armarFila: () => {},
+const ArmedRowContext = createContext<ArmedRowContext>({
+  armedRowId: null,
+  armRow: () => {},
 });
 
-/**
- * Celda que viaja al formulario (view transition de elemento compartido).
- *
- * Cuando la fila está "armada", la celda lleva el `view-transition-name`
- * y viaja como chip de texto hasta el input que le corresponde en el
- * formulario (ver `index.css`).
- *
- * Como la tabla está virtualizada hay varias filas en el DOM, así que solo
- * una —la que se va a abrir— lo lleva: el nombre tiene que ser único en el
- * documento.
- */
-function CeldaViajera({
-  fila,
-  campo,
+function TravellingCell({
+  row,
+  field,
   className,
   children,
 }: {
-  fila: BuyWithStock;
-  /** Campo del formulario al que viaja (product, cost, qty…). */
-  campo: string;
-  /** Clases del texto de la celda. */
+  row: BuyWithStock;
+
+  field: string;
+
   className?: string;
   children: ReactNode;
 }) {
-  const { filaArmada } = useContext(ContextoArmado);
-  const armada = fila.id === filaArmada;
-  const nombre = nombreTransicion(campo, fila.id);
+  const { armedRowId } = useContext(ArmedRowContext);
+  const armed = row.id === armedRowId;
+  const name = transitionName(field, row.id);
   return (
     <span
-      // `vt-celda`: marca el elemento como el que viaja como chip de texto
-      // en la view transition (ver index.css). El `view-transition-name`
-      // solo se pone en la fila armada (el nombre tiene que ser único en
-      // el documento).
-      className={['vt-celda', className ?? ''].join(' ')}
-      style={armada ? { viewTransitionName: nombre } : undefined}
-      data-vt-nombre={armada ? nombre : undefined}
+      className={['vt-cell', className ?? ''].join(' ')}
+      style={armed ? { viewTransitionName: name } : undefined}
+      data-vt-name={armed ? name : undefined}
     >
       {children}
     </span>
   );
 }
 
-/**
- * Celda de acciones: "Editar" (arma la fila para la transición) + "Borrar".
- */
-function CeldaAcciones({
-  fila,
+function ActionsCell({
+  row,
   onBorrar,
 }: {
-  fila: BuyWithStock;
-  onBorrar: (fila: BuyWithStock) => void;
+  row: BuyWithStock;
+  onBorrar: (row: BuyWithStock) => void;
 }) {
-  const { armarFila } = useContext(ContextoArmado);
+  const { armRow } = useContext(ArmedRowContext);
   return (
     <div className="flex items-center gap-3">
       <Link
-        to={`/buys/${fila.id}`}
-        // viewTransition (RR 7+) usa la View Transitions API del browser
-        // para animar la navegación /buys → /buys/:id. Default = cross-fade.
-        // Degrada a instantáneo en navegadores sin soporte (Safari < 18, Firefox < 134).
+        to={`/buys/${row.id}`}
         viewTransition
-        // S3: armar la fila al apuntarla. El snapshot del DOM viejo se toma
-        // en el click, así que el `view-transition-name` tiene que estar
-        // puesto ANTES (de ahí los tres eventos: mouse, foco y puntero —
-        // el puntero cubre el táctil).
-        onMouseEnter={() => armarFila(fila)}
-        onFocus={() => armarFila(fila)}
-        onPointerDown={() => armarFila(fila)}
+        onMouseEnter={() => armRow(row)}
+        onFocus={() => armRow(row)}
+        onPointerDown={() => armRow(row)}
         className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
       >
         Editar
       </Link>
       <button
         type="button"
-        onClick={() => onBorrar(fila)}
-        // Nombre accesible: identifica el registro (la fila concreta que se
-        // va a borrar), no un "Borrar" ambiguo.
-        aria-label={`Borrar ${fila.product_name}`}
-        // `cursor-pointer`: el preflight de Tailwind 4 no lo pone en los
-        // <button> (en v3 sí), así que sin esto el puntero sale como flecha
-        // mientras que el link "Editar" sí muestra la manita.
+        onClick={() => onBorrar(row)}
+        aria-label={`Borrar ${row.product_name}`}
         className="cursor-pointer text-sm font-medium text-red-600 hover:underline dark:text-red-400"
       >
         Borrar
@@ -172,50 +103,24 @@ function CeldaAcciones({
 
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
-  // Sin sort por defecto: el user pide explícitamente el estado idle (ni asc ni desc).
-  // El server ya devuelve los buys en id DESC, así que sin sort se ve lo más nuevo arriba.
   const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  /** Query del buscador (client-side). */
+
   const [query, setQuery] = useState('');
-  /**
-   * Compra que se va a borrar (S1 del feature `acciones-en-listas`).
-   * La modal se renderiza a nivel de página (fuera de la tabla) porque las
-   * filas tienen `transform: translateY(...)` y eso rompería el
-   * `position: fixed` del backdrop.
-   */
+
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
-  /**
-   * Fila "armada" para la view transition de elemento compartido (S3).
-   *
-   * Guarda el id de la fila y la clave de la navegación en la que se armó:
-   * al volver del formulario (otra navegación) el armado anterior deja de
-   * tener efecto y manda el que viene en el `state` de la navegación.
-   */
-  const [armada, setArmada] = useState<{ id: number; navegacion: string } | null>(null);
+
+  const [armed, setArmed] = useState<{ id: number; navigation: string } | null>(null);
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  /** Fila que vuelve armada desde la página de edición (S3). */
-  const filaDesdeEstado = leerFilaArmada(location.state);
-  /** La fila armada: la que está bajo el puntero, o la que vuelve del form. */
-  const filaArmada = armada && armada.navegacion === location.key ? armada.id : filaDesdeEstado;
+  const rowFromState = readArmedRow(location.state);
 
-  /**
-   * Arma la fila para la transición de elemento compartido (S3).
-   *
-   *  - El `view-transition-name` lo lleva la celda de producto (mira
-   *    `filaArmada`); tiene que estar puesto ANTES del click, porque el
-   *    navegador toma la foto del DOM viejo en el momento del click.
-   *  - Además deja el registro en la caché de react-query: así el
-   *    formulario de edición existe desde su primer render y su input
-   *    (que lleva el mismo nombre) está en la foto del DOM nuevo. Sin
-   *    esto, el form se pintaría con su spinner y no habría contra qué
-   *    morphing.
-   */
-  const armarFila = useCallback(
+  const armedRowId = armed && armed.navigation === location.key ? armed.id : rowFromState;
+
+  const armRow = useCallback(
     (buy: BuyWithStock) => {
-      setArmada({ id: buy.id, navegacion: location.key });
+      setArmed({ id: buy.id, navigation: location.key });
       queryClient.setQueryData<Buy>(['buys', buy.id], {
         id: buy.id,
         product_name: buy.product_name,
@@ -229,34 +134,19 @@ export function BuysListPage() {
     [location.key, queryClient],
   );
 
-  // `useBuys` ya devuelve `BuyWithStock[]` con los disponibles calculados por
-  // el server (`listWithStock` en el repo). No hay transformación cliente.
-  // Va en useMemo para que el array no cambie de identidad en cada render
-  // (si no, los useMemo de abajo se recalculan siempre).
   const buysWithStock = useMemo<BuyWithStock[]>(() => data ?? [], [data]);
 
-  /**
-   * Filtro client-side por la query del buscador. Se aplica ANTES de la
-   * tabla (TanStack Table pagina sobre las filas ya filtradas).
-   */
   const filteredBuys = useMemo(() => filterBuys(buysWithStock, query), [buysWithStock, query]);
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('product_name', {
         header: 'Producto',
-        // El ancho de las columnas es una "repartición" del espacio
-        // disponible (el `size` es el factor de crecimiento del flex), no
-        // un ancho fijo: por eso "Producto" cede espacio a "Acciones"
-        // (que necesita los dos enlaces, "Editar" y "Borrar").
         size: 220,
-        // El nombre NO es link — el user pidió que no se pueda editar
-        // haciendo click en el nombre. La edición sigue disponible vía
-        // la columna "Acciones" → "Editar".
         cell: (info) => (
-          <CeldaViajera fila={info.row.original} campo="product" className="font-medium">
+          <TravellingCell row={info.row.original} field="product" className="font-medium">
             {info.row.original.product_name}
-          </CeldaViajera>
+          </TravellingCell>
         ),
         sortingFn: 'basic',
       }),
@@ -264,13 +154,13 @@ export function BuysListPage() {
         header: 'Coste (€)',
         size: 120,
         cell: (info) => (
-          <CeldaViajera
-            fila={info.row.original}
-            campo="cost"
+          <TravellingCell
+            row={info.row.original}
+            field="cost"
             className="tabular-nums text-gray-700 dark:text-gray-300"
           >
             {formatEuro(info.getValue())}
-          </CeldaViajera>
+          </TravellingCell>
         ),
         sortingFn: 'basic',
       }),
@@ -278,29 +168,27 @@ export function BuysListPage() {
         header: 'Cantidad',
         size: 110,
         cell: (info) => (
-          <CeldaViajera
-            fila={info.row.original}
-            campo="qty"
+          <TravellingCell
+            row={info.row.original}
+            field="qty"
             className="tabular-nums text-gray-700 dark:text-gray-300"
           >
             {info.getValue()}
-          </CeldaViajera>
+          </TravellingCell>
         ),
         sortingFn: 'basic',
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
-        // Ancho mínimo para que el texto + el indicador de orden quepan en
-        // una línea (S4): el texto mide ~85px y el indicador reserva 12px.
         size: 140,
         cell: (info) => (
-          <CeldaViajera
-            fila={info.row.original}
-            campo="associated"
+          <TravellingCell
+            row={info.row.original}
+            field="associated"
             className="tabular-nums text-gray-700 dark:text-gray-300"
           >
             {formatEuro(info.getValue())}
-          </CeldaViajera>
+          </TravellingCell>
         ),
         sortingFn: 'basic',
       }),
@@ -308,13 +196,13 @@ export function BuysListPage() {
         header: 'Fecha compra',
         size: 150,
         cell: (info) => (
-          <CeldaViajera
-            fila={info.row.original}
-            campo="date"
+          <TravellingCell
+            row={info.row.original}
+            field="date"
             className="whitespace-nowrap text-gray-700 dark:text-gray-300"
           >
             {formatDate(info.getValue())}
-          </CeldaViajera>
+          </TravellingCell>
         ),
         sortingFn: 'basic',
       }),
@@ -344,16 +232,11 @@ export function BuysListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        // Ancho mínimo para que quepan los dos enlaces ("Editar" y
-        // "Borrar") sin que la columna se corte: el contenido necesita
-        // ~125px (padding + los dos textos + el gap).
         size: 140,
         cell: (info) => (
-          <CeldaAcciones
-            fila={info.row.original}
-            onBorrar={(fila) =>
-              setDeleteTarget({ tipo: 'compra', id: fila.id, nombre: fila.product_name })
-            }
+          <ActionsCell
+            row={info.row.original}
+            onBorrar={(row) => setDeleteTarget({ kind: 'buy', id: row.id, name: row.product_name })}
           />
         ),
       }),
@@ -361,7 +244,7 @@ export function BuysListPage() {
     [],
   );
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table devuelve fns no memoizables; la tabla es chica, el perf no es problema
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<BuyWithStock>({
     data: filteredBuys,
     columns,
@@ -371,29 +254,15 @@ export function BuysListPage() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  /**
-   * Cambia la query del buscador. La tabla es virtualizada (scroll infinito),
-   * así que no hay páginas que resetear: el filtro se aplica sobre todas las
-   * filas y la vista se posiciona arriba sola al cambiar la query.
-   */
   const handleQueryChange = (value: string) => {
     setQuery(value);
   };
 
-  /**
-   * Estado de la transición que consumen las celdas (S3).
-   *
-   * Va por contexto (y no como dependencia de las columnas) para que las
-   * columnas se creen una sola vez: recrearlas remontaría las celdas y el
-   * nodo del enlace "Editar" se recrearía entre el pointerdown y el click
-   * → el click se perdería.
-   */
-  const valorArmado = useMemo<ContextoArmado>(
-    () => ({ filaArmada, armarFila }),
-    [filaArmada, armarFila],
+  const armedContextValue = useMemo<ArmedRowContext>(
+    () => ({ armedRowId, armRow }),
+    [armedRowId, armRow],
   );
 
-  /** Texto del contador de resultados. */
   const resultsText =
     query.trim() === ''
       ? `${buysWithStock.length} ${buysWithStock.length === 1 ? 'compra' : 'compras'}`
@@ -446,7 +315,6 @@ export function BuysListPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
         <div className="flex w-full flex-col gap-1 sm:w-auto sm:max-w-xs sm:flex-1">
@@ -483,7 +351,7 @@ export function BuysListPage() {
           </button>
         </div>
       ) : (
-        <ContextoArmado.Provider value={valorArmado}>
+        <ArmedRowContext.Provider value={armedContextValue}>
           <VirtualTable
             table={table}
             footer={
@@ -497,10 +365,10 @@ export function BuysListPage() {
               </div>
             }
           />
-        </ContextoArmado.Provider>
+        </ArmedRowContext.Provider>
       )}
       {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
-      {/* El flujo de borrado vive a nivel de página, no dentro de la fila. */}
+
       <DeleteDialogs target={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );

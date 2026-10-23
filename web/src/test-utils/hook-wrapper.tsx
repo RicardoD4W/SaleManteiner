@@ -1,8 +1,3 @@
-/**
- * Helper para tests de hooks de TanStack Query. Crea un QueryClient
- * fresco por test (sin caché compartida entre tests) y devuelve un
- * wrapper que provee ese client.
- */
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 

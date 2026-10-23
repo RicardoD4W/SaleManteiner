@@ -1,11 +1,3 @@
-/**
- * Tab Compradores (T12 de feature-buys-and-solds + S8 del feature
- * dashboard-iteration-1).
- *
- * Cambios del feature:
- *  - S8: la tabla pasa a ser ordenable de 3 estados (neutral → ascendente →
- *    descendente → neutral) usando el hook `useSortable`.
- */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { tableHeadClass } from '../../components/ui/tableStyles';
@@ -42,14 +34,8 @@ function SortHeader({
       className={`cursor-pointer ${tableHeadClass} text-left`}
       aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
-      {/*
-        El texto no envuelve: si se parte en dos líneas, el indicador "cae" a
-        la línea de abajo (S4 de feature-acciones-en-listas).
-      */}
       <span className="whitespace-nowrap">{label}</span>
-      {/* El hueco del indicador se reserva siempre (anchura fija): si no,
-          al ordenar aparece el ▼, la columna crece y el navegador
-          redistribuye el ancho de todas -> la tabla se desajusta. */}
+
       <span className="ml-1 inline-block w-3">{indicator}</span>
     </th>
   );

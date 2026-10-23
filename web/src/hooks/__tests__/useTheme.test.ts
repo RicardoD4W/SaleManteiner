@@ -1,15 +1,3 @@
-/**
- * Tests del hook `useTheme`. El hook lee la clase `dark` del <html> como
- * estado inicial (puesta por el script anti-FOUC de `index.html`); el init es
- * lazy, sin useEffect. El useEffect solo sincroniza clase + localStorage
- * cuando el theme cambia (Spec S1 + S5 de `feature-dark-mode.md`).
- *
- * Patrón (skill vitest + react-best-practices `rerender-lazy-state-init`):
- *  - `renderHook` para invocar el hook dentro de un TestComponent.
- *  - `act(...)` para envolver llamadas que disparan setState.
- *  - `beforeEach` resetea localStorage y la clase del documentElement para
- *    que cada test arranque desde el mismo estado base.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useTheme } from '../useTheme';
@@ -105,7 +93,6 @@ describe('useTheme', () => {
     }).not.toThrow();
 
     expect(result.current.theme).toBe('light');
-    // La clase se actualiza aunque localStorage falle (es lo que el usuario ve).
     expect(document.documentElement.classList.contains('dark')).toBe(false);
 
     setItemSpy.mockRestore();

@@ -1,22 +1,3 @@
-/**
- * Tests del borrado de clientes (S3 y S4 del feature `clientes-crud`).
- *
- * Cubre:
- *  - El type guard estricto `isDeleteCustomer409`: un 409 SOLO cuenta como
- *    "ventas asociadas" si además trae `associated_sales` con contenido.
- *    Es la lección de S11 (feature `delete-cascade-and-ux-polish`): si el
- *    guard fuera laxo, un 409 sin lista abriría una modal de cascada
- *    vacía y el error del server no se mostraría nunca.
- *  - `useDeleteCustomer` (borrado simple): llama al DELETE correcto,
- *    invalida la caché y avisa con un toast.
- *  - `useDeleteCustomerCascade` (borrado en cascada): llama al endpoint
- *    `/:id/cascade`, invalida `['customers']`, `['solds']` y
- *    `['stats','dashboard']` y avisa con un toast.
- *  - El toast de edición (`useUpdateCustomer`) vive en su propio archivo de
- *    test (`useUpdateCustomer.test.tsx`), junto al hook que lo dispara.
- *
- * Mockeamos `customersApi` para no depender del backend.
- */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,12 +13,12 @@ vi.mock('@/api/customers', () => ({
   },
 }));
 
-const { toastEliminado, toastActualizado, toastRegistrado } = vi.hoisted(() => ({
-  toastEliminado: vi.fn(),
-  toastActualizado: vi.fn(),
-  toastRegistrado: vi.fn(),
+const { toastDeleted, toastUpdated, toastCreated } = vi.hoisted(() => ({
+  toastDeleted: vi.fn(),
+  toastUpdated: vi.fn(),
+  toastCreated: vi.fn(),
 }));
-vi.mock('@/lib/toast', () => ({ toastEliminado, toastActualizado, toastRegistrado }));
+vi.mock('@/lib/toast', () => ({ toastDeleted, toastUpdated, toastCreated }));
 
 import { customersApi } from '@/api/customers';
 import { ApiError } from '@/api/client';
@@ -99,7 +80,7 @@ describe('isDeleteCustomer409', () => {
 describe('useDeleteCustomer', () => {
   beforeEach(() => {
     vi.mocked(customersApi.remove).mockReset();
-    toastEliminado.mockClear();
+    toastDeleted.mockClear();
   });
 
   it('llama a customersApi.remove con el id', async () => {
@@ -142,7 +123,7 @@ describe('useDeleteCustomer', () => {
     });
 
     await waitFor(() => {
-      expect(toastEliminado).toHaveBeenCalledWith('cliente');
+      expect(toastDeleted).toHaveBeenCalledWith('customer');
     });
   });
 
@@ -166,19 +147,19 @@ describe('useDeleteCustomer', () => {
       try {
         await result.current.mutateAsync(3);
       } catch {
-        // expected
+        return;
       }
     });
 
     expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastEliminado).not.toHaveBeenCalled();
+    expect(toastDeleted).not.toHaveBeenCalled();
   });
 });
 
 describe('useDeleteCustomerCascade', () => {
   beforeEach(() => {
     vi.mocked(customersApi.removeCascade).mockReset();
-    toastEliminado.mockClear();
+    toastDeleted.mockClear();
   });
 
   it('llama a customersApi.removeCascade con el id', async () => {
@@ -206,11 +187,8 @@ describe('useDeleteCustomerCascade', () => {
     });
 
     await waitFor(() => {
-      // El cliente desapareció de la lista.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customers'] });
-      // Sus ventas desaparecieron (y con ellas, sus items).
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['solds'] });
-      // El dashboard muestra topBuyers con el nombre del cliente.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -225,7 +203,7 @@ describe('useDeleteCustomerCascade', () => {
     });
 
     await waitFor(() => {
-      expect(toastEliminado).toHaveBeenCalledWith('cliente');
+      expect(toastDeleted).toHaveBeenCalledWith('customer');
     });
   });
 
@@ -242,16 +220,11 @@ describe('useDeleteCustomerCascade', () => {
 describe('toasts de clientes (S4)', () => {
   beforeEach(() => {
     vi.mocked(customersApi.update).mockReset();
-    toastActualizado.mockClear();
-    toastRegistrado.mockClear();
+    toastUpdated.mockClear();
+    toastCreated.mockClear();
   });
 
-  // OJO: el test del toast de EDICIÓN vive en `useUpdateCustomer.test.tsx`
-  // (allí está el hook que lo dispara).
-
   it('el alta ya tiene su propio toast (no se duplica)', async () => {
-    // `useCreateCustomer` dispara `toastRegistrado` por su cuenta: el
-    // borrado y la edición no pueden disparar también el de alta.
     const { useCreateCustomer } = await import('@/hooks/useCreateCustomer');
     vi.mocked(customersApi.create).mockResolvedValueOnce(customerFixture as never);
     const { Wrapper } = makeHookWrapper();
@@ -262,8 +235,8 @@ describe('toasts de clientes (S4)', () => {
     });
 
     await waitFor(() => {
-      expect(toastRegistrado).toHaveBeenCalledTimes(1);
+      expect(toastCreated).toHaveBeenCalledTimes(1);
     });
-    expect(toastActualizado).not.toHaveBeenCalled();
+    expect(toastUpdated).not.toHaveBeenCalled();
   });
 });

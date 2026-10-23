@@ -1,8 +1,3 @@
-/**
- * Wrapper de fetch con manejo de errores estructurados.
- * La API responde con `{ data: ... }` en éxito o `{ error, issues? }` en error.
- */
-
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -32,9 +27,6 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    // fetch rechaza con TypeError en errores de red (sin conexión, CORS, DNS).
-    // Los envolvemos en ApiError para que los consumidores tengan un único
-    // tipo de error que manejar y un mensaje en español.
     throw new ApiError(0, { error: 'Error de red' });
   }
 
@@ -45,7 +37,6 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(res.status, errorBody);
   }
 
-  // 204 No Content
   if (res.status === 204) {
     return undefined as T;
   }

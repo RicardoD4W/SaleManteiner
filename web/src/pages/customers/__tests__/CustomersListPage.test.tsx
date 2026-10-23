@@ -1,15 +1,3 @@
-/**
- * Tests de la vista de Clientes (CustomersListPage).
- *
- * Cubre:
- *  - La lista de clientes con su número de ventas y su total gastado.
- *  - Los estados de carga y de error (con "Reintentar").
- *  - El botón "Nuevo cliente" abre el modal de alta.
- *  - El botón "Editar" abre el modal de edición con el cliente.
- *  - El borrado en cascada (S3): la fila abre la confirmación, un 409 con
- *    ventas asociadas abre la modal de cascada y el botón destructivo
- *    llama al endpoint de cascada.
- */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,8 +8,6 @@ vi.mock('@/hooks/useCustomers', () => ({
 vi.mock('@/hooks/useSolds', () => ({
   useSolds: vi.fn(),
 }));
-// El type guard `isDeleteCustomer409` se usa tal cual (no se mockea): solo
-// se mockean los hooks de la mutación.
 vi.mock('@/hooks/useDeleteCustomer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useDeleteCustomer')>();
   return { ...actual, useDeleteCustomer: vi.fn(), useDeleteCustomerCascade: vi.fn() };
@@ -89,7 +75,6 @@ const soldsFixture = [
   },
 ];
 
-/** Error 409 con ventas asociadas (el body real del server). */
 function error409(): ApiError {
   const body = {
     error:
@@ -135,12 +120,10 @@ describe('CustomersListPage', () => {
     expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
     expect(screen.getByText('Ana García')).toBeInTheDocument();
 
-    // Juan Pérez: 2 ventas, 40 + 60 = 100 €.
     const juanRow = screen.getByText('Juan Pérez').closest('tr');
     expect(juanRow).toHaveTextContent('2');
     expect(juanRow).toHaveTextContent('100,00 €');
 
-    // Ana García: 1 venta, 25,50 €.
     const anaRow = screen.getByText('Ana García').closest('tr');
     expect(anaRow).toHaveTextContent('1');
     expect(anaRow).toHaveTextContent('25,50 €');
@@ -210,14 +193,11 @@ describe('CustomersListPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
 
-    // La confirmación nombra al cliente de la fila.
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('"Juan Pérez"')).toBeInTheDocument();
     expect(screen.getByText(/No se puede deshacer/)).toBeInTheDocument();
   });
 
-  // El preflight de Tailwind 4 no pone `cursor: pointer` en los <button>
-  // (en v3 sí lo hacía): sin esto el puntero sale como flecha.
   it('los botones de la fila muestran el cursor de puntero', () => {
     renderWithProviders(<CustomersListPage />);
 
@@ -242,7 +222,6 @@ describe('CustomersListPage', () => {
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith(1);
     });
-    // El diálogo se cierra tras el borrado.
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
@@ -263,7 +242,6 @@ describe('CustomersListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Borrar Juan Pérez' }));
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
 
-    // Paso 2: la modal de cascada lista las ventas afectadas.
     await waitFor(() => {
       expect(screen.getByText('El cliente tiene ventas asociadas')).toBeInTheDocument();
     });
@@ -291,7 +269,6 @@ describe('CustomersListPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Error de red');
     });
-    // La modal sigue abierta (no se cerró sin borrar).
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

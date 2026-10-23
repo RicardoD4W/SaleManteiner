@@ -1,28 +1,8 @@
-/**
- * Modal de confirmación del borrado en cascada (S2 del feature
- * `acciones-en-listas`).
- *
- * Es el diálogo que aparece cuando el server rechaza el borrado simple
- * porque el registro tiene ventas asociadas (409). Nombra las ventas que
- * se van a borrar y exige una segunda confirmación antes de llamar al
- * endpoint de cascada.
- *
- * La usan las compras (`DeleteBuyModal`) y los clientes
- * (`DeleteCustomerModal`): los dos son el MISMO diálogo con distinto
- * texto, así que el markup vive acá una sola vez y los wrappers pasan las
- * palabras.
- *
- * Accesibilidad (WCAG 2.2): `role="dialog"` + `aria-modal="true"` +
- * `aria-labelledby`, focus trap (Tab/Shift+Tab ciclan dentro), cierre con
- * Escape y click en el backdrop, foco inicial en el botón destructivo y
- * error de la cascada anunciado con `role="alert"`.
- */
 import { useId, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { useFocusTrap } from '../ui/useFocusTrap';
 import { formatDate } from '../../lib/format';
 
-/** Venta que se va a borrar (la forma del 409 del server). */
 export interface CascadeSale {
   id: number;
   customer_name: string;
@@ -31,25 +11,24 @@ export interface CascadeSale {
 }
 
 export interface DeleteCascadeModalProps {
-  /** Título del diálogo (es su nombre accesible). */
   title: string;
-  /** Nombre del registro que se va a borrar (el producto o el cliente). */
+
   entityName: string;
-  /** Cómo se llama el registro en la frase: "La compra" / "El cliente". */
+
   entityPhrase: string;
-  /** Pronombre del registro: "la" / "lo". */
+
   entityPronoun: string;
-  /** Texto del botón destructivo. */
+
   confirmLabel: string;
-  /** Ventas que se van a borrar. */
+
   sales: CascadeSale[];
-  /** `true` mientras el borrado en cascada está en curso. */
+
   isPending: boolean;
-  /** Error del borrado en cascada (red, 5xx). Se muestra en la modal. */
+
   cascadeError: string | null;
-  /** Cierre (Escape, backdrop o "Cancelar"). */
+
   onClose: () => void;
-  /** Confirmación del borrado en cascada. */
+
   onConfirm: () => void;
 }
 
@@ -66,26 +45,13 @@ export function DeleteCascadeModal({
   onConfirm,
 }: DeleteCascadeModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  // Id del título: `useId` para que dos modales montados a la vez no
-  // compartan el mismo id (el `aria-labelledby` tiene que apuntar a uno).
   const titleId = useId();
-  // El botón destructivo usa un <button> "crudo" (y no el `Button` del
-  // repo) porque ese componente no expone `ref`: hace falta la ref para
-  // apuntar el foco inicial del focus trap.
-  //
-  // OJO: el botón NO lleva `autoFocus`. React aplica el `autoFocus` en la
-  // fase de commit, ANTES de los efectos: si lo tuviera, el efecto que
-  // memoriza "el elemento que tenía el foco antes de abrir la modal"
-  // (para devolvérselo al cerrar) ya vería el foco en el botón
-  // destructivo y no en el "Borrar" de la fila. El foco inicial lo pone
-  // el focus trap (`initialFocusRef`), con el mismo efecto observable.
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   useFocusTrap({
     dialogRef,
     enabled: true,
     onEscape: () => {
-      // Escape no cierra mientras la mutación está en curso.
       if (!isPending) onClose();
     },
     initialFocusRef: confirmButtonRef,

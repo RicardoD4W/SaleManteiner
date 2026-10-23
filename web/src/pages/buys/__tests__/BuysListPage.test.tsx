@@ -1,11 +1,3 @@
-/**
- * Tests de la página de listado de compras (BuysListPage).
- *
- * Cubre el cursor de los botones de la fila: el preflight de Tailwind 4 no
- * pone `cursor: pointer` en los `<button>` (en v3 sí lo hacía), así que el
- * puntero salía como flecha en "Borrar" mientras que el link "Editar" sí
- * mostraba la manita.
- */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 
@@ -13,8 +5,6 @@ vi.mock('@/hooks/useBuys', () => ({
   useBuys: vi.fn(),
 }));
 
-// La tabla es virtualizada: en jsdom el virtualizador no renderiza ninguna
-// fila (no hay viewport). Se mockea para que en el test se vean todas.
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getVirtualItems: () =>

@@ -1,41 +1,20 @@
-/**
- * Modal genérica de confirmación de borrado (S2 del feature
- * `acciones-en-listas`).
- *
- * Es el diálogo que usan las tablas de `/buys` y `/solds` para confirmar
- * un borrado. El texto de la confirmación lo pasa quien la usa (así la
- * compra y la venta pueden decir cosas distintas) pero el comportamiento
- * (foco, cierre, error) es siempre el mismo.
- *
- * Accesibilidad (WCAG 2.2):
- *  - `role="dialog"` + `aria-modal="true"` + `aria-labelledby` (y
- *    `aria-describedby` con la descripción).
- *  - Focus trap: Tab / Shift+Tab ciclan dentro del diálogo (patrón de
- *    `web/.agents/skills/accessibility/references/A11Y-PATTERNS.md`).
- *  - Escape cierra (salvo mientras la mutación está en curso).
- *  - Click en el backdrop cierra.
- *  - El foco entra en el diálogo al abrir y vuelve al elemento disparador
- *    al cerrar.
- *  - El error se anuncia con `role="alert"`.
- */
 import { useId, useRef, type ReactNode } from 'react';
 import { Button } from './Button';
 import { useFocusTrap } from './useFocusTrap';
 
 export interface ConfirmDeleteModalProps {
-  /** Título del diálogo (es su nombre accesible). */
   title: string;
-  /** Qué se va a borrar. */
+
   description: ReactNode;
-  /** Error del borrado (red, 5xx). Se anuncia con `role="alert"`. */
+
   error?: string | null;
-  /** `true` mientras la mutación está en curso (bloquea el cierre). */
+
   isPending?: boolean;
-  /** Texto del botón destructivo. */
+
   confirmLabel: string;
-  /** Cierre (Escape, backdrop o "Cancelar"). */
+
   onClose: () => void;
-  /** Confirmación del borrado. */
+
   onConfirm: () => void;
 }
 
@@ -56,8 +35,6 @@ export function ConfirmDeleteModal({
     dialogRef,
     enabled: true,
     onEscape: () => {
-      // Escape no cierra mientras la mutación está en curso: si no, el
-      // usuario vería la modal desaparecer con el borrado a medias.
       if (!isPending) onClose();
     },
   });

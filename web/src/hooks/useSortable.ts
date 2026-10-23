@@ -1,27 +1,3 @@
-/**
- * Hook reutilizable para tablas con sort de 3 estados (S8 del feature
- * dashboard-iteration-1).
- *
- * Patrón:
- *  - Click en una columna distinta a la actual → arranca en `'asc'`.
- *  - Click en la misma columna cicla: `null → 'asc' → 'desc' → null`.
- *  - Solo una columna a la vez.
- *  - Si `sortDir === null`, `sortedItems` devuelve el array original (no se
- *    ordena), preservando el orden de la fuente.
- *
- * Uso:
- * ```tsx
- * const { sortedItems, sortKey, sortDir, onSort } = useSortable(rows);
- * // ...
- * <th onClick={() => onSort('product_name')}>
- *   Producto {sortKey === 'product_name' && (sortDir === 'asc' ? '▲' : '▼')}
- * </th>
- * ```
- *
- * El comparador usa `<` / `>` de JS (orden natural). Para strings usa locale
- * comparison; para números compara como números. Mezclar tipos dentro de la
- * misma columna no está soportado.
- */
 import { useCallback, useMemo, useState } from 'react';
 
 export type SortDir = 'asc' | 'desc' | null;
@@ -55,7 +31,6 @@ export function useSortable<T>(
         setSortDir('asc');
         return;
       }
-      // Misma columna: cicla null → asc → desc → null.
       if (sortDir === null) {
         setSortDir('asc');
       } else if (sortDir === 'asc') {

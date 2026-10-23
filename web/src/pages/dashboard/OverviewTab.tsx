@@ -1,19 +1,3 @@
-/**
- * Tab Overview (T12 de feature-buys-and-solds + S2 y S5 del feature
- * dashboard-iteration-1, simplificado en el feature phase-8-polish-e2e-docs).
- *
- * Cambios del feature dashboard-iteration-1:
- *  - S2: la KPI "Beneficio neto" pasa a llamarse "Beneficio" y su color
- *    depende del signo: rojo si < 0, naranja si === 0, verde si > 0.
- *  - S5: el chart muestra dos series (compras / ventas) por mes, no la
- *    línea de neto.
- *
- * Cambios posteriores:
- *  - El header del chart se traduce a "Flujo de caja de los últimos 12
- *    meses" (sin "Cash flow" en la UI).
- *  - Las secciones "Top 5 productos" y "Top 5 compradores" se muestran
- *    siempre desplegadas (sin colapsable, sin icono para colapsar).
- */
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -24,9 +8,9 @@ interface StatCardProps {
   label: string;
   value: string;
   hint?: string;
-  /** Color de énfasis (por defecto gris neutro; admite variantes dinámicas). */
+
   valueClassName?: string;
-  /** Clases extra para el Card (ej: bg temático para KPIs Compras/Ventas). */
+
   cardClassName?: string;
 }
 
@@ -51,8 +35,7 @@ function StatCard({ label, value, hint, valueClassName, cardClassName }: StatCar
   );
 }
 
-/** Clases Tailwind para el color dinámico del KPI "Beneficio" (S2). */
-function beneficioColorClass(value: number): string {
+function profitColorClass(value: number): string {
   if (value < 0) return 'text-red-600 dark:text-red-400';
   if (value === 0) return 'text-orange-500 dark:text-orange-400';
   return 'text-emerald-600 dark:text-emerald-400';
@@ -111,7 +94,7 @@ export function OverviewTab() {
           label="Beneficio"
           value={`${netSign}${formatEuro(k.beneficio_total_eur)}`}
           hint="Ingresos menos los costes de cada venta"
-          valueClassName={beneficioColorClass(k.beneficio_total_eur)}
+          valueClassName={profitColorClass(k.beneficio_total_eur)}
         />
         <StatCard
           label="Stock pendiente"
@@ -131,7 +114,6 @@ export function OverviewTab() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Top 5 productos — siempre desplegado */}
         <Card>
           <CardBody>
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
@@ -158,7 +140,6 @@ export function OverviewTab() {
           </CardBody>
         </Card>
 
-        {/* Top 5 compradores — siempre desplegado */}
         <Card>
           <CardBody>
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">

@@ -1,12 +1,3 @@
-/**
- * Tests del componente ProductPickerModal.
- *
- * Verifica:
- *  - Renderiza estado de carga / vacío / con datos.
- *  - El modal abre/cierra correctamente.
- *  - Multi-select con checkboxes.
- *  - Confirm llama a `onConfirm` con los items correctos.
- */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -106,11 +97,9 @@ describe('ProductPickerModal', () => {
     await user.click(checkboxes[0]);
     await user.click(checkboxes[1]);
 
-    // Confirmar que ambos están tildados.
     expect(checkboxes[0]).toBeChecked();
     expect(checkboxes[1]).toBeChecked();
 
-    // Contador dice "2 seleccionados".
     expect(screen.getByText(/2 seleccionados/)).toBeInTheDocument();
   });
 
@@ -151,7 +140,6 @@ describe('ProductPickerModal', () => {
       buy_id: 1,
       product_name: 'Funda iPhone',
       quantity: 1,
-      // Tope de la cantidad: el stock disponible.
       max: 8,
     });
   });
@@ -197,8 +185,6 @@ describe('ProductPickerModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // S1 (feature-modal-venta-ux): al reabrir el picker desde "+ Cambiar
-  // productos", lo ya elegido tiene que venir preseleccionado.
   it('preselecciona los items que le llegan en initialSelection', async () => {
     vi.mocked(useBuysStock).mockReturnValue({
       data: mockBuysWithStock as never,
@@ -225,12 +211,9 @@ describe('ProductPickerModal', () => {
     expect(checkboxes[0]).toBeChecked();
     expect(checkboxes[1]).not.toBeChecked();
     expect(screen.getByText(/1 seleccionado/)).toBeInTheDocument();
-    // La cantidad viene preseleccionada, no la de por defecto (1).
     expect(screen.getByLabelText('Cantidad para Funda iPhone')).toHaveValue(3);
   });
 
-  // S3 (feature-modal-venta-ux): escribir la cantidad tiene que REEMPLAZAR
-  // el valor anterior, no concatenarse ("1" + "2" = "12").
   it('al enfocar el input de cantidad se selecciona su contenido', async () => {
     const user = userEvent.setup();
     vi.mocked(useBuysStock).mockReturnValue({
@@ -252,10 +235,6 @@ describe('ProductPickerModal', () => {
     const input = screen.getByLabelText('Cantidad para Funda iPhone');
     expect(input).toHaveValue(1);
 
-    // El contenido se selecciona al enfocar: al escribir, el valor nuevo
-    // reemplaza al anterior en vez de concatenarse ("1" + "2" = "12").
-    // OJO: en un input type="number" el rango de selección no es observable
-    // (devuelve null), así que se comprueba la llamada a select().
     const selectSpy = vi.spyOn(input as HTMLInputElement, 'select');
     fireEvent.focus(input);
     expect(selectSpy).toHaveBeenCalled();
@@ -280,13 +259,10 @@ describe('ProductPickerModal', () => {
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     const input = screen.getByLabelText('Cantidad para Funda iPhone');
-    // 8 disponibles: escribir 99 se recorta a 8.
     fireEvent.change(input, { target: { value: '99' } });
     expect(input).toHaveValue(8);
   });
 
-  // Al reabrir el picker con "+ Cambiar productos", lo que ya estaba
-  // marcado se muestra ARRIBA del todo (para no ir a buscarlo).
   it('muestra arriba del todo los productos que ya venían seleccionados', async () => {
     vi.mocked(useBuysStock).mockReturnValue({
       data: mockBuysWithStock as never,
@@ -309,14 +285,11 @@ describe('ProductPickerModal', () => {
       expect(screen.getByText('Cargador USB-C')).toBeInTheDocument();
     });
 
-    // El primero de la lista es el que ya estaba tildado.
     const items = screen.getAllByRole('listitem');
     expect(items[0]).toHaveTextContent('Cargador USB-C');
     expect(items[1]).toHaveTextContent('Funda iPhone');
   });
 
-  // El orden se congela al abrir: tildar o destildar NO reordena la lista,
-  // así la fila que tenés bajo el puntero no se te escapa.
   it('no reordena la lista al tildar dentro del modal', async () => {
     const user = userEvent.setup();
     vi.mocked(useBuysStock).mockReturnValue({
@@ -340,7 +313,6 @@ describe('ProductPickerModal', () => {
       expect(screen.getByText('Cargador USB-C')).toBeInTheDocument();
     });
 
-    // Tilda "Funda iPhone" (el que estaba abajo).
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     const items = screen.getAllByRole('listitem');

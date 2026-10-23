@@ -1,11 +1,3 @@
-/**
- * Tests de la modal de borrado en cascada de un cliente (S3 del feature
- * `clientes-crud`).
- *
- * Es el equivalente de `DeleteBuyModal` para clientes: lista las ventas
- * que se van a borrar y exige una segunda confirmación antes de llamar a
- * `DELETE /api/customers/:id/cascade`.
- */
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,7 +24,6 @@ describe('DeleteCustomerModal', () => {
     );
 
     expect(screen.getByText('El cliente tiene ventas asociadas')).toBeInTheDocument();
-    // El nombre del cliente va entre comillas dentro del <strong>.
     expect(screen.getByText('"Lucía Fernández"')).toBeInTheDocument();
     expect(screen.getByText('Venta #7')).toBeInTheDocument();
     expect(screen.getByText('Venta #9')).toBeInTheDocument();
@@ -97,18 +88,14 @@ describe('DeleteCustomerModal', () => {
       name: 'Borrar también las ventas y el cliente',
     });
 
-    // El botón destructivo tiene el foco al abrir.
     expect(confirmButton).toHaveFocus();
 
-    // Tab en el último → vuelve al primero.
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(closeButton).toHaveFocus();
 
-    // Shift+Tab en el primero → vuelve al último.
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(confirmButton).toHaveFocus();
 
-    // El foco nunca salió del diálogo.
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
     expect(cancelButton).toBeInTheDocument();
   });

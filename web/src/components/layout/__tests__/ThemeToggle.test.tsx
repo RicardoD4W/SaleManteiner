@@ -1,15 +1,3 @@
-/**
- * Tests del componente <ThemeToggle />. El componente lee `theme` del hook
- * `useTheme` y renderiza el ícono Sun (cuando dark) o Moon (cuando light);
- * el `aria-label` describe el destino del toggle (no la acción), siguiendo
- * el patrón recomendado en `web/.agents/skills/accessibility/SKILL.md`.
- *
- * Patrón (skill vitest + testing-library):
- *  - `render(<ThemeToggle />)` con jsdom.
- *  - `userEvent.setup()` + `await user.click(btn)` para disparar la acción
- *    del botón.
- *  - `beforeEach` resetea localStorage y la clase del documentElement.
- */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

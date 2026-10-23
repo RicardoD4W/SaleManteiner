@@ -1,15 +1,3 @@
-/**
- * Tests del buscador client-side (/buys y /solds).
- *
- * Cubre la gramática decided por el orquestador:
- *  - token con signo → solo Beneficio
- *  - token "x2" → solo columna de cantidad
- *  - token de fecha (dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd) → columnas de fecha
- *  - token numérico → cualquier columna numérica (+ substring de nombres)
- *  - texto libre → substring de nombres (sin mayúsculas ni acentos)
- *  - varios tokens → AND
- *  - query vacía → todas las filas
- */
 import { describe, it, expect } from 'vitest';
 import {
   filterBuys,
@@ -23,8 +11,6 @@ import {
   type SoldWithCustomer,
 } from '../searchQuery.js';
 import type { BuyWithStock } from '../../api/buys.js';
-
-// ── Fixtures ─────────────────────────────────────────────────────────
 
 const buyA: BuyWithStock = {
   id: 1,
@@ -77,12 +63,8 @@ const soldB: SoldWithCustomer = {
   items: [{ buy_id: 2, product_name: 'Cargador USB-C', quantity: 3, unit_cost: 10, unit_assoc: 0 }],
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
 const ids = (rows: BuyWithStock[]): number[] => rows.map((b) => b.id);
 const soldIds = (rows: SoldWithCustomer[]): number[] => rows.map((s) => s.id);
-
-// ── Tests ────────────────────────────────────────────────────────────
 
 describe('parseNumber', () => {
   it('parsea números simples y decimales', () => {
@@ -128,9 +110,7 @@ describe('parseDate', () => {
 
   it('acepta el punto como separador de fecha', () => {
     expect(parseDate('24.09.2026')).toBe('2026-09-24');
-    // Separadores mezclados: no es una fecha.
     expect(parseDate('24/09.2026')).toBeNull();
-    // "1.234" sigue siendo un número (el mes 234 no existe).
     expect(parseDate('1.234')).toBeNull();
   });
 
@@ -206,13 +186,13 @@ describe('filterBuys', () => {
   });
 
   it('filtra por columnas numéricas (valor exacto)', () => {
-    expect(ids(filterBuys(buys, '50'))).toEqual([1]); // purchase_cost
-    expect(ids(filterBuys(buys, '8'))).toEqual([1]); // disponibles
-    expect(ids(filterBuys(buys, '30'))).toEqual([2]); // purchase_cost
+    expect(ids(filterBuys(buys, '50'))).toEqual([1]);
+    expect(ids(filterBuys(buys, '8'))).toEqual([1]);
+    expect(ids(filterBuys(buys, '30'))).toEqual([2]);
   });
 
   it('un número también matchea como substring de un nombre', () => {
-    expect(ids(filterBuys(buys, '12'))).toEqual([1]); // "Funda iPhone 12"
+    expect(ids(filterBuys(buys, '12'))).toEqual([1]);
   });
 
   it('filtra por fecha de compra (dd/mm/yyyy)', () => {
@@ -228,16 +208,11 @@ describe('filterBuys', () => {
   });
 
   it('en /buys el token con signo degrada a número simple (no hay columna Beneficio)', () => {
-    // /buys no tiene columna "Beneficio": el signo no tiene columna destino,
-    // así que "+3" se comporta como "3" (matchea cualquier columna numérica:
-    // Coste, Cantidad, Asociados o Disponibles).
-    expect(ids(filterBuys(buys, '+3'))).toEqual([2]); // Cantidad y Disponibles de buyB
-    expect(ids(filterBuys(buys, '+50'))).toEqual([1]); // Coste de buyA
+    expect(ids(filterBuys(buys, '+3'))).toEqual([2]);
+    expect(ids(filterBuys(buys, '+50'))).toEqual([1]);
   });
 
   it('filtra por la columna Disponibles', () => {
-    // 8 solo aparece en la columna Disponibles de buyA (coste 50, cantidad 10,
-    // asociados 5).
     expect(ids(filterBuys(buys, '8'))).toEqual([1]);
   });
 });
@@ -273,23 +248,18 @@ describe('filterSolds', () => {
   });
 
   it('un número simple matchea la columna Beneficio (por valor absoluto)', () => {
-    // soldA: beneficio +30; soldB: beneficio -1.
     expect(soldIds(filterSolds(solds, '30'))).toEqual([10]);
-    // "1" matchea a soldA (cantidad de un item) y a soldB (|beneficio| = 1).
     expect(soldIds(filterSolds(solds, '1'))).toEqual([10, 11]);
   });
 
   it('un número entero matchea por parte entera ("56" -> "56,15 €")', () => {
-    // El usuario ve "56,15 €" en la columna y escribe "56": tiene que
-    // encontrar la fila. Pero "56" NO matchea "25" ni "560".
-    expect(soldIds(filterSolds(solds, '1234'))).toEqual([10]); // parte entera de 1234,56
-    expect(soldIds(filterSolds(solds, '12'))).toEqual([10]); // parte entera de 12,50
-    expect(soldIds(filterSolds(solds, '4'))).toEqual([]); // 40 no es 4
-    expect(soldIds(filterSolds(solds, '1235'))).toEqual([]); // ni una unidad más
+    expect(soldIds(filterSolds(solds, '1234'))).toEqual([10]);
+    expect(soldIds(filterSolds(solds, '12'))).toEqual([10]);
+    expect(soldIds(filterSolds(solds, '4'))).toEqual([]);
+    expect(soldIds(filterSolds(solds, '1235'))).toEqual([]);
   });
 
   it('un número con decimales exige coincidencia exacta', () => {
-    // "56,15" encuentra 56,15 pero no 56,99.
     expect(soldIds(filterSolds(solds, '12,50'))).toEqual([10]);
     expect(soldIds(filterSolds(solds, '12,99'))).toEqual([]);
   });
@@ -301,13 +271,12 @@ describe('filterSolds', () => {
   });
 
   it('el token con signo NO matchea otras columnas numéricas', () => {
-    // soldB tiene associated_costs 0 y precio 40; "+40" solo puede ser Beneficio.
     expect(soldIds(filterSolds(solds, '+40'))).toEqual([]);
   });
 
   it('filtra por Fecha (sold_at) y por Registrado (created_at)', () => {
-    expect(soldIds(filterSolds(solds, '05/10/2026'))).toEqual([10]); // sold_at
-    expect(soldIds(filterSolds(solds, '07/10/2026'))).toEqual([11]); // created_at
+    expect(soldIds(filterSolds(solds, '05/10/2026'))).toEqual([10]);
+    expect(soldIds(filterSolds(solds, '07/10/2026'))).toEqual([11]);
   });
 
   it('combina tokens con AND', () => {

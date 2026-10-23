@@ -1,17 +1,8 @@
-/**
- * Tests de formatters de moneda y fecha.
- *
- * Importante: `formatDate`/`formatDateTime` usan `Intl.DateTimeFormat('es-ES')`,
- * que formatea en la zona horaria local. Para que los tests sean deterministas
- * independiente del entorno (CI UTC, dev en otra TZ), el script `test` setea
- * `TZ=UTC` vía cross-env (ver web/package.json).
- */
 import { describe, expect, it } from 'vitest';
 import { centsToEuros, eurosToCents, formatCents, formatDate, formatDateTime } from '../format.js';
 
 describe('formatCents', () => {
   it('formatea 0 como "0,00\u00A0€"', () => {
-    // \u00A0 = NBSP. Intl.NumberFormat usa NBSP entre número y símbolo €.
     expect(formatCents(0)).toBe('0,00\u00A0€');
   });
 
@@ -20,7 +11,6 @@ describe('formatCents', () => {
   });
 
   it('formatea importes grandes con separador de miles es-ES', () => {
-    // 1234567 cents = 12345.67 €
     expect(formatCents(1234567)).toBe('12.345,67\u00A0€');
   });
 
@@ -49,16 +39,11 @@ describe('eurosToCents', () => {
   });
 
   it('rompe el caso clásico de float 0.1 + 0.2', () => {
-    // 0.1 + 0.2 === 0.30000000000000004
-    // eurosToCents debe redondear a 30, no a 29 ni a 31.
     expect(eurosToCents(0.1 + 0.2)).toBe(30);
   });
 
   it('redondea 0.005 hacia arriba (Math.round half-up)', () => {
-    // 0.005 * 100 = 0.5, Math.round(0.5) === 1 (banker's rounding NO,
-    // Math.round de JS es round-half-away-from-zero para positivos).
     expect(eurosToCents(0.005)).toBe(1);
-    // 0.004 * 100 = 0.4 → Math.round(0.4) === 0
     expect(eurosToCents(0.004)).toBe(0);
   });
 });

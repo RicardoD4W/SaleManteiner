@@ -1,19 +1,5 @@
 import { useTheme } from '../../hooks/useTheme';
 
-/**
- * Botón que alterna entre tema claro y oscuro. Va en el header del Layout.
- *
- * Reglas aplicadas (skills):
- *  - `accessibility`: <button type="button"> nativo, `aria-label` describe el
- *    destino del toggle (no la acción), ícono SVG decorativo `aria-hidden`.
- *    El `title` muestra el mismo texto que aria-label para tooltip.
- *  - `tailwind-css-patterns` (dark mode): clases duales (`bg-white dark:bg-gray-800`,
- *    etc.). El contraste del `ring-brand-500` (#e85f0f) sobre blanco es ~3.4:1
- *    (AA pasa), sobre `gray-900` es ~5.4:1 (AAA pasa). Tamaño 36×36 cumple
- *    el mínimo AA de 24×24 (WCAG 2.2, 2.5.8).
- *  - `react-best-practices`: el componente no deriva estado; solo lee `theme`
- *    y llama `toggle`.
- */
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
   const isDark = theme === 'dark';

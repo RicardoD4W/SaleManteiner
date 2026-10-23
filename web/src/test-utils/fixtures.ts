@@ -1,12 +1,3 @@
-/**
- * Fixtures reutilizables para tests (modelo buys/solds/customers).
- *
- * Datos "realistas" (no placeholders tipo "test") para que los snapshots
- * visuales y aserciones tengan sentido. Los importes van en EUROS DECIMALES
- * (no céntimos) — coherente con el modelo del feature buys-and-solds.
- */
-
-// ── Buy ──────────────────────────────────────────────────────────────
 export const buyFixture = {
   id: 1,
   product_name: 'Funda iPhone',
@@ -27,7 +18,6 @@ export const pendingBuyFixture = {
   created_at: '2026-10-05T09:00:00.000Z',
 };
 
-// ── Sold (con items para packs) ────────────────────────────────────
 export const soldFixture = {
   id: 1,
   customer_id: 1,
@@ -47,14 +37,12 @@ export const soldWithItemsFixture = {
   ],
 };
 
-// ── Customer ───────────────────────────────────────────────────────
 export const customerFixture = {
   id: 1,
   name: 'Juan Pérez',
   created_at: '2026-09-01T10:00:00.000Z',
 };
 
-// ── DashboardStats (S11) ───────────────────────────────────────────
 import type { DashboardStats } from '../api/solds.js';
 
 export const dashboardStatsFixture: DashboardStats = {
@@ -64,8 +52,6 @@ export const dashboardStatsFixture: DashboardStats = {
     beneficio_total_eur: 8.0,
     stock_pendiente_count: 1,
   },
-  // 12 meses consecutivos, el último con actividad.
-  // neto = compras - ventas por convención del spec.
   cashFlowByMonth: [
     { month: '2025-11', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
     { month: '2025-12', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
@@ -78,8 +64,6 @@ export const dashboardStatsFixture: DashboardStats = {
     { month: '2026-07', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
     { month: '2026-08', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
     { month: '2026-09', compras: 0, ventas: 0, neto: 0, beneficio_real: 0 },
-    // Mes actual: compras 130€, profit 8€ → neto = 122 (positivo = "ganancia" según spec).
-    // beneficio_real = profit realizado (8) - gasto en compras del mes (130) = -122.
     { month: '2026-10', compras: 130.0, ventas: 8.0, neto: 122.0, beneficio_real: -122.0 },
   ],
   topProducts: [

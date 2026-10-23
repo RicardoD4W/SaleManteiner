@@ -1,17 +1,3 @@
-/**
- * Input con autocompletado de clientes (S9 del feature).
- *
- * Comportamiento:
- *  - Muestra una lista de clientes que coinciden con lo tipeado.
- *  - Si el nombre tipeado no coincide exactamente con ninguno, muestra
- *    un botón "Crear cliente '{nombre}'" para crearlo inline.
- *  - El cliente recién creado se selecciona automáticamente.
- *
- * Accesibilidad (ARIA combobox pattern):
- *  - `role="combobox"` + `aria-expanded` + `aria-controls` + `aria-activedescendant`
- *  - Lista con `role="listbox"` + opciones con `role="option"`
- *  - Navegación con teclado: ↑↓ para navegar, Enter para seleccionar, Escape para cerrar
- */
 import { useEffect, useId, useRef, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
@@ -20,15 +6,14 @@ import { Spinner } from '../ui/Spinner';
 import type { Customer } from '../../schemas/customers';
 
 interface CustomerAutocompleteProps {
-  /** Cliente seleccionado (null = ningún cliente). */
   value: Customer | null;
-  /** Callback que recibe el cliente seleccionado (o null). */
+
   onChange: (customer: Customer | null) => void;
-  /** Label visible del campo. */
+
   label?: string;
-  /** Mensaje de error (para aria-invalid + texto de error). */
+
   error?: string;
-  /** Placeholder. */
+
   placeholder?: string;
 }
 
@@ -44,32 +29,24 @@ export function CustomerAutocomplete({
 
   const [inputValue, setInputValue] = useState(value?.name ?? '');
   const [isOpen, setIsOpen] = useState(false);
-  /** Índice de la opción activa (keyboard navigation). */
+
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Sincronizar inputValue con el value externo cuando cambia (ej: el padre carga
-  // un customer en un useEffect tras el mount, o lo limpia pasando null). Sin
-  // esto, el useState inicial solo se evalúa una vez y el input queda vacío.
-  // Alternativa React 19 sería usar `key` en el padre para resetear el componente,
-  // pero eso rompe la API actual.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincronizamos el input controlado con el value externo; el bailout de React evita renders si el valor no cambió
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInputValue(value?.name ?? '');
   }, [value]);
 
-  // Filtrar clientes por nombre tipeado (prefijo, case-insensitive).
   const filtered = (customers ?? []).filter((c) =>
     c.name.toLowerCase().startsWith(inputValue.toLowerCase()),
   );
 
-  // ¿Exact match? (case-insensitive).
   const exactMatch = filtered.find((c) => c.name.toLowerCase() === inputValue.toLowerCase());
 
-  // Si no hay exact match y el usuario tipeó algo, mostrar opción de crear.
   const showCreateOption =
     inputValue.trim().length > 0 && !exactMatch && inputValue.trim().length <= 200;
 
@@ -97,11 +74,10 @@ export function CustomerAutocomplete({
       setIsOpen(false);
       setActiveIndex(-1);
     } catch {
-      // Error propagado por la mutation; el caller puede observer isError si quiere.
+      return;
     }
   };
 
-  // Keyboard navigation.
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const totalOptions = filtered.length + (showCreateOption ? 1 : 0);
 
@@ -160,9 +136,6 @@ export function CustomerAutocomplete({
           value={inputValue}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          // Cierra la lista al perder el foco (click fuera, tab, etc.).
-          // El `onMouseDown={preventDefault}` en la <ul> evita que el click
-          // sobre un item robe el foco antes de que se ejecute su onClick.
           onBlur={() => setIsOpen(false)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
@@ -177,7 +150,6 @@ export function CustomerAutocomplete({
           ].join(' ')}
         />
 
-        {/* Indicador de dropdown */}
         {isLoading ? (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
             <Spinner size="sm" />
@@ -202,15 +174,12 @@ export function CustomerAutocomplete({
         )}
       </div>
 
-      {/* Lista de opciones */}
       {isOpen && (filtered.length > 0 || showCreateOption) && (
         <ul
           ref={listRef}
           id={listboxId}
           role="listbox"
           aria-label="Clientes"
-          // preventDefault en mousedown evita que el click sobre un item
-          // haga blur del input (lo que cerraría la lista antes del onClick).
           onMouseDown={(e) => e.preventDefault()}
           className={[
             'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border',
@@ -273,7 +242,6 @@ export function CustomerAutocomplete({
         </ul>
       )}
 
-      {/* Error */}
       {error ? (
         <p
           id={`${listboxId}-error`}
@@ -284,7 +252,6 @@ export function CustomerAutocomplete({
         </p>
       ) : null}
 
-      {/* Loading create customer */}
       {createCustomer.isPending && (
         <p className="text-sm text-gray-500 dark:text-gray-400">Creando cliente…</p>
       )}

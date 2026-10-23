@@ -1,6 +1,3 @@
-/**
- * Tests del hook `useCreateSold`. Mockeamos `soldsApi` para no depender del backend.
- */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -17,8 +14,8 @@ vi.mock('@/api/solds', () => ({
   },
 }));
 
-const { toastRegistrado } = vi.hoisted(() => ({ toastRegistrado: vi.fn() }));
-vi.mock('@/lib/toast', () => ({ toastRegistrado }));
+const { toastCreated } = vi.hoisted(() => ({ toastCreated: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastCreated }));
 
 import { soldsApi } from '@/api/solds';
 import { useCreateSold } from '@/hooks/useCreateSold';
@@ -90,8 +87,6 @@ describe('useCreateSold', () => {
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['solds'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['buys'] });
-      // Con staleTime Infinity, el dashboard solo se refresca si alguien
-      // invalida su clave: si no, sus KPIs quedan congelados.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -111,7 +106,7 @@ describe('useCreateSold', () => {
     });
 
     await waitFor(() => {
-      expect(toastRegistrado).toHaveBeenCalledWith('venta');
+      expect(toastCreated).toHaveBeenCalledWith('sale');
     });
   });
 

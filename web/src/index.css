@@ -66,8 +66,8 @@
 /* El input del campo de cliente (`CustomerAutocomplete`) hereda el nombre de
    la transición de la custom property que pone la página de edición: así el
    componente compartido no necesita cambios (S3). */
-.campo-transicion input {
-  view-transition-name: var(--vt-nombre, none);
+.transition-field input {
+  view-transition-name: var(--vt-name, none);
   view-transition-class: caja;
 }
 
@@ -104,12 +104,12 @@
    --------------------------------------------------------------------------- */
 
 /* El texto que viaja (la celda de la tabla). */
-.vt-celda {
+.vt-cell {
   view-transition-class: celda;
 }
 
 /* La caja que lo recibe (el input del formulario). */
-.vt-caja {
+.vt-box {
   view-transition-class: caja;
 }
 

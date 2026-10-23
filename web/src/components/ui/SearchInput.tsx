@@ -1,41 +1,22 @@
-/**
- * Input de búsqueda compartido por las páginas /buys y /solds.
- *
- * Componente controlado (`value` + `onChange`): el estado de la query vive
- * en la página, que además necesita filtrar sobre el conjunto completo de
- * filas (ver `BuysListPage` / `SoldsListPage`).
- *
- * Accesibilidad (skill accessibility):
- *  - `<form role="search">` marca el landmark de búsqueda.
- *  - `<label htmlFor>` asociado al input (WCAG 3.3.2).
- *  - Botón "Limpiar" con `aria-label` (ícono decorativo `aria-hidden`).
- *  - Foco visible con anillo brand y `ring-offset` acorde al fondo (dark mode).
- *  - Objetivo táctil ≥ 24px (WCAG 2.5.8).
- */
 import { useId, type FormEvent } from 'react';
 
 interface SearchInputProps {
-  /** Texto actual de la query. */
   value: string;
-  /** Callback con el nuevo texto de la query. */
+
   onChange: (value: string) => void;
-  /** Label visible (y accesible) del input. */
+
   label?: string;
-  /**
-   * Nombre accesible del landmark `role="search"`. Debe ser DISTINTO del
-   * label del input: si fueran iguales, el landmark y el campo compartirían
-   * nombre y los lectores de pantalla lo anunciarían dos veces.
-   */
+
   landmarkLabel?: string;
-  /** Texto del contador de resultados (se anuncia con aria-live). */
+
   resultsText?: string;
-  /** `data-testid` del contador (cada página usa el suyo). */
+
   countTestId?: string;
-  /** Placeholder del input. */
+
   placeholder?: string;
-  /** Id explícito del input (opcional). */
+
   id?: string;
-  /** Clases extra del contenedor. */
+
   className?: string;
 }
 
@@ -53,8 +34,6 @@ export function SearchInput({
   const autoId = useId();
   const inputId = id ?? autoId;
 
-  // El form sirve solo para landmark + semántica; el filtro es client-side
-  // y se aplica en cada tecla, así que no hay submit que procesar.
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => event.preventDefault();
 
   return (
@@ -92,8 +71,6 @@ export function SearchInput({
             'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
             'dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400',
             'dark:focus:ring-brand-400 dark:focus:ring-offset-gray-900',
-            // Safari/Chrome muestran su propio botón de limpieza: lo ocultamos
-            // para no tener dos botones "limpiar" con el mismo propósito.
             '[&::-webkit-search-cancel-button]:appearance-none',
           ].join(' ')}
         />

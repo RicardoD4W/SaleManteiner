@@ -1,13 +1,3 @@
-/**
- * Formulario de edición de compra.
- *
- * Mismo schema que BuyNewPage, pero pre-rellena con los datos de la compra.
- *
- * El borrado NO vive acá: el usuario lo pidió así ("quitar el boton borrar
- * del apartado de editar", L5 del feature `acciones-en-listas`). Se borra
- * desde la tabla de `/buys`, con el mismo diálogo compartido
- * (`components/sales/DeleteDialogs.tsx`).
- */
 import { useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,24 +39,10 @@ export function BuyEditPage() {
   const update = useUpdateBuy();
   const navigate = useNavigate();
 
-  /**
-   * Nombre de la view transition de elemento compartido (S3).
-   *
-   * Es el MISMO nombre que lleva la celda de la fila en `/buys`: así el
-   * valor de cada campo viaja de la tabla al formulario. La clave es el id
-   * de la compra (el nombre del producto no sirve como
-   * `view-transition-name`: tiene espacios y puede repetirse) y `campo`
-   * distingue los campos (cada input tiene su pareja en la fila).
-   */
-  const nombreTransicion = (campo: string) => `buy-${campo}-${buyId}`;
+  const transitionName = (campo: string) => `buy-${campo}-${buyId}`;
 
-  /**
-   * Vuelve a la lista dejando armada la fila de esta compra (S3): el id
-   * viaja en el `state` de la navegación y la lista lo lee para armar la
-   * fila (y que el producto vuelva a la celda).
-   */
-  const volverALista = () =>
-    navigate('/buys', { viewTransition: true, state: { filaArmada: buyId } });
+  const backToList = () =>
+    navigate('/buys', { viewTransition: true, state: { armedRowId: buyId } });
 
   const {
     register,
@@ -101,7 +77,7 @@ export function BuyEditPage() {
 
     try {
       await update.mutateAsync({ id: buyId, input: payload });
-      volverALista();
+      backToList();
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -119,7 +95,7 @@ export function BuyEditPage() {
         <p className="text-sm text-red-600 dark:text-red-400">Id de compra inválido.</p>
         <Link
           to="/buys"
-          state={{ filaArmada: buyId }}
+          state={{ armedRowId: buyId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -145,7 +121,7 @@ export function BuyEditPage() {
         </p>
         <Link
           to="/buys"
-          state={{ filaArmada: buyId }}
+          state={{ armedRowId: buyId }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -163,7 +139,7 @@ export function BuyEditPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar compra</h2>
         <Link
           to="/buys"
-          state={{ filaArmada: buyId }}
+          state={{ armedRowId: buyId }}
           viewTransition
           className="text-sm text-gray-500 hover:underline dark:text-gray-400"
         >
@@ -171,7 +147,6 @@ export function BuyEditPage() {
         </Link>
       </div>
 
-      {/* Info de registro */}
       <Card>
         <CardBody className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <div className="flex justify-between">
@@ -192,12 +167,8 @@ export function BuyEditPage() {
               autoFocus
               {...register('product_name')}
               error={errors.product_name?.message}
-              // S3: este input es el destino de la transición de elemento
-              // compartido (el mismo nombre que la celda de la fila).
-              // `vt-caja`: el texto de la celda viaja como chip y la
-              // caja del input no se dibuja en el vuelo (ver index.css).
-              className="vt-caja"
-              style={{ viewTransitionName: nombreTransicion('product') }}
+              className="vt-box"
+              style={{ viewTransitionName: transitionName('product') }}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -209,9 +180,8 @@ export function BuyEditPage() {
                 {...register('purchase_cost', { valueAsNumber: true })}
                 error={errors.purchase_cost?.message}
                 hint="Total pagado por el lote"
-                // S3: este input es el destino del chip del coste.
-                className="vt-caja"
-                style={{ viewTransitionName: nombreTransicion('cost') }}
+                className="vt-box"
+                style={{ viewTransitionName: transitionName('cost') }}
               />
               <Input
                 label="Cantidad *"
@@ -221,9 +191,8 @@ export function BuyEditPage() {
                 {...register('quantity', { valueAsNumber: true })}
                 error={errors.quantity?.message}
                 hint="Unidades del lote"
-                // S3: este input es el destino del chip de la cantidad.
-                className="vt-caja"
-                style={{ viewTransitionName: nombreTransicion('qty') }}
+                className="vt-box"
+                style={{ viewTransitionName: transitionName('qty') }}
               />
             </div>
 
@@ -235,9 +204,8 @@ export function BuyEditPage() {
               {...register('associated_costs', { valueAsNumber: true })}
               error={errors.associated_costs?.message}
               hint="Envío, comisión, etc. (opcional)"
-              // S3: este input es el destino del chip de los asociados.
-              className="vt-caja"
-              style={{ viewTransitionName: nombreTransicion('associated') }}
+              className="vt-box"
+              style={{ viewTransitionName: transitionName('associated') }}
             />
 
             <Input
@@ -245,9 +213,8 @@ export function BuyEditPage() {
               type="date"
               {...register('purchase_date')}
               error={errors.purchase_date?.message}
-              // S3: este input es el destino del chip de la fecha.
-              className="vt-caja"
-              style={{ viewTransitionName: nombreTransicion('date') }}
+              className="vt-box"
+              style={{ viewTransitionName: transitionName('date') }}
             />
 
             {errors.root ? (
@@ -257,7 +224,7 @@ export function BuyEditPage() {
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={volverALista}>
+              <Button type="button" variant="ghost" onClick={backToList}>
                 Cancelar
               </Button>
               <Button type="submit" isLoading={isSubmitting || update.isPending}>

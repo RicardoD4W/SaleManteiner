@@ -1,13 +1,3 @@
-/**
- * Tests del type guard `isDeleteBuy409` (S11 del feature
- * `delete-cascade-and-ux-polish`).
- *
- * Contexto: el guard solo miraba `status === 409`. Si el server devolvía un
- * 409 sin `associated_sales` (o con la lista vacía), la UI abría la modal de
- * cascada con `associated_sales === undefined`, la modal no se renderizaba
- * (porque el JSX la condiciona a `deleteCascadeOpen && associatedSales`) y
- * NO se mostraba ningún error: el click en "Eliminar" no hacía nada.
- */
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../api/client';
 import { isDeleteBuy409, type AssociatedSale } from '../useDeleteBuy';

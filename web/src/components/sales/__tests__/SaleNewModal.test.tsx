@@ -1,14 +1,3 @@
-/**
- * Tests del componente SaleNewModal (step 2 del flujo multi-step).
- *
- * Cubre el flujo de "+ Cambiar productos":
- *  - S2: al volver a elegir el mismo producto con más unidades, la modal
- *    refleja la cantidad final.
- *  - S4: cancelar el picker vuelve a la modal de venta (conservando la
- *    info) en vez de cancelar toda la venta.
- *
- * Spec: `odd/tasks/feature-modal-venta-ux.md`.
- */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -95,27 +84,21 @@ describe('SaleNewModal', () => {
     mockHooks();
   });
 
-  // S2: el flujo completo. Antes, al reabrir el picker no venía nada
-  // preseleccionado, así que al volver a tildar el producto la cantidad
-  // volvía a 1 y la modal de venta mostraba "1 unidad" en vez de lo elegido.
   it('refleja la cantidad final cuando se vuelve a elegir el mismo producto', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
 
-    // Step 1: elegir "Funda iPhone" con 1 unidad.
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
     });
     await user.click(screen.getAllByRole('checkbox')[0]);
     await user.click(screen.getByRole('button', { name: /Confirmar/ }));
 
-    // Step 2: la modal de venta ya está.
     await waitFor(() => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
     expect(screen.getByText('Productos (1)')).toBeInTheDocument();
 
-    // Step 3: "+ Cambiar productos" reabre el picker CON lo elegido.
     await user.click(screen.getByRole('button', { name: /\+ Cambiar productos/ }));
     await waitFor(() => {
       expect(screen.getByText('Seleccionar productos')).toBeInTheDocument();
@@ -123,29 +106,21 @@ describe('SaleNewModal', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes[0]).toBeChecked();
 
-    // Step 4: subir la cantidad a 2 y confirmar.
-    // OJO: se cambia el valor con fireEvent y no escribiendo. En jsdom el
-    // input type="number" no hace la selección de texto al enfocar (eso sí
-    // funciona en el navegador real, y lo cubre el e2e), así que aquí
-    // "2" se concatenaría a "12" y el clamp lo dejaría en 8.
     const input = screen.getByLabelText('Cantidad para Funda iPhone');
     fireEvent.change(input, { target: { value: '2' } });
     await user.click(screen.getByRole('button', { name: /Confirmar/ }));
 
-    // Step 5: la modal de venta refleja 2 unidades.
     await waitFor(() => {
       expect(screen.getByText('Productos (1)')).toBeInTheDocument();
     });
     expect(screen.getByLabelText('Cantidad para Funda iPhone')).toHaveValue(2);
   });
 
-  // S4: cancelar el picker es "volver atrás", no descartar la venta.
   it('cancelar el picker vuelve a la modal de venta sin cerrar la venta', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderWithProviders(<SaleNewModal onClose={onClose} />);
 
-    // Elegir un producto para tener algo que conservar.
     await waitFor(() => {
       expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
     });
@@ -155,14 +130,12 @@ describe('SaleNewModal', () => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
 
-    // Reabrir el picker y cancelar.
     await user.click(screen.getByRole('button', { name: /\+ Cambiar productos/ }));
     await waitFor(() => {
       expect(screen.getByText('Seleccionar productos')).toBeInTheDocument();
     });
     await user.click(screen.getByRole('button', { name: /Cancelar/ }));
 
-    // Vuelve a la modal de venta, con lo elegido, y NO se cierra la venta.
     await waitFor(() => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
@@ -170,10 +143,6 @@ describe('SaleNewModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  // El picker INICIAL (el primer paso de la venta) es otro caso: cancelar
-  // ahí cancela la VENTA entera. Antes se caía al formulario de venta sin
-  // productos: no se podía ni enviar (falta el producto) ni cerrar sin un
-  // click de más.
   it('cancelar el picker inicial cancela la venta entera', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -185,13 +154,10 @@ describe('SaleNewModal', () => {
 
     await user.click(screen.getByRole('button', { name: /Cancelar/ }));
 
-    // Se cancela la venta (se llama al onClose del padre) y NO queda el
-    // formulario de venta a medias.
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
   });
 
-  // Cerrar el picker inicial con Escape es lo mismo que cancelarlo.
   it('cerrar el picker inicial con Escape cancela la venta entera', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

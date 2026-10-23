@@ -1,23 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { DASHBOARD_TABS } from '../../lib/dashboardTabs';
 
-/**
- * Layout del Dashboard (Fase 5 / S1).
- *
- * Es la ruta padre de las 4 tabs anidadas via React Router bajo `/`
- * (la ruta `/dashboard` se eliminó: el dashboard vive solo en `/`):
- *   /             → Overview (index)
- *   /revenue      → RevenueTab
- *   /products     → ProductsTab
- *   /buyers       → BuyersTab
- *
- * NavLink con className como función (`isActive`) para highlighting
- * automático según la URL — sin estado local para la tab activa.
- *
- * Las rutas de las tabs viven en `lib/dashboardTabs.ts` (fuente única: la
- * usa también el link "Dashboard" del header para no perder el
- * resaltado al entrar a una sub-tab).
- */
 export function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">

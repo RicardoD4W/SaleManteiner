@@ -1,36 +1,15 @@
-/**
- * Tabla virtualizada (scroll infinito) sobre TanStack Table.
- *
- * Qué resuelve: con 2.000+ filas, renderizar todo en el DOM costaba un
- * long task de 675 ms y 30.058 nodos (medido con Playwright + CDP). Con el
- * virtualizador solo existen en el DOM las filas visibles (~25) + un pequeño
- * `overscan`, así que el coste es constante por más filas que haya.
- *
- * Patrón: el de la guía oficial de TanStack (`@tanstack/react-virtual` +
- * `react-table` v8). El `<table>` y el `<tbody>` son `display: grid` y las
- * filas son `display: flex` posicionadas en absoluto: eso permite que las
- * celdas tengan ancho fijo (columnas estables al scrollear) y que el alto
- * real de cada fila se mida (`measureElement`), importante porque la celda
- * "Productos" de /solds tiene varias líneas.
- *
- * Accesibilidad: la tabla expone `aria-rowcount` (cuántas filas hay en
- * total) y cada fila `aria-rowindex` (su posición real), que es la técnica
- * estándar para tablas virtualizadas: los lectores de pantalla saben que
- * hay más filas de las que ven en el DOM.
- */
 import { useRef, type ReactNode } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { tableHeadClass } from './tableStyles';
 
 interface VirtualTableProps<TData> {
-  /** Instancia de TanStack Table (ya filtrada y ordenada). */
   table: Table<TData>;
-  /** Alto máximo del área con scroll. */
+
   maxHeight?: string;
-  /** Altura estimada de una fila en px (se ajusta con la medición real). */
+
   estimateRowHeight?: number;
-  /** Contenido del pie de la tabla (conteos, avisos). */
+
   footer?: ReactNode;
 }
 
@@ -43,13 +22,11 @@ export function VirtualTable<TData>({
   const parentRef = useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual devuelve fns no memoizables (igual que TanStack Table); el coste es constante porque solo se renderizan las filas visibles
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => estimateRowHeight,
-    // Filas extra renderizadas por encima y por debajo de la ventana: evita
-    // flashes al hacer scroll rápido.
     overscan: 8,
   });
 
@@ -61,7 +38,6 @@ export function VirtualTable<TData>({
         <table
           className="text-sm"
           style={{ display: 'grid', width: '100%', minWidth: table.getTotalSize() }}
-          // Cuántas filas tiene la tabla de verdad (incluye la del header).
           aria-rowcount={rows.length + 1}
         >
           <thead
@@ -85,15 +61,6 @@ export function VirtualTable<TData>({
                         sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
                       }
                     >
-                      {/*
-                        El texto de la cabecera y el indicador de orden van
-                        SIEMPRE en la misma línea: el texto no se parte (si se
-                        parte, el indicador "cae" a la línea de abajo y la
-                        cabecera queda descentrada). Para eso el texto no
-                        envuelve (`truncate`) y el indicador reserva su hueco
-                        fijo (`w-3`), así la anchura de la columna no cambia
-                        al ordenar y la tabla no se desajusta.
-                      */}
                       <span className="flex items-center gap-1">
                         <span className="min-w-0 truncate">
                           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -122,11 +89,8 @@ export function VirtualTable<TData>({
               return (
                 <tr
                   key={row.id}
-                  // Necesario para que el virtualizador mida el alto real de
-                  // la fila (la celda "Productos" puede ocupar varias líneas).
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
-                  // Posición real de la fila dentro de la tabla completa.
                   aria-rowindex={vi.index + 2}
                   className="absolute flex w-full border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
                   style={{ transform: `translateY(${vi.start}px)` }}

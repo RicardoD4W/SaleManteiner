@@ -1,7 +1,3 @@
-/**
- * Tests del hook `useUpdateCustomer`. Mockeamos `customersApi` para no
- * depender del backend.
- */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,8 +13,8 @@ vi.mock('@/api/customers', () => ({
   },
 }));
 
-const { toastActualizado } = vi.hoisted(() => ({ toastActualizado: vi.fn() }));
-vi.mock('@/lib/toast', () => ({ toastActualizado }));
+const { toastUpdated } = vi.hoisted(() => ({ toastUpdated: vi.fn() }));
+vi.mock('@/lib/toast', () => ({ toastUpdated }));
 
 import { customersApi } from '@/api/customers';
 import { useUpdateCustomer } from '@/hooks/useUpdateCustomer';
@@ -33,7 +29,7 @@ const customerFixture = {
 describe('useUpdateCustomer', () => {
   beforeEach(() => {
     vi.mocked(customersApi.update).mockReset();
-    toastActualizado.mockClear();
+    toastUpdated.mockClear();
   });
 
   it('llama a customersApi.update con el id y el input', async () => {
@@ -61,10 +57,7 @@ describe('useUpdateCustomer', () => {
     });
 
     await waitFor(() => {
-      // La lista de clientes se refresca (el nombre puede haber cambiado).
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customers'] });
-      // El dashboard muestra topBuyers con el nombre del cliente: si no se
-      // invalida, sus KPIs quedan congelados con el nombre viejo.
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -91,7 +84,7 @@ describe('useUpdateCustomer', () => {
       try {
         await result.current.mutateAsync({ id: 1, input: { name: 'Juan Pérez' } });
       } catch {
-        // expected
+        return;
       }
     });
 
@@ -99,8 +92,6 @@ describe('useUpdateCustomer', () => {
   });
 
   it('avisa con un toast de cliente actualizado (con el nombre)', async () => {
-    // S4 del feature clientes-crud: la edición de un cliente dispara el
-    // aviso de éxito. Los errores NO se toastean (ya se muestran en línea).
     vi.mocked(customersApi.update).mockResolvedValueOnce(customerFixture as never);
     const { Wrapper } = makeHookWrapper();
     const { result } = renderHook(() => useUpdateCustomer(), { wrapper: Wrapper });
@@ -110,7 +101,7 @@ describe('useUpdateCustomer', () => {
     });
 
     await waitFor(() => {
-      expect(toastActualizado).toHaveBeenCalledWith('cliente', 'Juan Pérez');
+      expect(toastUpdated).toHaveBeenCalledWith('customer', 'Juan Pérez');
     });
   });
 });

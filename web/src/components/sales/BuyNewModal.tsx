@@ -1,20 +1,3 @@
-/**
- * Modal para crear una nueva compra (S3 del feature dashboard-iteration-1).
- *
- * Sustituye al flujo anterior que navegaba a `/buys/new`. Replica la lógica
- * del antiguo `BuyNewPage` (Zod schema + react-hook-form + useCreateBuy) en
- * un dialog con focus trap y cierre con Escape.
- *
- * Patrón de montaje: el padre solo renderiza este componente cuando
- * isModalOpen es true, así cada apertura arranca con state fresco (no
- * necesitamos un useEffect para resetear el form).
- *
- * Accesibilidad (WCAG 2.2):
- *  - `role="dialog"` + `aria-modal="true"` + `aria-labelledby` en el header.
- *  - Cierre con Escape o click en backdrop.
- *  - Focus al primer input al montar.
- *  - `aria-invalid` y mensaje de error por campo.
- */
 import { useEffect, useId, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,13 +54,11 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
     },
   });
 
-  // Foco al montar (no useEffect de reset: el componente se monta fresh cada vez).
   useEffect(() => {
     const firstInput = dialogRef.current?.querySelector<HTMLInputElement>('input');
     firstInput?.focus();
   }, []);
 
-  // Escape para cerrar.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -86,7 +67,6 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Click en backdrop cierra.
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -102,7 +82,6 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
 
     try {
       await create.mutateAsync(payload);
-      // El hook invalida ['buys'] al éxito. Cerramos el modal.
       onClose();
     } catch (err) {
       const message =
@@ -128,7 +107,6 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
         aria-labelledby={titleId}
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
           <h2 id={titleId} className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Nueva compra
@@ -156,7 +134,6 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
           </button>
         </div>
 
-        {/* Body (form) */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
           <Input
             label="Producto *"

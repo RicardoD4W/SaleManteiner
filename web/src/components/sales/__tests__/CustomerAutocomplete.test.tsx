@@ -1,12 +1,3 @@
-/**
- * Tests del componente CustomerAutocomplete.
- *
- * Verifica:
- *  - Renderiza input y label.
- *  - Filtra clientes por nombre tipeado.
- *  - Selección de cliente.
- *  - Opción "Crear cliente" cuando no hay exact match.
- */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -73,7 +64,6 @@ describe('CustomerAutocomplete', () => {
     await waitFor(() => {
       expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
     });
-    // Ana y Carlos no coinciden.
     expect(screen.queryByText('Ana García')).not.toBeInTheDocument();
     expect(screen.queryByText('Carlos Ruiz')).not.toBeInTheDocument();
   });
@@ -104,9 +94,6 @@ describe('CustomerAutocomplete', () => {
   });
 
   it('el exact match NO muestra "Crear cliente"', async () => {
-    // Con startsWith, "juan" coincide con "Juan Pérez" (empieza con "juan").
-    // El exact match es case-insensitive: "Juan Pérez".toLowerCase() === "Juan Pérez".toLowerCase().
-    // Si tipeamos "Juan Pérez" (full name), no debe aparecer "Crear cliente".
     const user = userEvent.setup();
     renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
@@ -114,7 +101,6 @@ describe('CustomerAutocomplete', () => {
     await waitFor(() => {
       expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
     });
-    // Exact match: "juan pé rez" === "juan pé rez" (case-insensitive) → showCreateOption = false.
     expect(screen.queryByText(/Crear cliente/)).not.toBeInTheDocument();
   });
 
@@ -165,7 +151,6 @@ describe('CustomerAutocomplete', () => {
     await user.click(screen.getByText('Juan Pérez'));
 
     await waitFor(() => {
-      // La lista ya no está visible.
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
   });
@@ -180,7 +165,6 @@ describe('CustomerAutocomplete', () => {
     await waitFor(() => {
       expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
     });
-    // Click fuera → blur del input → la lista se cierra.
     fireEvent.blur(input);
 
     await waitFor(() => {
@@ -189,8 +173,6 @@ describe('CustomerAutocomplete', () => {
   });
 
   it('seleccionar un item de la lista con click no se pierde por el blur', async () => {
-    // El `onMouseDown={preventDefault}` en la <ul> evita que el click sobre
-    // un item haga blur del input antes de que se ejecute el onClick.
     const user = userEvent.setup();
     const onChange = vi.fn();
     renderWithProviders(<CustomerAutocomplete value={null} onChange={onChange} />);
@@ -201,7 +183,6 @@ describe('CustomerAutocomplete', () => {
     });
     await user.click(screen.getByText('Juan Pérez'));
 
-    // Si el blur hubiera cerrado la lista antes del click, onChange no se llamaría.
     expect(onChange).toHaveBeenCalledWith(mockCustomers[0]);
     await waitFor(() => {
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
