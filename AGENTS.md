@@ -4,7 +4,8 @@
 
 ## 0. Reglas no negociables
 
-1. **Verificación visual antes de cerrar cualquier feature con UI** (§8.1). Un test verde **no** es "se ve bien": hay que levantar la app, capturar las pantallas y **mirar las capturas** (`npm run visual -w web`). El informe de cierre incluye las capturas revisadas. Si no se pudo mirar, el feature **no está cerrado** y se reporta como bloqueado. No hay excepciones por "es un cambio chico", "solo un texto" o "los tests pasan": un texto partido o una columna cortada son bugs igual que un test rojo.
+1. **Verificación visual antes de cerrar cualquier feature que afecte a la UI** (§8.1). Un test verde **no** es "se ve bien": hay que levantar la app, capturar las pantallas y **mirar las capturas**. El informe de cierre incluye las capturas revisadas. Si no se pudo mirar, el feature **no está cerrado** y se reporta como bloqueado. No hay excepciones por "es un cambio chico", "solo un texto" o "los tests pasan": un texto partido o una columna cortada son bugs igual que un test rojo.
+   **Alcance**: aplica a los cambios que tocan la UI (textos, layout, estilos, componentes). Una spec **solo de código** (refactors, renombres, limpieza) que no cambia ni la funcionalidad ni el aspecto **no** la requiere: se verifica con los gates (typecheck, lint, format, tests). El arnés de capturas no vive en el repo: se crea en el momento de resolver la spec que lo necesita (ver §8.1).
 2. **La BD del usuario no se toca.** Toda verificación (e2e, visual, scripts) corre contra una BD **temporal** (`SALEMANTEINER_DIR`), nunca `~/.salemanteiner`. Los datos que el usuario carga a mano son sacredos.
 3. **Los gates antes de commitear**: `typecheck`, `lint`, `format:check` y los tests (unit + e2e) tienen que estar verdes. Si un gate no se puede correr, se dice; no se commitea a ciegas.
 
@@ -235,11 +236,14 @@ Comandos útiles:
 
 ### 8.1 Verificación visual (NO NEGOCIABLE — ver §0.1)
 
-Un test verde no es lo mismo que "se ve bien". Antes de dar por cerrado un feature que toca la UI, hay que **mirar la web**:
+Un test verde no es lo mismo que "se ve bien". Antes de dar por cerrado un feature que **afecta a la UI**, hay que **mirar la web**.
 
-```bash
-npm run visual -w web     # → capturas en web/visual/shots/
-```
+**El arnés no vive en el repo**: se crea en el momento de resolver la spec que lo necesita (y se puede borrar después, cuando la spec está resuelta). Un spec que **solo toca código** (refactor, renombres, limpieza) sin cambiar la funcionalidad ni el aspecto **no** lo necesita: lo verifican los gates.
+
+Cómo se arma (si hay que reconstruirlo):
+
+- `web/visual/capture.spec.ts` + `web/playwright.visual.config.ts`: levantan su propio backend (:4200) y su propio Vite (:5200) con una BD **temporal** (nunca tocan `~/.salemanteiner`), siembran datos realistas (acentos, un pack, una venta con poco margen y otra con beneficio **negativo**), capturan dashboard, compras, ventas, clientes, los modales, la página de edición, **dark mode** y **móvil** (390px), y fallan si alguna pantalla dejó un error en la consola del navegador (un error de runtime no se ve en una captura, pero sí lo detecta ese paso).
+- El script `visual` de `web/package.json` (`npm run visual -w web`) deja las capturas en `web/visual/shots/`.
 
 Qué hace el script (`web/visual/capture.spec.ts` + `web/playwright.visual.config.ts`):
 
