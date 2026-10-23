@@ -27,13 +27,24 @@ describe('LazyCashFlowChart', () => {
     await import('../CashFlowChart');
   });
 
-  it('muestra un fallback accesible y monta el chart real cuando resuelve el import dinámico', async () => {
-    render(<LazyCashFlowChart data={DATA} />);
+  it('muestra un fallback accesible mientras el chart carga', async () => {
+    vi.resetModules();
+    vi.doMock('../CashFlowChart', () => new Promise(() => {}));
 
-    const fallback = screen.getByTestId('cashflow-chart-fallback');
+    const { LazyCashFlowChart: PendingChart } = await import('../LazyCashFlowChart');
+    render(<PendingChart data={DATA} />);
+
+    const fallback = await screen.findByTestId('cashflow-chart-fallback');
     expect(fallback).toHaveClass('h-64');
     expect(fallback).toHaveAttribute('role', 'status');
     expect(screen.queryByTestId('cashflow-chart')).not.toBeInTheDocument();
+
+    vi.doUnmock('../CashFlowChart');
+    vi.resetModules();
+  });
+
+  it('monta el chart real cuando resuelve el import dinámico', async () => {
+    render(<LazyCashFlowChart data={DATA} />);
 
     expect(
       await screen.findByTestId('cashflow-chart', undefined, { timeout: 5000 }),
