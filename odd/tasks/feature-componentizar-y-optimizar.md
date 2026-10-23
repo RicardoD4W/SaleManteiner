@@ -34,14 +34,14 @@ Cerrar la deuda técnica que dejó la auditoría: **reutilizar** lo que está du
 
 ## Tasks
 
-| ID  | Spec       | Ruta                                                         | Commit |
-| --- | ---------- | ------------------------------------------------------------ | ------ |
-| T1  | S2, S3     | server: vistas SQL (fuente de verdad de las cifras) + índices | WU1    |
-| T2  | S3         | server: statements en el factory + TOCTOU                    | WU2    |
-| T3  | S1, S2     | web: hook de cascada, `zodResolver`, `forwardRef`, schemas  | WU3    |
-| T4  | S1         | web: `<Modal>` compartido (6 modales)                         | WU4    |
-| T5  | S1         | web: tabla con fila armada parametrizada                     | WU5    |
-| T6  | S1-S3      | gates + verificación visual                                   | WU6    |
+| ID  | Spec   | Ruta                                                          | Commit |
+| --- | ------ | ------------------------------------------------------------- | ------ |
+| T1  | S2, S3 | server: vistas SQL (fuente de verdad de las cifras) + índices | WU1    |
+| T2  | S3     | server: statements en el factory + TOCTOU                     | WU2    |
+| T3  | S1, S2 | web: hook de cascada, `zodResolver`, `forwardRef`, schemas    | WU3    |
+| T4  | S1     | web: `<Modal>` compartido (6 modales)                         | WU4    |
+| T5  | S1     | web: tabla con fila armada parametrizada                      | WU5    |
+| T6  | S1-S3  | gates + verificación visual                                   | WU6    |
 
 ## Log
 

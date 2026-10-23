@@ -209,12 +209,9 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
     const itemRows = db
       .prepare(
-        `SELECT si.buy_id, b.product_name, si.quantity,
-          ROUND(b.purchase_cost / b.quantity, 2) AS unit_cost,
-          ROUND(b.associated_costs / b.quantity, 2) AS unit_assoc
-         FROM sale_items si
-         JOIN buys b ON b.id = si.buy_id
-         WHERE si.sold_id = ?`,
+        `SELECT buy_id, product_name, quantity, unit_cost, unit_assoc
+         FROM v_item_costs
+         WHERE sold_id = ?`,
       )
       .all(id) as SaleItemRow[];
 
@@ -255,14 +252,9 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const to = filters?.dateRange?.to || null;
     const rows = db
       .prepare(
-        `SELECT s.*,
-          s.sale_price - s.associated_costs - COALESCE((
-            SELECT SUM(si.quantity * (ROUND(b.purchase_cost / b.quantity, 2) + ROUND(b.associated_costs / b.quantity, 2)))
-            FROM sale_items si
-            JOIN buys b ON b.id = si.buy_id
-            WHERE si.sold_id = s.id
-          ), 0) AS profit
+        `SELECT s.*, c.profit
          FROM solds s
+         JOIN v_sold_costs c ON c.sold_id = s.id
          WHERE (? IS NULL OR s.customer_id = ?)
            AND (? IS NULL OR s.sold_at >= ?)
            AND (? IS NULL OR s.sold_at <= ?)
@@ -275,13 +267,10 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const soldIds = rows.map((r) => r.id);
     const itemRows = db
       .prepare(
-        `SELECT si.sold_id, si.buy_id, b.product_name, si.quantity,
-          ROUND(b.purchase_cost / b.quantity, 2) AS unit_cost,
-          ROUND(b.associated_costs / b.quantity, 2) AS unit_assoc
-         FROM sale_items si
-         JOIN buys b ON b.id = si.buy_id
-         WHERE si.sold_id IN (SELECT value FROM json_each(?))
-         ORDER BY si.sold_id, si.buy_id`,
+        `SELECT sold_id, buy_id, product_name, quantity, unit_cost, unit_assoc
+         FROM v_item_costs
+         WHERE sold_id IN (SELECT value FROM json_each(?))
+         ORDER BY sold_id, buy_id`,
       )
       .all(JSON.stringify(soldIds)) as Array<{
       sold_id: number;
@@ -375,21 +364,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       .get() as { cnt: number };
 
     const profitRow = db
-      .prepare(
-        `SELECT COALESCE(SUM(profit), 0) AS total
-         FROM (
-           SELECT
-             s.sale_price - s.associated_costs -
-             COALESCE((
-               SELECT SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2))
-                      + SUM(si.quantity * ROUND(b.associated_costs / b.quantity, 2))
-               FROM sale_items si
-               JOIN buys b ON b.id = si.buy_id
-               WHERE si.sold_id = s.id
-             ), 0) AS profit
-           FROM solds s
-         ) sub`,
-      )
+      .prepare(`SELECT COALESCE(SUM(profit), 0) AS total FROM v_sold_costs`)
       .get() as { total: number };
 
     const kpis = {
@@ -428,16 +403,9 @@ export function createSoldsRepo(db: Database): SoldsRepo {
         `SELECT
            strftime('%Y-%m', s.sold_at) AS month,
            COALESCE(SUM(s.sale_price), 0) AS ingresos,
-           COALESCE(SUM(s.sale_price - s.associated_costs - cogs_calc.cogs), 0) AS beneficio
+           COALESCE(SUM(c.profit), 0) AS beneficio
          FROM solds s
-         JOIN (
-           SELECT si.sold_id,
-                  SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2))
-                  + SUM(si.quantity * ROUND(b.associated_costs / b.quantity, 2)) AS cogs
-           FROM sale_items si
-           JOIN buys b ON b.id = si.buy_id
-           GROUP BY si.sold_id
-         ) cogs_calc ON cogs_calc.sold_id = s.id
+         JOIN v_sold_costs c ON c.sold_id = s.id
          WHERE s.sold_at IS NOT NULL
          GROUP BY month`,
       )
@@ -467,22 +435,21 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const topProducts = db
       .prepare(
         `SELECT
-           b.id AS product_id,
-           b.product_name,
-           SUM(si.quantity) AS times_sold,
-           SUM(si.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
-           SUM(si.quantity * (s.associated_costs * 1.0 / st.total_qty)) AS total_assoc_sale,
-           SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2)) AS total_unit_cost,
-           SUM(si.quantity * ROUND(b.associated_costs / b.quantity, 2)) AS total_unit_assoc
-         FROM sale_items si
-         JOIN solds s ON s.id = si.sold_id
-         JOIN buys b ON b.id = si.buy_id
+           ic.buy_id AS product_id,
+           ic.product_name,
+           SUM(ic.quantity) AS times_sold,
+           SUM(ic.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
+           SUM(ic.quantity * (s.associated_costs * 1.0 / st.total_qty)) AS total_assoc_sale,
+           SUM(ic.quantity * ic.unit_cost) AS total_unit_cost,
+           SUM(ic.quantity * ic.unit_assoc) AS total_unit_assoc
+         FROM v_item_costs ic
+         JOIN solds s ON s.id = ic.sold_id
          JOIN (
            SELECT sold_id, SUM(quantity) AS total_qty
            FROM sale_items
            GROUP BY sold_id
          ) st ON st.sold_id = s.id
-         GROUP BY b.id
+         GROUP BY ic.buy_id
          ORDER BY total_revenue DESC
          LIMIT 10`,
       )
