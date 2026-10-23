@@ -64,6 +64,14 @@ Regla: AGENTS.md §0.1/§8.1 pasan a decir que la verificación visual es obliga
 | T3  | S4, S5     | inline (padre) — AGENTS.md + nota          | WU3    |
 | T4  | S1-S4      | inline (padre) — gates + revisión del diff | WU4    |
 
+## Estado al 2026-10-22 (fin de sesión)
+
+- Rama `refactor/limpieza-y-ingles`, **sin pushear** (3 commits, árbol limpio).
+- **Pendiente para la próxima sesión**:
+  1. Revisar el diff completo (es mechanical pero toca ~130 archivos).
+  2. Decidir el push / el PR (decisión del usuario).
+  3. Cuando se mergee: la nota en AGENTS.md §13 (el refactor) y borrar la rama.
+
 ## Log
 
 - **L1** (2026-10-22) — "ahora quiero que crees un sub agente para la carpeta web/ y otro para la carpeta server/ y que cojan los archivos uno por uno y elimines aquello que no se use o sobre, por ej en web esta visual/, eso puede borrarse porqu no se usa para la app. Tmb quiero un refactor para eliminar todos los comenatrios del código, y si necesitas saber lo que hace x funcion archivo o lo que sea guardalo o en engram o en algun archivo temporal. Tambien quiero que cambies el estilo de programacion si bien lo que vera el usuario final es español, quiero que la programación este en ingles, nombres de clases, funciones, variables, metodos..."
