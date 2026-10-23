@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { buysApi } from '../api/buys.js';
 import { toastDeleted } from '../lib/toast.js';
+import { invalidate } from '../lib/queryClient';
 
 export function useDeleteBuyCascade() {
   const qc = useQueryClient();
@@ -8,9 +9,7 @@ export function useDeleteBuyCascade() {
     mutationFn: (id: number) => buysApi.removeCascade(id),
     onSuccess: () => {
       toastDeleted('buy');
-      void qc.invalidateQueries({ queryKey: ['buys'] });
-      void qc.invalidateQueries({ queryKey: ['solds'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['buys'], ['solds'], ['stats', 'dashboard']);
     },
   });
 }

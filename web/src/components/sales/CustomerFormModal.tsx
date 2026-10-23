@@ -8,7 +8,9 @@ import { Button } from '../ui/Button';
 import { useFocusTrap } from '../ui/useFocusTrap';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 import { useUpdateCustomer } from '../../hooks/useUpdateCustomer';
-import { ApiError } from '../../api/client';
+import { apiErrorMessage } from '../../api/client';
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from '../ui/tableStyles';
 
 type CustomerFormValues = z.infer<typeof CreateCustomerInput>;
 
@@ -94,12 +96,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
       }
       onClose();
     } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.body.error
-          : err instanceof Error
-            ? err.message
-            : 'Error desconocido';
+      const message = apiErrorMessage(err, 'Error desconocido');
       setError('root', { message });
     }
   };
@@ -167,10 +164,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
           ) : null}
 
           {errors.root ? (
-            <p
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              role="alert"
-            >
+            <p className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
               {errors.root.message}
             </p>
           ) : null}

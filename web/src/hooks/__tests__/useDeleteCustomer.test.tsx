@@ -26,11 +26,11 @@ import {
   isDeleteCustomer409,
   useDeleteCustomer,
   useDeleteCustomerCascade,
-  type AssociatedCustomerSale,
 } from '@/hooks/useDeleteCustomer';
+import type { AssociatedSale } from '@/api/types';
 import { makeHookWrapper } from '@/test-utils/hook-wrapper';
 
-const SALES: AssociatedCustomerSale[] = [
+const SALES: AssociatedSale[] = [
   { id: 7, customer_name: 'Ana', sold_at: '2026-10-19', items_count: 2 },
 ];
 

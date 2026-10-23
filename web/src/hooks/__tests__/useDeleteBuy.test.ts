@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../api/client';
-import { isDeleteBuy409, type AssociatedSale } from '../useDeleteBuy';
+import { isDeleteBuy409 } from '../useDeleteBuy';
+import type { AssociatedSale } from '@/api/types';
 
 const SALES: AssociatedSale[] = [
   { id: 7, customer_name: 'Ana', sold_at: '2026-10-19', items_count: 2 },

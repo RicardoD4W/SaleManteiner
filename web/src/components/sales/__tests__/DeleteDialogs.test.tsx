@@ -9,7 +9,8 @@ vi.mock('@/hooks/useDeleteBuy', async (importOriginal) => {
 vi.mock('@/hooks/useDeleteBuyCascade', () => ({ useDeleteBuyCascade: vi.fn() }));
 vi.mock('@/hooks/useDeleteSold', () => ({ useDeleteSold: vi.fn() }));
 
-import { useDeleteBuy, type AssociatedSale } from '@/hooks/useDeleteBuy';
+import { useDeleteBuy } from '@/hooks/useDeleteBuy';
+import type { AssociatedSale } from '@/api/types';
 import { useDeleteBuyCascade } from '@/hooks/useDeleteBuyCascade';
 import { useDeleteSold } from '@/hooks/useDeleteSold';
 import { DeleteDialogs } from '@/components/sales/DeleteDialogs';

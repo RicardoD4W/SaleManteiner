@@ -3,7 +3,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteBuyModal } from '@/components/sales/DeleteBuyModal';
 import { renderWithProviders } from '@/test-utils/render';
-import type { AssociatedSale } from '@/hooks/useDeleteBuy';
+import type { AssociatedSale } from '@/api/types';
 
 const SALES: AssociatedSale[] = [
   { id: 7, customer_name: 'Cliente Cascade', sold_at: '2026-10-21', items_count: 2 },

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { soldsApi } from '../api/solds.js';
 import type { UpdateSoldInput } from '../schemas/solds.js';
 import { toastUpdated } from '../lib/toast.js';
+import { invalidate } from '../lib/queryClient';
 
 export function useUpdateSold() {
   const qc = useQueryClient();
@@ -10,8 +11,7 @@ export function useUpdateSold() {
       soldsApi.update(id, input),
     onSuccess: (data) => {
       toastUpdated('sale');
-      void qc.invalidateQueries({ queryKey: ['solds'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['solds'], ['stats', 'dashboard']);
       qc.setQueryData(['solds', data.id], data);
     },
   });

@@ -1,6 +1,8 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { Button } from './Button';
 import { useFocusTrap } from './useFocusTrap';
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from './tableStyles';
 
 interface ConfirmDeleteModalProps {
   title: string;
@@ -91,10 +93,7 @@ export function ConfirmDeleteModal({
           </div>
 
           {error ? (
-            <p
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-            >
+            <p role="alert" className={cn(errorAlertClass, 'px-3 py-2')}>
               {error}
             </p>
           ) : null}

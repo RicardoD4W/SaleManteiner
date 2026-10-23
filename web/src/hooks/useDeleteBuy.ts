@@ -2,13 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { buysApi } from '../api/buys.js';
 import { ApiError } from '../api/client';
 import { toastDeleted } from '../lib/toast.js';
-
-export interface AssociatedSale {
-  id: number;
-  customer_name: string;
-  sold_at: string | null;
-  items_count: number;
-}
+import type { AssociatedSale } from '../api/types';
+import { invalidate } from '../lib/queryClient';
 
 type DeleteBuy409Body = {
   error: string;
@@ -27,8 +22,7 @@ export function useDeleteBuy() {
     mutationFn: (id: number) => buysApi.remove(id),
     onSuccess: () => {
       toastDeleted('buy');
-      void qc.invalidateQueries({ queryKey: ['buys'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['buys'], ['stats', 'dashboard']);
     },
   });
 }

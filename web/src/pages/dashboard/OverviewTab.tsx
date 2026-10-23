@@ -1,45 +1,10 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
+import { StatCard, profitColorClass } from '../../components/dashboard/StatCard';
 import { Spinner } from '../../components/ui/Spinner';
 import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  hint?: string;
-
-  valueClassName?: string;
-
-  cardClassName?: string;
-}
-
-function StatCard({ label, value, hint, valueClassName, cardClassName }: StatCardProps) {
-  return (
-    <Card className={cardClassName}>
-      <CardBody>
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          {label}
-        </p>
-        <p
-          className={[
-            'mt-1 text-2xl font-semibold tabular-nums',
-            valueClassName ?? 'text-gray-900 dark:text-gray-100',
-          ].join(' ')}
-        >
-          {value}
-        </p>
-        {hint ? <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p> : null}
-      </CardBody>
-    </Card>
-  );
-}
-
-function profitColorClass(value: number): string {
-  if (value < 0) return 'text-red-700 dark:text-red-400';
-  if (value === 0) return 'text-orange-500 dark:text-orange-400';
-  return 'text-emerald-800 dark:text-emerald-300';
-}
+import { ErrorState } from '../../components/ui/ErrorState';
 
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
@@ -56,15 +21,10 @@ export function OverviewTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-700 dark:text-red-400">
-            No se pudo cargar el dashboard: {error.message}
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Reintentar
-          </button>
+          <ErrorState
+            message={`No se pudo cargar el dashboard: ${error.message}`}
+            onRetry={() => refetch()}
+          />
         </CardBody>
       </Card>
     );
@@ -125,7 +85,7 @@ export function OverviewTab() {
               <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
                 {data.topProducts.slice(0, 5).map((p) => (
                   <li
-                    key={p.product_name}
+                    key={p.product_id}
                     className="flex items-baseline justify-between py-2 text-sm"
                   >
                     <span className="text-gray-800 dark:text-gray-200">{p.product_name}</span>

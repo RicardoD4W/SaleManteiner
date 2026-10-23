@@ -8,6 +8,12 @@ export class ApiError extends Error {
   }
 }
 
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) return err.body.error;
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
 }

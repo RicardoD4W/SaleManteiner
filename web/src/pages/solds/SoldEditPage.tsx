@@ -12,8 +12,10 @@ import { Spinner } from '../../components/ui/Spinner';
 import { useSold } from '../../hooks/useSold';
 import { useUpdateSold } from '../../hooks/useUpdateSold';
 import { formatDate } from '../../lib/format';
-import { ApiError } from '../../api/client';
+import { apiErrorMessage } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from '../../components/ui/tableStyles';
 
 const SoldEditFormSchema = z.object({
   customer_id: z.number({ error: 'El cliente es obligatorio' }).int().positive(),
@@ -86,12 +88,7 @@ export function SoldEditPage() {
       await update.mutateAsync({ id: soldId, input: payload });
       backToList();
     } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.body.error
-          : err instanceof Error
-            ? err.message
-            : 'Error desconocido';
+      const message = apiErrorMessage(err, 'Error desconocido');
       setError('root', { message });
     }
   };
@@ -253,9 +250,7 @@ export function SoldEditPage() {
             />
 
             {errors.root ? (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
-                {errors.root.message}
-              </p>
+              <p className={cn(errorAlertClass, 'px-3 py-2')}>{errors.root.message}</p>
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">

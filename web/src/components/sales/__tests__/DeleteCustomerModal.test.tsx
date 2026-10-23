@@ -3,9 +3,9 @@ import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteCustomerModal } from '@/components/sales/DeleteCustomerModal';
 import { renderWithProviders } from '@/test-utils/render';
-import type { AssociatedCustomerSale } from '@/hooks/useDeleteCustomer';
+import type { AssociatedSale } from '@/api/types';
 
-const SALES: AssociatedCustomerSale[] = [
+const SALES: AssociatedSale[] = [
   { id: 7, customer_name: 'Lucía Fernández', sold_at: '2026-10-21', items_count: 2 },
   { id: 9, customer_name: 'Lucía Fernández', sold_at: '2026-10-22', items_count: 1 },
 ];

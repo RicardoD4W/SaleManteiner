@@ -37,6 +37,7 @@ export interface DashboardStats {
     resultado: number;
   }>;
   topProducts: Array<{
+    product_id: number;
     product_name: string;
     times_sold: number;
     total_revenue: number;

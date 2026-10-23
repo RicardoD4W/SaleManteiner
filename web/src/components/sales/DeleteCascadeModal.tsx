@@ -2,13 +2,9 @@ import { useId, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { useFocusTrap } from '../ui/useFocusTrap';
 import { formatDate } from '../../lib/format';
-
-export interface CascadeSale {
-  id: number;
-  customer_name: string;
-  sold_at: string | null;
-  items_count: number;
-}
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from '../ui/tableStyles';
+import type { AssociatedSale } from '../../api/types';
 
 interface DeleteCascadeModalProps {
   title: string;
@@ -21,7 +17,7 @@ interface DeleteCascadeModalProps {
 
   confirmLabel: string;
 
-  sales: CascadeSale[];
+  sales: AssociatedSale[];
 
   isPending: boolean;
 
@@ -136,10 +132,7 @@ export function DeleteCascadeModal({
           </ul>
 
           {cascadeError ? (
-            <p
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              role="alert"
-            >
+            <p className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
               {cascadeError}
             </p>
           ) : null}

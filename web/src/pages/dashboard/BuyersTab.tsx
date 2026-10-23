@@ -1,9 +1,10 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
-import { tableHeadClass } from '../../components/ui/tableStyles';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
+import { SortableTableHead } from '../../components/ui/SortableTableHead';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 type BuyerRow = {
   customer_id: number;
@@ -11,35 +12,6 @@ type BuyerRow = {
   ventas: number;
   total_gastado: number;
 };
-
-function SortHeader({
-  label,
-  sortKey,
-  currentKey,
-  currentDir,
-  onSort,
-}: {
-  label: string;
-  sortKey: keyof BuyerRow;
-  currentKey: keyof BuyerRow | null;
-  currentDir: 'asc' | 'desc' | null;
-  onSort: (key: keyof BuyerRow) => void;
-}) {
-  const isActive = currentKey === sortKey;
-  const indicator = isActive ? (currentDir === 'asc' ? '▲' : '▼') : '';
-  return (
-    <th
-      scope="col"
-      onClick={() => onSort(sortKey)}
-      className={`cursor-pointer ${tableHeadClass} text-left`}
-      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span className="whitespace-nowrap">{label}</span>
-
-      <span className="ml-1 inline-block w-3">{indicator}</span>
-    </th>
-  );
-}
 
 export function BuyersTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
@@ -60,13 +32,7 @@ export function BuyersTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-700 dark:text-red-400">Error: {error.message}</p>
-          <button
-            onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Reintentar
-          </button>
+          <ErrorState message={`Error: ${error.message}`} onRetry={() => refetch()} />
         </CardBody>
       </Card>
     );
@@ -91,21 +57,21 @@ export function BuyersTab() {
               >
                 <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
-                    <SortHeader
+                    <SortableTableHead<BuyerRow>
                       label="Cliente"
                       sortKey="customer_name"
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={onSort}
                     />
-                    <SortHeader
+                    <SortableTableHead<BuyerRow>
                       label="Ventas"
                       sortKey="ventas"
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={onSort}
                     />
-                    <SortHeader
+                    <SortableTableHead<BuyerRow>
                       label="Total gastado"
                       sortKey="total_gastado"
                       currentKey={sortKey}

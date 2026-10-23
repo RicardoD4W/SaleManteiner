@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
+import { ErrorState } from '../ui/ErrorState';
 import type { BuyWithStock } from '../../api/buys';
 
 interface ProductPickerModalProps {
@@ -241,15 +242,10 @@ export function ProductPickerModal({
             </div>
           ) : isError ? (
             <div className="px-4 py-6">
-              <p className="text-sm text-red-700 dark:text-red-400">
-                No se pudieron cargar los productos: {error.message}
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-              >
-                Reintentar
-              </button>
+              <ErrorState
+                message={`No se pudieron cargar los productos: ${error.message}`}
+                onRetry={() => refetch()}
+              />
             </div>
           ) : sortedBuys.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">

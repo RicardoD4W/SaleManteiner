@@ -9,8 +9,10 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
-import { ApiError } from '../../api/client';
+import { apiErrorMessage } from '../../api/client';
 import { formatDate } from '../../lib/format';
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from '../../components/ui/tableStyles';
 
 const BuyFormSchema = z.object({
   product_name: z.string().min(1, 'El producto es obligatorio').max(200, 'Máximo 200 caracteres'),
@@ -79,12 +81,7 @@ export function BuyEditPage() {
       await update.mutateAsync({ id: buyId, input: payload });
       backToList();
     } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.body.error
-          : err instanceof Error
-            ? err.message
-            : 'Error desconocido';
+      const message = apiErrorMessage(err, 'Error desconocido');
       setError('root', { message });
     }
   };
@@ -218,9 +215,7 @@ export function BuyEditPage() {
             />
 
             {errors.root ? (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
-                {errors.root.message}
-              </p>
+              <p className={cn(errorAlertClass, 'px-3 py-2')}>{errors.root.message}</p>
             ) : null}
 
             <div className="flex justify-end gap-2 pt-2">

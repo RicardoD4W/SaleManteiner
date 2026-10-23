@@ -94,6 +94,7 @@ export interface DashboardStats {
     resultado: number;
   }>;
   topProducts: Array<{
+    product_id: number;
     product_name: string;
     times_sold: number;
     total_revenue: number;
@@ -466,6 +467,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const topProducts = db
       .prepare(
         `SELECT
+           b.id AS product_id,
            b.product_name,
            SUM(si.quantity) AS times_sold,
            SUM(si.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
@@ -485,6 +487,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
          LIMIT 10`,
       )
       .all() as Array<{
+      product_id: number;
       product_name: string;
       times_sold: number;
       total_revenue: number;
@@ -494,6 +497,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     }>;
 
     const topProductsFormatted = topProducts.map((r) => ({
+      product_id: r.product_id,
       product_name: r.product_name,
       times_sold: r.times_sold,
       total_revenue: round2(r.total_revenue),

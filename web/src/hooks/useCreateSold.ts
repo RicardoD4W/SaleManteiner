@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { soldsApi } from '../api/solds.js';
 import type { CreateSoldInput } from '../schemas/solds.js';
 import { toastCreated } from '../lib/toast.js';
+import { invalidate } from '../lib/queryClient';
 
 export function useCreateSold() {
   const qc = useQueryClient();
@@ -9,9 +10,7 @@ export function useCreateSold() {
     mutationFn: (input: CreateSoldInput) => soldsApi.create(input),
     onSuccess: () => {
       toastCreated('sale');
-      void qc.invalidateQueries({ queryKey: ['solds'] });
-      void qc.invalidateQueries({ queryKey: ['buys'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['solds'], ['buys'], ['stats', 'dashboard']);
     },
   });
 }

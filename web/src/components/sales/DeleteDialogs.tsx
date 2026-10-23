@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { DeleteBuyModal } from './DeleteBuyModal';
-import { useDeleteBuy, isDeleteBuy409, type AssociatedSale } from '../../hooks/useDeleteBuy';
+import { useDeleteBuy, isDeleteBuy409 } from '../../hooks/useDeleteBuy';
+import type { AssociatedSale } from '../../api/types';
 import { useDeleteBuyCascade } from '../../hooks/useDeleteBuyCascade';
 import { useDeleteSold } from '../../hooks/useDeleteSold';
-import { ApiError } from '../../api/client';
+import { apiErrorMessage } from '../../api/client';
 
 export type DeleteTarget =
   { kind: 'buy'; id: number; name: string } | { kind: 'sale'; id: number } | null;
@@ -15,12 +16,6 @@ interface DeleteDialogsProps {
   target: DeleteTarget;
 
   onClose: () => void;
-}
-
-function errorMessage(err: unknown, fallback: string): string {
-  if (err instanceof ApiError) return err.body.error;
-  if (err instanceof Error) return err.message;
-  return fallback;
 }
 
 export function DeleteDialogs({ target, onClose }: DeleteDialogsProps) {
@@ -57,7 +52,7 @@ function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose:
         setInCascade(true);
         return;
       }
-      setError(errorMessage(err, 'Error al eliminar'));
+      setError(apiErrorMessage(err, 'Error al eliminar'));
     }
   };
 
@@ -68,7 +63,7 @@ function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose:
       await deleteBuyCascade.mutateAsync(target.id);
       onClose();
     } catch (err) {
-      setCascadeError(errorMessage(err, 'Error al eliminar en cascada'));
+      setCascadeError(apiErrorMessage(err, 'Error al eliminar en cascada'));
     }
   };
 

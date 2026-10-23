@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useSolds } from '../../hooks/useSolds';
-import { useSortable, type SortDir } from '../../hooks/useSortable';
+import { useSortable } from '../../hooks/useSortable';
 import { Spinner } from '../../components/ui/Spinner';
-import { tableHeadClass } from '../../components/ui/tableStyles';
+import { errorAlertClass, tableHeadClass } from '../../components/ui/tableStyles';
 import { CustomerFormModal } from '../../components/sales/CustomerFormModal';
 import { DeleteCustomerDialogs } from '../../components/sales/DeleteCustomerDialogs';
 import { formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Customer } from '../../schemas/customers';
+import { cn } from '../../lib/classNames';
+import { SortableTableHead } from '../../components/ui/SortableTableHead';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 interface CustomerRow {
   id: number;
@@ -17,35 +20,6 @@ interface CustomerRow {
   total_gastado: number;
 
   customer: Customer;
-}
-
-function SortHeader({
-  label,
-  sortKey,
-  currentKey,
-  currentDir,
-  onSort,
-}: {
-  label: string;
-  sortKey: keyof CustomerRow;
-  currentKey: keyof CustomerRow | null;
-  currentDir: SortDir;
-  onSort: (key: keyof CustomerRow) => void;
-}) {
-  const isActive = currentKey === sortKey;
-  const indicator = isActive ? (currentDir === 'asc' ? '▲' : '▼') : '';
-  return (
-    <th
-      scope="col"
-      onClick={() => onSort(sortKey)}
-      className={`cursor-pointer ${tableHeadClass} text-left`}
-      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span className="whitespace-nowrap">{label}</span>
-
-      <span className="ml-1 inline-block w-3">{indicator}</span>
-    </th>
-  );
 }
 
 export function CustomersListPage() {
@@ -102,14 +76,12 @@ export function CustomersListPage() {
 
   if (isError) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
-        <p>No se pudieron cargar los clientes: {error.message}</p>
-        <button
-          onClick={() => refetch()}
-          className="mt-2 text-sm font-medium text-brand-700 hover:underline dark:text-brand-400"
-        >
-          Reintentar
-        </button>
+      <div className={cn(errorAlertClass, 'p-4')}>
+        <ErrorState
+          message={`No se pudieron cargar los clientes: ${error.message}`}
+          onRetry={() => refetch()}
+          messageClassName=""
+        />
       </div>
     );
   }
@@ -136,21 +108,21 @@ export function CustomersListPage() {
           <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-950">
               <tr>
-                <SortHeader
+                <SortableTableHead<CustomerRow>
                   label="Cliente"
                   sortKey="name"
                   currentKey={sortKey}
                   currentDir={sortDir}
                   onSort={onSort}
                 />
-                <SortHeader
+                <SortableTableHead<CustomerRow>
                   label="Ventas"
                   sortKey="ventas"
                   currentKey={sortKey}
                   currentDir={sortDir}
                   onSort={onSort}
                 />
-                <SortHeader
+                <SortableTableHead<CustomerRow>
                   label="Total gastado"
                   sortKey="total_gastado"
                   currentKey={sortKey}

@@ -5,16 +5,10 @@ import {
   useDeleteCustomer,
   useDeleteCustomerCascade,
   isDeleteCustomer409,
-  type AssociatedCustomerSale,
 } from '../../hooks/useDeleteCustomer';
-import { ApiError } from '../../api/client';
+import type { AssociatedSale } from '../../api/types';
+import { apiErrorMessage } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
-
-function errorMessage(err: unknown, fallback: string): string {
-  if (err instanceof ApiError) return err.body.error;
-  if (err instanceof Error) return err.message;
-  return fallback;
-}
 
 interface DeleteCustomerDialogsProps {
   customer: Customer | null;
@@ -28,7 +22,7 @@ export function DeleteCustomerDialogs({ customer, onClose }: DeleteCustomerDialo
 
   const [inCascade, setInCascade] = useState(false);
 
-  const [associatedSales, setAssociatedSales] = useState<AssociatedCustomerSale[] | null>(null);
+  const [associatedSales, setAssociatedSales] = useState<AssociatedSale[] | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +48,7 @@ export function DeleteCustomerDialogs({ customer, onClose }: DeleteCustomerDialo
         setInCascade(true);
         return;
       }
-      setError(errorMessage(err, 'Error al eliminar'));
+      setError(apiErrorMessage(err, 'Error al eliminar'));
     }
   };
 
@@ -65,7 +59,7 @@ export function DeleteCustomerDialogs({ customer, onClose }: DeleteCustomerDialo
       await deleteCustomerCascade.mutateAsync(customer.id);
       close();
     } catch (err) {
-      setCascadeError(errorMessage(err, 'Error al eliminar en cascada'));
+      setCascadeError(apiErrorMessage(err, 'Error al eliminar en cascada'));
     }
   };
 

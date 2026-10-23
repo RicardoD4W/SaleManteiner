@@ -1,9 +1,10 @@
-import { DeleteCascadeModal, type CascadeSale } from './DeleteCascadeModal';
+import { DeleteCascadeModal } from './DeleteCascadeModal';
+import type { AssociatedSale } from '../../api/types';
 
 interface DeleteCustomerModalProps {
   customerName: string;
 
-  sales: CascadeSale[];
+  sales: AssociatedSale[];
 
   isPending: boolean;
 

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { soldsApi } from '../api/solds.js';
 import { toastDeleted } from '../lib/toast.js';
+import { invalidate } from '../lib/queryClient';
 
 export function useDeleteSold() {
   const qc = useQueryClient();
@@ -8,9 +9,7 @@ export function useDeleteSold() {
     mutationFn: (id: number) => soldsApi.remove(id),
     onSuccess: () => {
       toastDeleted('sale');
-      void qc.invalidateQueries({ queryKey: ['solds'] });
-      void qc.invalidateQueries({ queryKey: ['buys'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['solds'], ['buys'], ['stats', 'dashboard']);
     },
   });
 }

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { cn } from './NavLink';
+import { navLinkClass } from '../ui/tableStyles';
 import { ThemeToggle } from './ThemeToggle';
 import { isDashboardRoute } from '../../lib/dashboardTabs';
 
@@ -25,18 +25,18 @@ export function Layout() {
                 end
                 viewTransition
                 className={({ isActive }: { isActive: boolean }) =>
-                  cn({ isActive: isActive || enDashboard })
+                  navLinkClass({ isActive: isActive || enDashboard })
                 }
               >
                 Dashboard
               </NavLink>
-              <NavLink to="/buys" viewTransition className={cn}>
+              <NavLink to="/buys" viewTransition className={navLinkClass}>
                 Compras
               </NavLink>
-              <NavLink to="/solds" viewTransition className={cn}>
+              <NavLink to="/solds" viewTransition className={navLinkClass}>
                 Ventas
               </NavLink>
-              <NavLink to="/customers" viewTransition className={cn}>
+              <NavLink to="/customers" viewTransition className={navLinkClass}>
                 Clientes
               </NavLink>
             </nav>

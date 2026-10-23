@@ -9,8 +9,10 @@ import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { useCreateSold } from '../../hooks/useCreateSold';
 import { todayLocalDate } from '../../lib/format';
-import { ApiError } from '../../api/client';
+import { apiErrorMessage, ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
+import { cn } from '../../lib/classNames';
+import { errorAlertClass } from '../ui/tableStyles';
 
 const SoldFormSchema = z.object({
   items: z
@@ -171,16 +173,11 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       await create.mutateAsync(payload);
       onClose();
     } catch (err) {
-      const apiErr = err as { status?: number; body?: StockErrorBody };
-      if (apiErr?.status === 422 && apiErr?.body?.error) {
-        setStockError(apiErr.body as StockErrorBody);
-        setError('root', { message: apiErr.body.error });
-      } else if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 422) {
+        setStockError(err.body as StockErrorBody);
         setError('root', { message: err.body.error });
-      } else if (err instanceof Error) {
-        setError('root', { message: err.message });
       } else {
-        setError('root', { message: 'Error desconocido' });
+        setError('root', { message: apiErrorMessage(err, 'Error desconocido') });
       }
     }
   };
@@ -345,19 +342,13 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           />
 
           {errors.root ? (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              role="alert"
-            >
+            <div className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
               {errors.root.message}
             </div>
           ) : null}
 
           {stockError ? (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              role="alert"
-            >
+            <div className={cn(errorAlertClass, 'p-3')} role="alert">
               <p className="font-medium">{stockError.error}</p>
               <ul className="mt-1 list-disc pl-4">
                 {stockError.items.map((item) => (

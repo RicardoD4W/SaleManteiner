@@ -1,45 +1,18 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
-import { tableHeadClass } from '../../components/ui/tableStyles';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
+import { SortableTableHead } from '../../components/ui/SortableTableHead';
+import { ErrorState } from '../../components/ui/ErrorState';
 
 type ProductRow = {
+  product_id: number;
   product_name: string;
   times_sold: number;
   total_revenue: number;
   total_profit: number;
 };
-
-function SortHeader({
-  label,
-  sortKey,
-  currentKey,
-  currentDir,
-  onSort,
-}: {
-  label: string;
-  sortKey: keyof ProductRow;
-  currentKey: keyof ProductRow | null;
-  currentDir: 'asc' | 'desc' | null;
-  onSort: (key: keyof ProductRow) => void;
-}) {
-  const isActive = currentKey === sortKey;
-  const indicator = isActive ? (currentDir === 'asc' ? '▲' : '▼') : '';
-  return (
-    <th
-      scope="col"
-      onClick={() => onSort(sortKey)}
-      className={`cursor-pointer ${tableHeadClass} text-left`}
-      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span className="whitespace-nowrap">{label}</span>
-
-      <span className="ml-1 inline-block w-3">{indicator}</span>
-    </th>
-  );
-}
 
 export function ProductsTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
@@ -60,13 +33,7 @@ export function ProductsTab() {
     return (
       <Card>
         <CardBody>
-          <p className="text-sm text-red-700 dark:text-red-400">Error: {error.message}</p>
-          <button
-            onClick={() => refetch()}
-            className="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Reintentar
-          </button>
+          <ErrorState message={`Error: ${error.message}`} onRetry={() => refetch()} />
         </CardBody>
       </Card>
     );
@@ -93,28 +60,28 @@ export function ProductsTab() {
               >
                 <thead className="bg-gray-50 dark:bg-gray-950">
                   <tr>
-                    <SortHeader
+                    <SortableTableHead<ProductRow>
                       label="Producto"
                       sortKey="product_name"
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={onSort}
                     />
-                    <SortHeader
+                    <SortableTableHead<ProductRow>
                       label="Veces vendido"
                       sortKey="times_sold"
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={onSort}
                     />
-                    <SortHeader
+                    <SortableTableHead<ProductRow>
                       label="Precio de venta"
                       sortKey="total_revenue"
                       currentKey={sortKey}
                       currentDir={sortDir}
                       onSort={onSort}
                     />
-                    <SortHeader
+                    <SortableTableHead<ProductRow>
                       label="Beneficio"
                       sortKey="total_profit"
                       currentKey={sortKey}
@@ -125,7 +92,7 @@ export function ProductsTab() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {sortedItems.map((p) => (
-                    <tr key={p.product_name}>
+                    <tr key={p.product_id}>
                       <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
                         {p.product_name}
                       </td>

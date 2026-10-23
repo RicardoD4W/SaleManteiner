@@ -2,17 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customersApi } from '../api/customers.js';
 import { ApiError } from '../api/client';
 import { toastDeleted } from '../lib/toast.js';
-
-export interface AssociatedCustomerSale {
-  id: number;
-  customer_name: string;
-  sold_at: string | null;
-  items_count: number;
-}
+import type { AssociatedSale } from '../api/types';
+import { invalidate } from '../lib/queryClient';
 
 type DeleteCustomer409Body = {
   error: string;
-  associated_sales: AssociatedCustomerSale[];
+  associated_sales: AssociatedSale[];
 };
 
 export function isDeleteCustomer409(
@@ -29,8 +24,7 @@ export function useDeleteCustomer() {
     mutationFn: (id: number) => customersApi.remove(id),
     onSuccess: () => {
       toastDeleted('customer');
-      void qc.invalidateQueries({ queryKey: ['customers'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['customers'], ['stats', 'dashboard']);
     },
   });
 }
@@ -41,9 +35,7 @@ export function useDeleteCustomerCascade() {
     mutationFn: (id: number) => customersApi.removeCascade(id),
     onSuccess: () => {
       toastDeleted('customer');
-      void qc.invalidateQueries({ queryKey: ['customers'] });
-      void qc.invalidateQueries({ queryKey: ['solds'] });
-      void qc.invalidateQueries({ queryKey: ['stats', 'dashboard'] });
+      invalidate(qc, ['customers'], ['solds'], ['stats', 'dashboard']);
     },
   });
 }
