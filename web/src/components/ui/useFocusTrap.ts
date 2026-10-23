@@ -14,29 +14,21 @@ function getFocusableElements(root: HTMLElement | null): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 }
 
-export interface FocusTrapOptions {
+interface FocusTrapOptions {
   dialogRef: RefObject<HTMLElement | null>;
-
-  enabled: boolean;
 
   onEscape: () => void;
 
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-export function useFocusTrap({
-  dialogRef,
-  enabled,
-  onEscape,
-  initialFocusRef,
-}: FocusTrapOptions): void {
+export function useFocusTrap({ dialogRef, onEscape, initialFocusRef }: FocusTrapOptions): void {
   const onEscapeRef = useRef(onEscape);
   useEffect(() => {
     onEscapeRef.current = onEscape;
   });
 
   useEffect(() => {
-    if (!enabled) return;
     const previouslyFocused = document.activeElement;
     const node = dialogRef.current;
     const target = initialFocusRef?.current ?? getFocusableElements(node)[0] ?? node;
@@ -46,10 +38,9 @@ export function useFocusTrap({
         previouslyFocused.focus();
       }
     };
-  }, [enabled, dialogRef, initialFocusRef]);
+  }, [dialogRef, initialFocusRef]);
 
   useEffect(() => {
-    if (!enabled) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onEscapeRef.current();
@@ -78,5 +69,5 @@ export function useFocusTrap({
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [enabled, dialogRef]);
+  }, [dialogRef]);
 }

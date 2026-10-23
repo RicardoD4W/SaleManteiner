@@ -5,13 +5,9 @@ import { MemoryRouter } from 'react-router-dom';
 
 interface Options extends Omit<RenderOptions, 'wrapper'> {
   route?: string;
-
-  withRouter?: boolean;
-
-  withQueryClient?: boolean;
 }
 
-function makeWrapper({ route, withRouter = true, withQueryClient = true }: Options) {
+function makeWrapper({ route }: Options) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -20,14 +16,11 @@ function makeWrapper({ route, withRouter = true, withQueryClient = true }: Optio
   });
 
   return function Wrapper({ children }: { children: ReactNode }) {
-    let node: ReactNode = children;
-    if (withQueryClient) {
-      node = <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>;
-    }
-    if (withRouter) {
-      node = <MemoryRouter initialEntries={[route ?? '/']}>{node}</MemoryRouter>;
-    }
-    return <>{node}</>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[route ?? '/']}>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
   };
 }
 

@@ -10,7 +10,7 @@ export interface CascadeSale {
   items_count: number;
 }
 
-export interface DeleteCascadeModalProps {
+interface DeleteCascadeModalProps {
   title: string;
 
   entityName: string;
@@ -50,7 +50,6 @@ export function DeleteCascadeModal({
 
   useFocusTrap({
     dialogRef,
-    enabled: true,
     onEscape: () => {
       if (!isPending) onClose();
     },

@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { renderWithProviders } from '@/test-utils/render';
 
-function renderLayout(ruta: string) {
+function renderLayout(route: string) {
   return renderWithProviders(
     <Routes>
       <Route path="/" element={<Layout />}>
@@ -14,7 +14,7 @@ function renderLayout(ruta: string) {
         <Route path="buys" element={<div>Compras</div>} />
       </Route>
     </Routes>,
-    { route: ruta },
+    { route: route },
   );
 }
 
@@ -30,8 +30,8 @@ describe('Layout', () => {
 
   it.each(['/revenue', '/products', '/buyers'])(
     'el link "Dashboard" del header sigue iluminado en la tab %s',
-    (ruta) => {
-      renderLayout(ruta);
+    (route) => {
+      renderLayout(route);
       expect(linkDashboard().className).toMatch(/bg-brand-100/);
     },
   );

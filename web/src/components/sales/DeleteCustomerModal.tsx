@@ -1,6 +1,6 @@
 import { DeleteCascadeModal, type CascadeSale } from './DeleteCascadeModal';
 
-export interface DeleteCustomerModalProps {
+interface DeleteCustomerModalProps {
   customerName: string;
 
   sales: CascadeSale[];

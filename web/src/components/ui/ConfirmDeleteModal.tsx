@@ -2,7 +2,7 @@ import { useId, useRef, type ReactNode } from 'react';
 import { Button } from './Button';
 import { useFocusTrap } from './useFocusTrap';
 
-export interface ConfirmDeleteModalProps {
+interface ConfirmDeleteModalProps {
   title: string;
 
   description: ReactNode;
@@ -33,7 +33,6 @@ export function ConfirmDeleteModal({
 
   useFocusTrap({
     dialogRef,
-    enabled: true,
     onEscape: () => {
       if (!isPending) onClose();
     },

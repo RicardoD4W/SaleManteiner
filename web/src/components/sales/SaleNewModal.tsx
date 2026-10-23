@@ -188,7 +188,6 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   if (pickerReason !== null) {
     return (
       <ProductPickerModal
-        isOpen={true}
         initialSelection={initialSelection}
         onClose={() => {
           if (pickerReason === 'initial') {

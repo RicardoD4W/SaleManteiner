@@ -14,8 +14,6 @@ function readInitialTheme(): Theme {
 export interface UseTheme {
   theme: Theme;
   toggle: () => void;
-  setLight: () => void;
-  setDark: () => void;
 }
 
 export function useTheme(): UseTheme {
@@ -35,8 +33,5 @@ export function useTheme(): UseTheme {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  const setLight = useCallback(() => setTheme('light'), []);
-  const setDark = useCallback(() => setTheme('dark'), []);
-
-  return { theme, toggle, setLight, setDark };
+  return { theme, toggle };
 }

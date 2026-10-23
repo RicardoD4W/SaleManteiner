@@ -10,7 +10,7 @@ export interface AssociatedCustomerSale {
   items_count: number;
 }
 
-export type DeleteCustomer409Body = {
+type DeleteCustomer409Body = {
   error: string;
   associated_sales: AssociatedCustomerSale[];
 };

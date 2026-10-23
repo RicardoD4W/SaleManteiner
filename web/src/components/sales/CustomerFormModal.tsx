@@ -14,7 +14,7 @@ type CustomerFormValues = z.infer<typeof CreateCustomerInput>;
 
 type CustomerNameSchema = typeof CreateCustomerInput | typeof UpdateCustomerInput;
 
-export type CustomerFormModalProps =
+type CustomerFormModalProps =
   | { mode: 'create'; onClose: () => void }
   | { mode: 'edit'; customer: Customer; onClose: () => void };
 
@@ -76,7 +76,6 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
 
   useFocusTrap({
     dialogRef,
-    enabled: true,
     onEscape: onClose,
     initialFocusRef: nameInputRef,
   });

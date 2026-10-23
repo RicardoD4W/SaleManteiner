@@ -18,7 +18,7 @@ import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteD
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
-import type { Sold } from '../../schemas/solds';
+import type { SoldWithItems } from '../../schemas/solds';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
 
@@ -123,7 +123,7 @@ export function SoldsListPage() {
   const armRow = useCallback(
     (sold: SoldWithCustomer) => {
       setArmed({ id: sold.id, navigation: location.key });
-      queryClient.setQueryData<Sold>(['solds', sold.id], {
+      queryClient.setQueryData<SoldWithItems>(['solds', sold.id], {
         id: sold.id,
         customer_id: sold.customer_id,
         sale_price: sold.sale_price,
@@ -131,6 +131,8 @@ export function SoldsListPage() {
         sold_at: sold.sold_at,
         notes: sold.notes,
         created_at: sold.created_at,
+        customer_name: sold.customerName,
+        items: sold.items,
       });
     },
     [location.key, queryClient],

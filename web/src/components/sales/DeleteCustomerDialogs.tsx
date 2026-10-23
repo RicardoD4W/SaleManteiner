@@ -16,7 +16,7 @@ function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export interface DeleteCustomerDialogsProps {
+interface DeleteCustomerDialogsProps {
   customer: Customer | null;
 
   onClose: () => void;

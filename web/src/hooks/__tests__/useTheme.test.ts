@@ -52,32 +52,6 @@ describe('useTheme', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe('dark');
   });
 
-  it('setLight fuerza el tema a light', () => {
-    document.documentElement.classList.add('dark');
-    const { result } = renderHook(() => useTheme());
-
-    act(() => {
-      result.current.setLight();
-    });
-
-    expect(result.current.theme).toBe('light');
-    expect(document.documentElement.classList.contains('dark')).toBe(false);
-    expect(localStorage.getItem(STORAGE_KEY)).toBe('light');
-  });
-
-  it('setDark fuerza el tema a dark', () => {
-    document.documentElement.classList.remove('dark');
-    const { result } = renderHook(() => useTheme());
-
-    act(() => {
-      result.current.setDark();
-    });
-
-    expect(result.current.theme).toBe('dark');
-    expect(document.documentElement.classList.contains('dark')).toBe(true);
-    expect(localStorage.getItem(STORAGE_KEY)).toBe('dark');
-  });
-
   it('no rompe si localStorage.setItem lanza (modo privado): la clase SÍ se actualiza', () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('localStorage bloqueado');

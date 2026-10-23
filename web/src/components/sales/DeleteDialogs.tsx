@@ -9,9 +9,9 @@ import { ApiError } from '../../api/client';
 export type DeleteTarget =
   { kind: 'buy'; id: number; name: string } | { kind: 'sale'; id: number } | null;
 
-export type DeleteRecord = Exclude<DeleteTarget, null>;
+type DeleteRecord = Exclude<DeleteTarget, null>;
 
-export interface DeleteDialogsProps {
+interface DeleteDialogsProps {
   target: DeleteTarget;
 
   onClose: () => void;

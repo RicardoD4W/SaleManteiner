@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-export interface HookTestEnv {
+interface HookTestEnv {
   qc: QueryClient;
   Wrapper: ({ children }: { children: ReactNode }) => ReactNode;
 }

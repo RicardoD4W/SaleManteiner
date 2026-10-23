@@ -5,7 +5,6 @@ import { Spinner } from '../ui/Spinner';
 import type { BuyWithStock } from '../../api/buys';
 
 interface ProductPickerModalProps {
-  isOpen: boolean;
   onClose: () => void;
 
   onConfirm: (
@@ -21,27 +20,23 @@ function ProductRow({
   onToggle,
   quantity,
   onQuantityChange,
-  disabled,
 }: {
   item: BuyWithStock;
   checked: boolean;
   onToggle: (id: number) => void;
   quantity: number;
   onQuantityChange: (id: number, qty: number) => void;
-  disabled: boolean;
 }) {
   return (
     <label
       className={[
         'flex cursor-pointer items-center gap-3 border-b border-gray-100 px-4 py-3',
         'last:border-b-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800',
-        disabled ? 'cursor-not-allowed opacity-50' : '',
       ].join(' ')}
     >
       <input
         type="checkbox"
         checked={checked}
-        disabled={disabled}
         onChange={() => onToggle(item.id)}
         className="h-4 w-4 shrink-0 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:focus:ring-brand-400"
         aria-label={`Seleccionar ${item.product_name}`}
@@ -79,7 +74,6 @@ function ProductRow({
 }
 
 export function ProductPickerModal({
-  isOpen,
   onClose,
   onConfirm,
   initialSelection,
@@ -98,11 +92,11 @@ export function ProductPickerModal({
   const [filter, setFilter] = useState('');
 
   const sortedBuys = useMemo(() => {
-    const filtrados = (buysWithStock ?? []).filter((b) =>
+    const filtered = (buysWithStock ?? []).filter((b) =>
       b.product_name.toLowerCase().includes(filter.toLowerCase()),
     );
-    if (initiallySelectedIds.size === 0) return filtrados;
-    return [...filtrados].sort(
+    if (initiallySelectedIds.size === 0) return filtered;
+    return [...filtered].sort(
       (a, b) => Number(initiallySelectedIds.has(b.id)) - Number(initiallySelectedIds.has(a.id)),
     );
   }, [buysWithStock, filter, initiallySelectedIds]);
@@ -112,36 +106,31 @@ export function ProductPickerModal({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      const nextChecked: Record<number, boolean> = {};
-      const nextQuantities: Record<number, number> = {};
-      for (const sel of initialSelection ?? []) {
-        nextChecked[sel.buy_id] = true;
-        nextQuantities[sel.buy_id] = sel.quantity;
-      }
-      setChecked(nextChecked);
-      setQuantities(nextQuantities);
-      setFilter('');
-      requestAnimationFrame(() => {
-        (firstFocusRef.current ?? closeButtonRef.current)?.focus();
-      });
+    const nextChecked: Record<number, boolean> = {};
+    const nextQuantities: Record<number, number> = {};
+    for (const sel of initialSelection ?? []) {
+      nextChecked[sel.buy_id] = true;
+      nextQuantities[sel.buy_id] = sel.quantity;
     }
-  }, [isOpen, initialSelection]);
+    setChecked(nextChecked);
+    setQuantities(nextQuantities);
+    setFilter('');
+    requestAnimationFrame(() => {
+      (firstFocusRef.current ?? closeButtonRef.current)?.focus();
+    });
+  }, [initialSelection]);
 
   useEffect(() => {
-    if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
-
-  if (!isOpen) return null;
 
   const handleToggle = (id: number) => {
     setChecked((prev) => {
@@ -194,7 +183,6 @@ export function ProductPickerModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       role="presentation"
       onClick={handleBackdropClick}
-      aria-hidden={!isOpen}
     >
       <div
         ref={dialogRef}
@@ -279,7 +267,6 @@ export function ProductPickerModal({
                     onToggle={handleToggle}
                     quantity={quantities[buy.id] ?? 1}
                     onQuantityChange={handleQuantityChange}
-                    disabled={false}
                   />
                 </li>
               ))}

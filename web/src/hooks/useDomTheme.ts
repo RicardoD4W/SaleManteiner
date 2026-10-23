@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type DomTheme = 'light' | 'dark';
+type DomTheme = 'light' | 'dark';
 
 function subscribe(onChange: () => void): () => void {
   const observer = new MutationObserver(onChange);

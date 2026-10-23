@@ -1,50 +1,29 @@
-import { describe, expect, it } from 'vitest';
-import { centsToEuros, eurosToCents, formatCents, formatDate, formatDateTime } from '../format.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { formatDate, formatEuro, todayLocalDate } from '../format.js';
 
-describe('formatCents', () => {
-  it('formatea 0 como "0,00\u00A0€"', () => {
-    expect(formatCents(0)).toBe('0,00\u00A0€');
+describe('formatEuro', () => {
+  it('formatea 0 como "0,00 €"', () => {
+    expect(formatEuro(0)).toBe('0,00\u00A0€');
   });
 
-  it('formatea 1250 como "12,50\u00A0€"', () => {
-    expect(formatCents(1250)).toBe('12,50\u00A0€');
+  it('formatea 12.5 como "12,50 €"', () => {
+    expect(formatEuro(12.5)).toBe('12,50\u00A0€');
   });
 
   it('formatea importes grandes con separador de miles es-ES', () => {
-    expect(formatCents(1234567)).toBe('12.345,67\u00A0€');
+    expect(formatEuro(12345.67)).toBe('12.345,67\u00A0€');
   });
 
   it('formatea números negativos (Intl los soporta)', () => {
-    expect(formatCents(-50)).toBe('-0,50\u00A0€');
-  });
-});
-
-describe('centsToEuros', () => {
-  it('divide por 100', () => {
-    expect(centsToEuros(1250)).toBe(12.5);
-    expect(centsToEuros(0)).toBe(0);
-    expect(centsToEuros(100)).toBe(1);
+    expect(formatEuro(-0.5)).toBe('-0,50\u00A0€');
   });
 
-  it('es la inversa exacta de eurosToCents para enteros', () => {
-    expect(centsToEuros(eurosToCents(12.5))).toBe(12.5);
-    expect(centsToEuros(eurosToCents(99.99))).toBe(99.99);
-  });
-});
-
-describe('eurosToCents', () => {
-  it('multiplica por 100 y redondea', () => {
-    expect(eurosToCents(12.5)).toBe(1250);
-    expect(eurosToCents(0)).toBe(0);
+  it('formatea con dos decimales aunque el número traiga más', () => {
+    expect(formatEuro(12.499)).toBe('12,50\u00A0€');
   });
 
-  it('rompe el caso clásico de float 0.1 + 0.2', () => {
-    expect(eurosToCents(0.1 + 0.2)).toBe(30);
-  });
-
-  it('redondea 0.005 hacia arriba (Math.round half-up)', () => {
-    expect(eurosToCents(0.005)).toBe(1);
-    expect(eurosToCents(0.004)).toBe(0);
+  it('formatea sin romper por la coma flotante (0.1 + 0.2)', () => {
+    expect(formatEuro(0.1 + 0.2)).toBe('0,30\u00A0€');
   });
 });
 
@@ -56,14 +35,36 @@ describe('formatDate', () => {
   it('formatea otro día del mismo año', () => {
     expect(formatDate('2026-01-01T12:00:00.000Z')).toBe('01/01/2026');
   });
-});
 
-describe('formatDateTime', () => {
-  it('formatea ISO 8601 UTC a dd/MM/yyyy, HH:mm (TZ=UTC)', () => {
-    expect(formatDateTime('2026-10-16T22:34:00.000Z')).toBe('16/10/2026, 22:34');
+  it('devuelve un guion largo cuando la fecha es null', () => {
+    expect(formatDate(null)).toBe('—');
   });
 
-  it('padded con ceros a la izquierda', () => {
-    expect(formatDateTime('2026-01-01T00:05:00.000Z')).toBe('01/01/2026, 00:05');
+  it('devuelve un guion largo cuando la fecha es una cadena vacía', () => {
+    expect(formatDate('')).toBe('—');
+  });
+});
+
+describe('todayLocalDate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('devuelve el día local en formato YYYY-MM-DD', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 16));
+    expect(todayLocalDate()).toBe('2026-10-16');
+  });
+
+  it('rellena con ceros a la izquierda el mes y el día', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 5));
+    expect(todayLocalDate()).toBe('2026-01-05');
+  });
+
+  it('usa el día local, no el UTC', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 30, 23, 30));
+    expect(todayLocalDate()).toBe('2026-09-30');
   });
 });

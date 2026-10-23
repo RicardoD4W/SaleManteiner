@@ -1,6 +1,6 @@
 import { DeleteCascadeModal, type CascadeSale } from './DeleteCascadeModal';
 
-export interface DeleteBuyModalProps {
+interface DeleteBuyModalProps {
   productName: string;
   sales: CascadeSale[];
   isPending: boolean;

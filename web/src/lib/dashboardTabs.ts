@@ -1,4 +1,4 @@
-export interface DashboardTab {
+interface DashboardTab {
   to: string;
 
   label: string;
@@ -13,7 +13,7 @@ export const DASHBOARD_TABS: DashboardTab[] = [
   { to: '/buyers', label: 'Compradores', end: false },
 ];
 
-export const DASHBOARD_ROUTES: string[] = DASHBOARD_TABS.map((tab) => tab.to);
+const DASHBOARD_ROUTES: string[] = DASHBOARD_TABS.map((tab) => tab.to);
 
 export function isDashboardRoute(pathname: string): boolean {
   return DASHBOARD_ROUTES.includes(pathname);

@@ -2,7 +2,7 @@ import type { BuyWithStock } from '../api/buys.js';
 import type { SoldWithProfit } from '../api/solds.js';
 import { round2 } from './round.js';
 
-export interface SearchRow<T> {
+interface SearchRow<T> {
   item: T;
 
   names: string[];
@@ -20,7 +20,7 @@ export interface SoldWithCustomer extends SoldWithProfit {
   customerName: string;
 }
 
-export type SearchToken =
+type SearchToken =
   | { kind: 'signed'; raw: string; value: number }
   | { kind: 'quantity'; raw: string; value: number }
   | { kind: 'date'; raw: string; value: string }
@@ -39,7 +39,7 @@ const NUMBER_RE = /^\d+(?:[.,]\d+)*$/;
 
 const COMBINING_MARKS_RE = /[\u0300-\u036f]/g;
 
-export function normalizeText(value: string): string {
+function normalizeText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(COMBINING_MARKS_RE, '');
 }
 
@@ -137,7 +137,7 @@ export function matchesNumber(value: number, query: number): boolean {
   return Math.trunc(value) === query;
 }
 
-export function matchesToken(row: SearchRow<unknown>, token: SearchToken): boolean {
+function matchesToken(row: SearchRow<unknown>, token: SearchToken): boolean {
   switch (token.kind) {
     case 'signed':
       return row.profit !== undefined && matchesNumber(row.profit, token.value);
@@ -164,7 +164,7 @@ export function matchesToken(row: SearchRow<unknown>, token: SearchToken): boole
   }
 }
 
-export function matchesQuery(row: SearchRow<unknown>, tokens: SearchToken[]): boolean {
+function matchesQuery(row: SearchRow<unknown>, tokens: SearchToken[]): boolean {
   return tokens.every((token) => matchesToken(row, token));
 }
 
@@ -210,7 +210,7 @@ function filterRowsByTokens<T>(rows: SearchRow<T>[], tokens: SearchToken[]): Sea
   return rows.filter((row) => matchesQuery(row, tokens));
 }
 
-export function filterSearchRows<T>(rows: SearchRow<T>[], query: string): SearchRow<T>[] {
+function filterSearchRows<T>(rows: SearchRow<T>[], query: string): SearchRow<T>[] {
   return filterRowsByTokens(rows, parseSearchQuery(query));
 }
 
