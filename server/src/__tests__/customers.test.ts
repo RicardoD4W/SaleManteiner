@@ -282,7 +282,7 @@ describe('customers repo', () => {
       const customer = repo.create(validCreate({ name: 'Ana' }));
       const sale = seedSale(customer.id, 2);
 
-      expect(repo.removeWithCascade(customer.id)).toBe(true);
+      expect(repo.removeWithCascade(customer.id).ok).toBe(true);
 
       expect(repo.getById(customer.id)).toBeNull();
       expect(soldsRepo.getById(sale.id)).toBeNull();
@@ -296,7 +296,7 @@ describe('customers repo', () => {
       const mine = seedSale(customer.id, 1);
       const otherSale = seedSale(other.id, 1);
 
-      expect(repo.removeWithCascade(customer.id)).toBe(true);
+      expect(repo.removeWithCascade(customer.id).ok).toBe(true);
 
       expect(repo.getById(customer.id)).toBeNull();
       expect(soldsRepo.getById(mine.id)).toBeNull();
@@ -306,7 +306,7 @@ describe('customers repo', () => {
     });
 
     it('devuelve false si el cliente no existe', () => {
-      expect(repo.removeWithCascade(99999)).toBe(false);
+      expect(repo.removeWithCascade(99999)).toEqual({ ok: false, code: 'NOT_FOUND' });
     });
 
     it('es transaccional: si el borrado de las ventas falla, no se borra nada', () => {
@@ -345,7 +345,7 @@ describe('customers repo', () => {
       seedSale(customer.id, 2);
       seedSale(other.id, 1);
 
-      expect(repo.removeWithCascade(customer.id)).toBe(true);
+      expect(repo.removeWithCascade(customer.id).ok).toBe(true);
 
       expect(
         count('SELECT COUNT(*) AS c FROM sale_items WHERE sold_id NOT IN (SELECT id FROM solds)'),

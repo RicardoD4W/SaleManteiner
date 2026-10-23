@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { CustomersRepo } from '../repo/customers-repo.js';
+import type { CascadeResult } from '../repo/types.js';
 import { CreateCustomerInput, UpdateCustomerInput } from '../schemas/customers.js';
 import { CustomersSearchQuery, IdParam, asyncHandler, respondBadRequest } from './_shared.js';
 
@@ -97,14 +98,14 @@ export function customersRouter(deps: CustomersRouterDeps): Router {
         },
         'Borrado en cascada de cliente (iniciado)',
       );
-      let removed: boolean;
+      let result: CascadeResult;
       try {
-        removed = repo.removeWithCascade(id);
+        result = repo.removeWithCascade(id);
       } catch (err) {
         logger.error({ err, customer_id: id }, 'Borrado en cascada fallido: no se completó');
         throw err;
       }
-      if (!removed) {
+      if (!result.ok) {
         logger.error(
           { customer_id: id },
           'Borrado en cascada sin efecto: el cliente ya no existía',

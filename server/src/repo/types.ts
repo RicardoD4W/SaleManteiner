@@ -9,3 +9,5 @@ export interface AssociatedSale {
   sold_at: string | null;
   items_count: number;
 }
+
+export type CascadeResult = { ok: true } | { ok: false; code: 'NOT_FOUND' };

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { BuysRepo } from '../repo/buys-repo.js';
+import type { CascadeResult } from '../repo/types.js';
 import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 import { DateRangeQuery, IdParam, asyncHandler, respondBadRequest } from './_shared.js';
 
@@ -105,14 +106,14 @@ export function buysRouter(deps: BuysRouterDeps): Router {
         },
         'Borrado en cascada de compra (iniciado)',
       );
-      let removed: boolean;
+      let result: CascadeResult;
       try {
-        removed = repo.removeWithCascade(id);
+        result = repo.removeWithCascade(id);
       } catch (err) {
         logger.error({ err, buy_id: id }, 'Borrado en cascada fallido: no se completó');
         throw err;
       }
-      if (!removed) {
+      if (!result.ok) {
         logger.error({ buy_id: id }, 'Borrado en cascada sin efecto: la compra ya no existía');
         return res.status(404).json({ error: 'Compra no encontrada', id });
       }

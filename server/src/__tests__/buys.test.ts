@@ -264,12 +264,12 @@ describe('buys repo', () => {
 
   describe('removeWithCascade', () => {
     it('id inexistente: devuelve false (no rompe)', () => {
-      expect(repo.removeWithCascade(99999)).toBe(false);
+      expect(repo.removeWithCascade(99999)).toEqual({ ok: false, code: 'NOT_FOUND' });
     });
 
     it('sin ventas asociadas: borra la compra', () => {
       const created = repo.create(validCreate({ product_name: 'X' }));
-      expect(repo.removeWithCascade(created.id)).toBe(true);
+      expect(repo.removeWithCascade(created.id).ok).toBe(true);
       expect(repo.getById(created.id)).toBeNull();
     });
 
@@ -289,7 +289,7 @@ describe('buys repo', () => {
         1,
       );
 
-      expect(repo.removeWithCascade(buy.id)).toBe(true);
+      expect(repo.removeWithCascade(buy.id).ok).toBe(true);
 
       expect(repo.getById(buy.id)).toBeNull();
       expect(db.prepare('SELECT * FROM solds WHERE id = 1').get()).toBeUndefined();
@@ -318,7 +318,7 @@ describe('buys repo', () => {
         3,
       );
 
-      expect(repo.removeWithCascade(buyA.id)).toBe(true);
+      expect(repo.removeWithCascade(buyA.id).ok).toBe(true);
 
       expect(repo.getById(buyA.id)).toBeNull();
       expect(repo.getById(buyB.id)).not.toBeNull();
@@ -347,7 +347,7 @@ describe('buys repo', () => {
         5,
       );
 
-      expect(repo.removeWithCascade(buy.id)).toBe(true);
+      expect(repo.removeWithCascade(buy.id).ok).toBe(true);
 
       expect(repo.getById(buy.id)).toBeNull();
       expect(db.prepare('SELECT * FROM solds WHERE id = 1').get()).toBeUndefined();

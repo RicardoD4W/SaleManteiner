@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
 import { definedOnly } from '../lib/defined-only.js';
-import type { AssociatedSale, DateRange } from './types.js';
+import type { AssociatedSale, CascadeResult, DateRange } from './types.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
@@ -47,7 +47,7 @@ export interface BuysRepo {
   getWithStock(): BuyWithStock[];
   update(id: number, input: UpdateBuyInput): Buy | null;
   remove(id: number): RemoveBuyResult;
-  removeWithCascade(id: number): boolean;
+  removeWithCascade(id: number): CascadeResult;
   listAssociatedSales(id: number): AssociatedSale[];
 }
 
@@ -67,6 +67,37 @@ export function createBuysRepo(db: Database): BuysRepo {
       purchase_date = ?
     WHERE id = ?
   `);
+  const listWithStockStmt = db.prepare(`
+    SELECT b.*,
+      (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
+    FROM buys b
+    WHERE (? IS NULL OR b.purchase_date >= ?)
+      AND (? IS NULL OR b.purchase_date <= ?)
+    ORDER BY b.id DESC
+  `);
+  const getWithStockStmt = db.prepare(`
+    SELECT b.*,
+      (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
+    FROM buys b
+    WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0
+    ORDER BY b.id DESC
+  `);
+  const listAssociatedSalesStmt = db.prepare(`
+    SELECT s.id, c.name AS customer_name, s.sold_at, si_agg.items_count
+    FROM (
+      SELECT sold_id, SUM(quantity) AS items_count
+      FROM sale_items
+      WHERE buy_id = ?
+      GROUP BY sold_id
+    ) si_agg
+    JOIN solds s ON s.id = si_agg.sold_id
+    JOIN customers c ON c.id = s.customer_id
+    ORDER BY s.id DESC
+  `);
+  const cascadeSoldIdsStmt = db.prepare(`SELECT DISTINCT sold_id FROM sale_items WHERE buy_id = ?`);
+  const deleteItemStmt = db.prepare(`DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`);
+  const countItemsStmt = db.prepare(`SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?`);
+  const deleteSoldStmt = db.prepare(`DELETE FROM solds WHERE id = ?`);
 
   function create(input: CreateBuyInput): Buy {
     const now = new Date().toISOString();
@@ -90,29 +121,12 @@ export function createBuysRepo(db: Database): BuysRepo {
   function listWithStock(filters?: BuyListFilters): BuyWithStock[] {
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
-    const rows = db
-      .prepare(
-        `SELECT b.*,
-          (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
-         FROM buys b
-         WHERE (? IS NULL OR b.purchase_date >= ?)
-           AND (? IS NULL OR b.purchase_date <= ?)
-         ORDER BY b.id DESC`,
-      )
-      .all(from, from, to, to) as (BuyRow & { disponibles: number })[];
+    const rows = listWithStockStmt.all(from, from, to, to) as (BuyRow & { disponibles: number })[];
     return rows.map((row) => ({ ...rowToBuy(row), disponibles: row.disponibles }));
   }
 
   function getWithStock(): BuyWithStock[] {
-    const rows = db
-      .prepare(
-        `SELECT b.*,
-          (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
-         FROM buys b
-         WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0
-         ORDER BY b.id DESC`,
-      )
-      .all() as (BuyRow & { disponibles: number })[];
+    const rows = getWithStockStmt.all() as (BuyRow & { disponibles: number })[];
     return rows.map((row) => ({ ...rowToBuy(row), disponibles: row.disponibles }));
   }
 
@@ -145,20 +159,7 @@ export function createBuysRepo(db: Database): BuysRepo {
   }
 
   function listAssociatedSales(id: number): AssociatedSale[] {
-    return db
-      .prepare(
-        `SELECT s.id, c.name AS customer_name, s.sold_at, si_agg.items_count
-         FROM (
-           SELECT sold_id, SUM(quantity) AS items_count
-           FROM sale_items
-           WHERE buy_id = ?
-           GROUP BY sold_id
-         ) si_agg
-         JOIN solds s ON s.id = si_agg.sold_id
-         JOIN customers c ON c.id = s.customer_id
-         ORDER BY s.id DESC`,
-      )
-      .all(id) as Array<{
+    return listAssociatedSalesStmt.all(id) as Array<{
       id: number;
       customer_name: string;
       sold_at: string | null;
@@ -179,22 +180,16 @@ export function createBuysRepo(db: Database): BuysRepo {
     })();
   }
 
-  function removeWithCascade(id: number): boolean {
-    return db.transaction((): boolean => {
-      const existing = getStmt.get(id) as BuyRow | undefined;
-      if (!existing) return false;
-      const soldIds = db
-        .prepare(`SELECT DISTINCT sold_id FROM sale_items WHERE buy_id = ?`)
-        .all(id) as Array<{ sold_id: number }>;
-      const deleteItemStmt = db.prepare(`DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`);
-      const countItemsStmt = db.prepare(`SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?`);
-      const deleteSoldStmt = db.prepare(`DELETE FROM solds WHERE id = ?`);
+  function removeWithCascade(id: number): CascadeResult {
+    return db.transaction((): CascadeResult => {
+      const soldIds = cascadeSoldIdsStmt.all(id) as Array<{ sold_id: number }>;
       for (const { sold_id } of soldIds) {
         deleteItemStmt.run(sold_id, id);
         const { c } = countItemsStmt.get(sold_id) as { c: number };
         if (c === 0) deleteSoldStmt.run(sold_id);
       }
-      return deleteStmt.run(id).changes > 0;
+      if (deleteStmt.run(id).changes === 0) return { ok: false, code: 'NOT_FOUND' };
+      return { ok: true };
     })();
   }
 

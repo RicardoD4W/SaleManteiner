@@ -1,6 +1,6 @@
 import type { Database } from 'better-sqlite3';
 import { definedOnly } from '../lib/defined-only.js';
-import type { AssociatedSale } from './types.js';
+import type { AssociatedSale, CascadeResult } from './types.js';
 import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '../schemas/customers.js';
 
 interface CustomerRow {
@@ -33,7 +33,7 @@ export interface CustomersRepo {
   list(): Customer[];
   update(id: number, input: UpdateCustomerInput): Customer | null;
   remove(id: number): RemoveCustomerResult;
-  removeWithCascade(id: number): boolean;
+  removeWithCascade(id: number): CascadeResult;
   listAssociatedSales(id: number): AssociatedSale[];
 }
 
@@ -50,6 +50,15 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   const updateStmt = db.prepare(`
     UPDATE customers SET name = ? WHERE id = ?
   `);
+  const listAssociatedSalesStmt = db.prepare(`
+    SELECT s.id, c.name AS customer_name, s.sold_at,
+            COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.sold_id = s.id), 0) AS items_count
+    FROM solds s
+    JOIN customers c ON c.id = s.customer_id
+    WHERE s.customer_id = ?
+    ORDER BY s.id DESC
+  `);
+  const deleteSalesStmt = db.prepare(`DELETE FROM solds WHERE customer_id = ?`);
 
   function create(input: CreateCustomerInput): Customer {
     const now = new Date().toISOString();
@@ -87,16 +96,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   }
 
   function listAssociatedSales(id: number): AssociatedSale[] {
-    return db
-      .prepare(
-        `SELECT s.id, c.name AS customer_name, s.sold_at,
-                COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.sold_id = s.id), 0) AS items_count
-         FROM solds s
-         JOIN customers c ON c.id = s.customer_id
-         WHERE s.customer_id = ?
-         ORDER BY s.id DESC`,
-      )
-      .all(id) as AssociatedSale[];
+    return listAssociatedSalesStmt.all(id) as AssociatedSale[];
   }
 
   function remove(id: number): RemoveCustomerResult {
@@ -112,13 +112,11 @@ export function createCustomersRepo(db: Database): CustomersRepo {
     })();
   }
 
-  function removeWithCascade(id: number): boolean {
-    return db.transaction((): boolean => {
-      const existing = getStmt.get(id) as CustomerRow | undefined;
-      if (!existing) return false;
-      const deleteSalesStmt = db.prepare(`DELETE FROM solds WHERE customer_id = ?`);
+  function removeWithCascade(id: number): CascadeResult {
+    return db.transaction((): CascadeResult => {
       deleteSalesStmt.run(id);
-      return deleteStmt.run(id).changes > 0;
+      if (deleteStmt.run(id).changes === 0) return { ok: false, code: 'NOT_FOUND' };
+      return { ok: true };
     })();
   }
 

@@ -138,6 +138,126 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       notes = ?
     WHERE id = ?
   `);
+  const listStmt = db.prepare(
+    `SELECT * FROM solds
+     WHERE (? IS NULL OR customer_id = ?)
+       AND (? IS NULL OR sold_at >= ?)
+       AND (? IS NULL OR sold_at <= ?)
+     ORDER BY id DESC`,
+  );
+  const listByCustomerStmt = db.prepare(
+    `SELECT * FROM solds
+     WHERE customer_id = ?
+       AND (? IS NULL OR sold_at >= ?)
+       AND (? IS NULL OR sold_at <= ?)
+     ORDER BY id DESC`,
+  );
+  const listWithProfitStmt = db.prepare(
+    `SELECT s.*, c.profit
+     FROM solds s
+     JOIN v_sold_costs c ON c.sold_id = s.id
+     WHERE (? IS NULL OR s.customer_id = ?)
+       AND (? IS NULL OR s.sold_at >= ?)
+       AND (? IS NULL OR s.sold_at <= ?)
+     ORDER BY s.id DESC`,
+  );
+  const listWithProfitByCustomerStmt = db.prepare(
+    `SELECT s.*, c.profit
+     FROM solds s
+     JOIN v_sold_costs c ON c.sold_id = s.id
+     WHERE s.customer_id = ?
+       AND (? IS NULL OR s.sold_at >= ?)
+       AND (? IS NULL OR s.sold_at <= ?)
+     ORDER BY s.id DESC`,
+  );
+  const listWithProfitItemsStmt = db.prepare(
+    `SELECT sold_id, buy_id, product_name, quantity, unit_cost, unit_assoc
+     FROM v_item_costs
+     WHERE sold_id IN (SELECT value FROM json_each(?))
+     ORDER BY sold_id, buy_id`,
+  );
+  const getByIdWithItemsStmt = db.prepare(
+    `SELECT buy_id, product_name, quantity, unit_cost, unit_assoc
+     FROM v_item_costs
+     WHERE sold_id = ?`,
+  );
+  const customerNameStmt = db.prepare('SELECT name AS customer_name FROM customers WHERE id = ?');
+  const buysTotalsStmt = db.prepare(
+    `SELECT
+       COALESCE(SUM(purchase_cost), 0) AS compras_total,
+       COALESCE(SUM(associated_costs), 0) AS gastos_asociados_total
+     FROM buys`,
+  );
+  const sellsTotalsStmt = db.prepare(
+    `SELECT
+       COALESCE(SUM(sale_price), 0) AS ventas_total,
+       COALESCE(SUM(associated_costs), 0) AS gastos_asociados_total
+     FROM solds`,
+  );
+  const stockCountStmt = db.prepare(
+    `SELECT COUNT(*) AS cnt FROM buys b
+     WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0`,
+  );
+  const profitTotalStmt = db.prepare(`SELECT COALESCE(SUM(profit), 0) AS total FROM v_sold_costs`);
+  const purchasesByMonthStmt = db.prepare(
+    `SELECT month,
+            COALESCE(SUM(compras_de_buys), 0) AS compras_de_buys,
+            COALESCE(SUM(asociados_de_solds), 0) AS asociados_de_solds
+     FROM (
+       SELECT strftime('%Y-%m', purchase_date) AS month,
+              purchase_cost + associated_costs AS compras_de_buys,
+              0 AS asociados_de_solds
+       FROM buys
+       WHERE purchase_date IS NOT NULL
+       UNION ALL
+       SELECT strftime('%Y-%m', sold_at) AS month,
+              0 AS compras_de_buys,
+              associated_costs AS asociados_de_solds
+       FROM solds
+       WHERE sold_at IS NOT NULL
+     )
+     GROUP BY month`,
+  );
+  const salesByMonthStmt = db.prepare(
+    `SELECT
+       strftime('%Y-%m', s.sold_at) AS month,
+       COALESCE(SUM(s.sale_price), 0) AS ingresos,
+       COALESCE(SUM(c.profit), 0) AS beneficio
+     FROM solds s
+     JOIN v_sold_costs c ON c.sold_id = s.id
+     WHERE s.sold_at IS NOT NULL
+     GROUP BY month`,
+  );
+  const topProductsStmt = db.prepare(
+    `SELECT
+       ic.buy_id AS product_id,
+       ic.product_name,
+       SUM(ic.quantity) AS times_sold,
+       SUM(ic.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
+       SUM(ic.quantity * (s.associated_costs * 1.0 / st.total_qty)) AS total_assoc_sale,
+       SUM(ic.quantity * ic.unit_cost) AS total_unit_cost,
+       SUM(ic.quantity * ic.unit_assoc) AS total_unit_assoc
+     FROM v_item_costs ic
+     JOIN solds s ON s.id = ic.sold_id
+     JOIN (
+       SELECT sold_id, SUM(quantity) AS total_qty
+       FROM sale_items
+       GROUP BY sold_id
+     ) st ON st.sold_id = s.id
+     GROUP BY ic.buy_id
+     ORDER BY total_revenue DESC
+     LIMIT 10`,
+  );
+  const topBuyersStmt = db.prepare(
+    `SELECT c.id AS customer_id, c.name AS customer_name,
+       COUNT(s.id) AS ventas,
+       SUM(s.sale_price) AS total_gastado
+     FROM customers c
+     JOIN solds s ON s.customer_id = c.id
+     GROUP BY c.id
+     ORDER BY total_gastado DESC
+     LIMIT 10`,
+  );
 
   function createManyWithStockCheck(input: CreateSoldInput): Sold {
     return db.transaction(() => {
@@ -203,17 +323,10 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const soldRow = getStmt.get(id) as SoldRow | undefined;
     if (!soldRow) return null;
 
-    const metaRow = db
-      .prepare('SELECT name AS customer_name FROM customers WHERE id = ?')
-      .get(soldRow.customer_id) as { customer_name: string } | undefined;
+    const metaRow = customerNameStmt.get(soldRow.customer_id) as
+      { customer_name: string } | undefined;
 
-    const itemRows = db
-      .prepare(
-        `SELECT buy_id, product_name, quantity, unit_cost, unit_assoc
-         FROM v_item_costs
-         WHERE sold_id = ?`,
-      )
-      .all(id) as SaleItemRow[];
+    const itemRows = getByIdWithItemsStmt.all(id) as SaleItemRow[];
 
     const items: SaleItemOutput[] = itemRows.map((r) => ({
       buy_id: r.buy_id,
@@ -234,15 +347,11 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
-    const rows = db
-      .prepare(
-        `SELECT * FROM solds
-         WHERE (? IS NULL OR customer_id = ?)
-           AND (? IS NULL OR sold_at >= ?)
-           AND (? IS NULL OR sold_at <= ?)
-         ORDER BY id DESC`,
-      )
-      .all(customerId, customerId, from, from, to, to) as SoldRow[];
+    const rows = (
+      customerId === null
+        ? listStmt.all(null, null, from, from, to, to)
+        : listByCustomerStmt.all(customerId, from, from, to, to)
+    ) as SoldRow[];
     return rows.map(rowToSold);
   }
 
@@ -250,29 +359,16 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const customerId = filters?.customerId ?? null;
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
-    const rows = db
-      .prepare(
-        `SELECT s.*, c.profit
-         FROM solds s
-         JOIN v_sold_costs c ON c.sold_id = s.id
-         WHERE (? IS NULL OR s.customer_id = ?)
-           AND (? IS NULL OR s.sold_at >= ?)
-           AND (? IS NULL OR s.sold_at <= ?)
-         ORDER BY s.id DESC`,
-      )
-      .all(customerId, customerId, from, from, to, to) as Array<SoldRow & { profit: number }>;
+    const rows = (
+      customerId === null
+        ? listWithProfitStmt.all(null, null, from, from, to, to)
+        : listWithProfitByCustomerStmt.all(customerId, from, from, to, to)
+    ) as Array<SoldRow & { profit: number }>;
 
     if (rows.length === 0) return [];
 
     const soldIds = rows.map((r) => r.id);
-    const itemRows = db
-      .prepare(
-        `SELECT sold_id, buy_id, product_name, quantity, unit_cost, unit_assoc
-         FROM v_item_costs
-         WHERE sold_id IN (SELECT value FROM json_each(?))
-         ORDER BY sold_id, buy_id`,
-      )
-      .all(JSON.stringify(soldIds)) as Array<{
+    const itemRows = listWithProfitItemsStmt.all(JSON.stringify(soldIds)) as Array<{
       sold_id: number;
       buy_id: number;
       product_name: string;
@@ -338,34 +434,19 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   }
 
   function computeStats(): DashboardStats {
-    const buysRow = db
-      .prepare(
-        `SELECT
-           COALESCE(SUM(purchase_cost), 0) AS compras_total,
-           COALESCE(SUM(associated_costs), 0) AS gastos_asociados_total
-         FROM buys`,
-      )
-      .get() as { compras_total: number; gastos_asociados_total: number };
+    const buysRow = buysTotalsStmt.get() as {
+      compras_total: number;
+      gastos_asociados_total: number;
+    };
 
-    const sellsRow = db
-      .prepare(
-        `SELECT
-           COALESCE(SUM(sale_price), 0) AS ventas_total,
-           COALESCE(SUM(associated_costs), 0) AS gastos_asociados_total
-         FROM solds`,
-      )
-      .get() as { ventas_total: number; gastos_asociados_total: number };
+    const sellsRow = sellsTotalsStmt.get() as {
+      ventas_total: number;
+      gastos_asociados_total: number;
+    };
 
-    const stockRow = db
-      .prepare(
-        `SELECT COUNT(*) AS cnt FROM buys b
-         WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0`,
-      )
-      .get() as { cnt: number };
+    const stockRow = stockCountStmt.get() as { cnt: number };
 
-    const profitRow = db
-      .prepare(`SELECT COALESCE(SUM(profit), 0) AS total FROM v_sold_costs`)
-      .get() as { total: number };
+    const profitRow = profitTotalStmt.get() as { total: number };
 
     const kpis = {
       compras_total_eur: round2(
@@ -376,40 +457,17 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       stock_pendiente_count: stockRow.cnt,
     };
 
-    const purchasesRows = db
-      .prepare(
-        `SELECT month,
-                COALESCE(SUM(compras_de_buys), 0) AS compras_de_buys,
-                COALESCE(SUM(asociados_de_solds), 0) AS asociados_de_solds
-         FROM (
-           SELECT strftime('%Y-%m', purchase_date) AS month,
-                  purchase_cost + associated_costs AS compras_de_buys,
-                  0 AS asociados_de_solds
-           FROM buys
-           WHERE purchase_date IS NOT NULL
-           UNION ALL
-           SELECT strftime('%Y-%m', sold_at) AS month,
-                  0 AS compras_de_buys,
-                  associated_costs AS asociados_de_solds
-           FROM solds
-           WHERE sold_at IS NOT NULL
-         )
-         GROUP BY month`,
-      )
-      .all() as Array<{ month: string; compras_de_buys: number; asociados_de_solds: number }>;
+    const purchasesRows = purchasesByMonthStmt.all() as Array<{
+      month: string;
+      compras_de_buys: number;
+      asociados_de_solds: number;
+    }>;
 
-    const salesRows = db
-      .prepare(
-        `SELECT
-           strftime('%Y-%m', s.sold_at) AS month,
-           COALESCE(SUM(s.sale_price), 0) AS ingresos,
-           COALESCE(SUM(c.profit), 0) AS beneficio
-         FROM solds s
-         JOIN v_sold_costs c ON c.sold_id = s.id
-         WHERE s.sold_at IS NOT NULL
-         GROUP BY month`,
-      )
-      .all() as Array<{ month: string; ingresos: number; beneficio: number }>;
+    const salesRows = salesByMonthStmt.all() as Array<{
+      month: string;
+      ingresos: number;
+      beneficio: number;
+    }>;
 
     const purchasesMap = new Map(purchasesRows.map((r) => [r.month, r]));
     const salesMap = new Map(salesRows.map((r) => [r.month, r]));
@@ -432,28 +490,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       };
     });
 
-    const topProducts = db
-      .prepare(
-        `SELECT
-           ic.buy_id AS product_id,
-           ic.product_name,
-           SUM(ic.quantity) AS times_sold,
-           SUM(ic.quantity * (s.sale_price * 1.0 / st.total_qty)) AS total_revenue,
-           SUM(ic.quantity * (s.associated_costs * 1.0 / st.total_qty)) AS total_assoc_sale,
-           SUM(ic.quantity * ic.unit_cost) AS total_unit_cost,
-           SUM(ic.quantity * ic.unit_assoc) AS total_unit_assoc
-         FROM v_item_costs ic
-         JOIN solds s ON s.id = ic.sold_id
-         JOIN (
-           SELECT sold_id, SUM(quantity) AS total_qty
-           FROM sale_items
-           GROUP BY sold_id
-         ) st ON st.sold_id = s.id
-         GROUP BY ic.buy_id
-         ORDER BY total_revenue DESC
-         LIMIT 10`,
-      )
-      .all() as Array<{
+    const topProducts = topProductsStmt.all() as Array<{
       product_id: number;
       product_name: string;
       times_sold: number;
@@ -473,18 +510,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       ),
     }));
 
-    const topBuyers = db
-      .prepare(
-        `SELECT c.id AS customer_id, c.name AS customer_name,
-           COUNT(s.id) AS ventas,
-           SUM(s.sale_price) AS total_gastado
-         FROM customers c
-         JOIN solds s ON s.customer_id = c.id
-         GROUP BY c.id
-         ORDER BY total_gastado DESC
-         LIMIT 10`,
-      )
-      .all() as Array<{
+    const topBuyers = topBuyersStmt.all() as Array<{
       customer_id: number;
       customer_name: string;
       ventas: number;
