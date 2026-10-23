@@ -170,7 +170,7 @@ test('después de vender 5 unidades, la compra sigue apareciendo en /buys', asyn
   const body = (await buys.json()) as { data: Array<{ id: number }> };
   const buyId = body.data[0]!.id;
 
-  await request.post('/api/solds', {
+  const stockSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 40,
@@ -178,6 +178,10 @@ test('después de vender 5 unidades, la compra sigue apareciendo en /buys', asyn
       items: [{ buy_id: buyId, quantity: 5 }],
     },
   });
+  expect(
+    stockSale.ok(),
+    `POST /api/solds (seed de la venta de stock) falló: ${stockSale.status()}`,
+  ).toBe(true);
 
   await page.goto('/buys');
   await expect(page.getByText('Funda iPhone')).toBeVisible();
@@ -197,7 +201,7 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
   });
   const customerId = await createCustomerViaApi(request, { name: 'Juan' });
 
-  await request.post('/api/solds', {
+  const dashboardSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 40,
@@ -205,6 +209,10 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
       items: [{ buy_id: buyId, quantity: 5 }],
     },
   });
+  expect(
+    dashboardSale.ok(),
+    `POST /api/solds (seed de la venta del dashboard) falló: ${dashboardSale.status()}`,
+  ).toBe(true);
 
   await page.goto('/');
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
@@ -230,7 +238,7 @@ test('pack multi-producto: venta con 2 items de A + 1 de B', async ({ page, requ
   });
   const customerId = await createCustomerViaApi(request, { name: 'Comprador Pack' });
 
-  await request.post('/api/solds', {
+  const packSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 30,
@@ -240,6 +248,10 @@ test('pack multi-producto: venta con 2 items de A + 1 de B', async ({ page, requ
       ],
     },
   });
+  expect(
+    packSale.ok(),
+    `POST /api/solds (seed del pack multi-producto) falló: ${packSale.status()}`,
+  ).toBe(true);
 
   await page.goto('/solds');
   await expect(page.getByText('Comprador Pack')).toBeVisible();
@@ -347,6 +359,10 @@ test('editar venta: cambiar precio en /solds/:id refleja en la lista', async ({
       items: [{ buy_id: buyId, quantity: 5 }],
     },
   });
+  expect(
+    soldRes.ok(),
+    `POST /api/solds (seed de la venta a editar) falló: ${soldRes.status()}`,
+  ).toBe(true);
   const soldBody = (await soldRes.json()) as { data: { id: number } };
   const soldId = soldBody.data.id;
 
@@ -401,6 +417,10 @@ test('borrar venta: desde la tabla de /solds la confirmación libera el stock de
       items: [{ buy_id: buyId, quantity: 5 }],
     },
   });
+  expect(
+    soldRes.ok(),
+    `POST /api/solds (seed de la venta a borrar) falló: ${soldRes.status()}`,
+  ).toBe(true);
   const soldBody = (await soldRes.json()) as { data: { id: number } };
   const soldId = soldBody.data.id;
 
@@ -454,13 +474,17 @@ test('tabs del dashboard navegan entre Resumen / Ingresos / Productos', async ({
     quantity: 3,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Cliente Dashboard' });
-  await request.post('/api/solds', {
+  const dashboardTabsSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 30,
       items: [{ buy_id: buyId, quantity: 1 }],
     },
   });
+  expect(
+    dashboardTabsSale.ok(),
+    `POST /api/solds (seed de la venta de las tabs del dashboard) falló: ${dashboardTabsSale.status()}`,
+  ).toBe(true);
 
   await page.goto('/');
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
@@ -527,7 +551,7 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   });
   const customerId = await createCustomerViaApi(request, { name: 'Cliente Pérdida' });
 
-  await request.post('/api/solds', {
+  const lossSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 10,
@@ -535,6 +559,10 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
       items: [{ buy_id: buyId, quantity: 1 }],
     },
   });
+  expect(
+    lossSale.ok(),
+    `POST /api/solds (seed de la venta con pérdida) falló: ${lossSale.status()}`,
+  ).toBe(true);
 
   await page.goto('/');
   await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
@@ -559,19 +587,23 @@ test('la tabla entra en el viewport: la columna Acciones se ve completa (sin scr
     quantity: 20,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Lucía Fernández' });
-  await request.post('/api/solds', {
+  const tableSale = await request.post('/api/solds', {
     data: {
       customer_id: customerId,
       sale_price: 89.9,
       items: [{ buy_id: buyId, quantity: 3 }],
     },
   });
+  expect(
+    tableSale.ok(),
+    `POST /api/solds (seed de la venta de la tabla) falló: ${tableSale.status()}`,
+  ).toBe(true);
 
   for (const url of ['/buys', '/solds']) {
     await page.goto(url);
     await page.locator('tbody tr').first().waitFor();
 
-    const medidas = await page.evaluate(() => {
+    const measurements = await page.evaluate(() => {
       const table = document.querySelector('table') as HTMLTableElement;
       const scroll = table.parentElement as HTMLElement;
       const cells = Array.from(table.querySelectorAll('tbody tr td'));
@@ -580,23 +612,23 @@ test('la tabla entra en el viewport: la columna Acciones se ve completa (sin scr
         client: scroll.clientWidth,
         scrollWidth: scroll.scrollWidth,
         cellRight: Math.round(lastCell.getBoundingClientRect().right),
-        contenedorDerecha: Math.round(scroll.getBoundingClientRect().right),
+        containerRight: Math.round(scroll.getBoundingClientRect().right),
         cellScroll: lastCell.scrollWidth,
         cellClient: lastCell.clientWidth,
       };
     });
 
     expect(
-      medidas.scrollWidth,
+      measurements.scrollWidth,
       `${url}: la tabla desborda el ancho disponible (hay scroll horizontal)`,
-    ).toBeLessThanOrEqual(medidas.client);
+    ).toBeLessThanOrEqual(measurements.client);
 
-    expect(medidas.cellRight, `${url}: la columna Acciones queda cortada`).toBeLessThanOrEqual(
-      medidas.contenedorDerecha + 1,
+    expect(measurements.cellRight, `${url}: la columna Acciones queda cortada`).toBeLessThanOrEqual(
+      measurements.containerRight + 1,
     );
 
-    expect(medidas.cellScroll, `${url}: el contenido de Acciones no cabe`).toBeLessThanOrEqual(
-      medidas.cellClient + 1,
+    expect(measurements.cellScroll, `${url}: el contenido de Acciones no cabe`).toBeLessThanOrEqual(
+      measurements.cellClient + 1,
     );
   }
 });

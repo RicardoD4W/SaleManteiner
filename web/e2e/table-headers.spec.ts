@@ -77,10 +77,12 @@ test('el indicador de orden se queda en la misma línea que la cabecera', async 
       associated_costs: 5,
     },
   });
+  expect(buy.ok(), `POST /api/buys falló: ${buy.status()}`).toBe(true);
   const buyBody = (await buy.json()) as { data: { id: number } };
   const cust = await request.post('/api/customers', { data: { name: 'Juan' } });
+  expect(cust.ok(), `POST /api/customers falló: ${cust.status()}`).toBe(true);
   const custBody = (await cust.json()) as { data: { id: number } };
-  await request.post('/api/solds', {
+  const sale = await request.post('/api/solds', {
     data: {
       customer_id: custBody.data.id,
       sale_price: 40,
@@ -88,6 +90,7 @@ test('el indicador de orden se queda en la misma línea que la cabecera', async 
       items: [{ buy_id: buyBody.data.id, quantity: 5 }],
     },
   });
+  expect(sale.ok(), `POST /api/solds falló: ${sale.status()}`).toBe(true);
 
   const tables: Array<{ url: string; column: string }> = [
     { url: '/solds', column: 'Asociados' },
@@ -100,22 +103,22 @@ test('el indicador de orden se queda en la misma línea que la cabecera', async 
     const header = page.getByRole('columnheader', { name: new RegExp(column) });
     await expect(header).toBeVisible();
 
-    const anchoAntes = await firstHeaderWidth(page);
+    const widthBefore = await firstHeaderWidth(page);
 
     await header.click();
     await expect(header).toHaveAttribute('aria-sort', /ascending|descending/);
 
-    const medidas = await measureHeader(page, column);
+    const measurements = await measureHeader(page, column);
 
     expect(
-      medidas.offset,
+      measurements.offset,
       `${url}: el indicador no está en la línea del texto`,
     ).toBeLessThanOrEqual(2);
-    expect(medidas.lines, `${url}: la cabecera se partió en dos líneas`).toBe(1);
-    expect(medidas.truncated, `${url}: el texto de la cabecera quedó recortado`).toBe(false);
-    const anchoDespues = await firstHeaderWidth(page);
+    expect(measurements.lines, `${url}: la cabecera se partió en dos líneas`).toBe(1);
+    expect(measurements.truncated, `${url}: el texto de la cabecera quedó recortado`).toBe(false);
+    const widthAfter = await firstHeaderWidth(page);
     expect(
-      Math.abs(anchoDespues - anchoAntes),
+      Math.abs(widthAfter - widthBefore),
       `${url}: la tabla se desajustó al ordenar`,
     ).toBeLessThanOrEqual(1);
   }

@@ -1,29 +1,19 @@
-import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { test as base, expect, type APIRequestContext } from '@playwright/test';
 
 export const test = base;
 
-export async function clearAll(request: APIRequestContext): Promise<void> {
-  const solds = await request.get('/api/solds?limit=200');
-  if (solds.ok()) {
-    const body = (await solds.json()) as { data: Array<{ id: number }> };
-    for (const { id } of body.data) {
-      const del = await request.delete(`/api/solds/${id}`);
-      expect(del.ok(), `DELETE /api/solds/${id} falló: ${del.status()}`).toBe(true);
-    }
-  }
-  const buys = await request.get('/api/buys?limit=200');
-  if (buys.ok()) {
-    const body = (await buys.json()) as { data: Array<{ id: number }> };
-    for (const { id } of body.data) {
-      const del = await request.delete(`/api/buys/${id}`);
-      expect(del.ok(), `DELETE /api/buys/${id} falló: ${del.status()}`).toBe(true);
-    }
+async function deleteAll(request: APIRequestContext, resource: string): Promise<void> {
+  const list = await request.get(`/api/${resource}`);
+  expect(list.ok(), `GET /api/${resource} falló: ${list.status()}`).toBe(true);
+  const body = (await list.json()) as { data: Array<{ id: number }> };
+  for (const { id } of body.data) {
+    const del = await request.delete(`/api/${resource}/${id}`);
+    expect(del.ok(), `DELETE /api/${resource}/${id} falló: ${del.status()}`).toBe(true);
   }
 }
 
-export async function gotoHome(page: Page): Promise<void> {
-  await page.goto('/');
-  await page.waitForFunction(() => !document.body.textContent?.includes('Cargando'), null, {
-    timeout: 10_000,
-  });
+export async function clearAll(request: APIRequestContext): Promise<void> {
+  await deleteAll(request, 'solds');
+  await deleteAll(request, 'buys');
+  await deleteAll(request, 'customers');
 }

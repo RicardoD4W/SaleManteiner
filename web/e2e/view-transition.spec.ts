@@ -118,7 +118,7 @@ test('editar una compra: la celda de producto viaja al input del formulario', as
   await page.goto('/buys');
 
   const initialState = await readState(page);
-  test.skip(
+  test.fixme(
     !initialState.supported,
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
@@ -169,7 +169,7 @@ test('editar una compra: también viajan el coste, la cantidad, los asociados y 
   await page.goto('/buys');
 
   const initialState = await readState(page);
-  test.skip(
+  test.fixme(
     !initialState.supported,
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
@@ -216,7 +216,7 @@ test('volver a la lista desde el formulario deja armada la fila de la compra', a
   await page.goto('/buys');
 
   const initialState = await readState(page);
-  test.skip(
+  test.fixme(
     !initialState.supported,
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
@@ -261,7 +261,7 @@ test('editar una venta: la celda de cliente viaja al input del cliente', async (
   await page.goto('/solds');
 
   const initialState = await readState(page);
-  test.skip(
+  test.fixme(
     !initialState.supported,
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );

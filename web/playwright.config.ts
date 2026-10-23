@@ -5,6 +5,7 @@ import os from 'node:os';
 const E2E_API_PORT = 4100;
 const E2E_WEB_PORT = 5174;
 const E2E_DB_DIR = path.join(os.tmpdir(), 'salemanteiner-e2e');
+const E2E_DB_PATH = path.join(E2E_DB_DIR, 'data.db');
 
 export default defineConfig({
   testDir: './e2e',
@@ -31,6 +32,7 @@ export default defineConfig({
       env: {
         PORT: String(E2E_API_PORT),
         SALEMANTEINER_DIR: E2E_DB_DIR,
+        SALEMANTEINER_DB: E2E_DB_PATH,
       },
       reuseExistingServer: false,
       timeout: 60_000,
