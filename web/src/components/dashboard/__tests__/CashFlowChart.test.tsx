@@ -47,7 +47,7 @@ describe('CashFlowChart (recharts)', () => {
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toContain('var(--color-chart-beneficio)');
+    expect(strokes).toContain('var(--color-chart-profit)');
   });
 
   it('el eje Y cubre el beneficio real cuando es más negativo que las ventas', () => {

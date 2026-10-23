@@ -39,7 +39,7 @@ export function BuyEditPage() {
   const update = useUpdateBuy();
   const navigate = useNavigate();
 
-  const transitionName = (campo: string) => `buy-${campo}-${buyId}`;
+  const transitionName = (field: string) => `buy-${field}-${buyId}`;
 
   const backToList = () =>
     navigate('/buys', { viewTransition: true, state: { armedRowId: buyId } });

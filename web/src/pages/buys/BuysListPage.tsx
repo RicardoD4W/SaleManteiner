@@ -27,8 +27,8 @@ function transitionName(field: string, id: number): string {
 
 function readArmedRow(state: unknown): number | null {
   if (typeof state !== 'object' || state === null || !('armedRowId' in state)) return null;
-  const valor = (state as { armedRowId?: unknown }).armedRowId;
-  return typeof valor === 'number' ? valor : null;
+  const value = (state as { armedRowId?: unknown }).armedRowId;
+  return typeof value === 'number' ? value : null;
 }
 
 interface ArmedRowContext {

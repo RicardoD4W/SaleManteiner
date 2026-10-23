@@ -1,11 +1,8 @@
-// Copia assets no-TS (SQL de migraciones) a dist/ después de tsc.
-// tsc no copia archivos que no sean .ts por defecto.
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// server/scripts/copy-assets.mjs → server/
 const serverRoot = resolve(__dirname, '..');
 
 const pairs = [

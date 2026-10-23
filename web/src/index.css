@@ -3,13 +3,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Paleta inspirada en Wallapop (no idéntica) */
   --color-brand-50: #fef3ec;
   --color-brand-100: #fde2cf;
   --color-brand-200: #fbc39e;
   --color-brand-300: #f8a06c;
   --color-brand-400: #f57d3a;
-  --color-brand-500: #e85f0f; /* color principal */
+  --color-brand-500: #e85f0f;
   --color-brand-600: #b84a0a;
   --color-brand-700: #8a3606;
   --color-brand-800: #5c2304;
@@ -19,42 +18,24 @@
     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
 
-  /* Colores de los charts (recharts escribe atributos stroke/fill, así que
-     el theming va por variables CSS y no por clases en el SVG). */
-  --color-chart-compras: #ef4444; /* rojo: gasto */
-  --color-chart-ventas: #10b981; /* verde: ingreso */
-  --color-chart-beneficio: #b84a0a; /* naranja de marca (brand-600): beneficio real */
-  --color-chart-dot: #ffffff; /* relleno de los puntos */
+  --color-chart-purchases: #ef4444;
+  --color-chart-sales: #10b981;
+  --color-chart-profit: #b84a0a;
+  --color-chart-dot: #ffffff;
 }
 
-/* Dark mode: los charts pasan a tonos más claros para mantener el contraste
-   sobre el fondo oscuro (mismo criterio que el resto de la paleta). */
 .dark {
-  --color-chart-compras: #f87171;
-  --color-chart-ventas: #34d399;
-  --color-chart-beneficio: #f57d3a;
+  --color-chart-purchases: #f87171;
+  --color-chart-sales: #34d399;
+  --color-chart-profit: #f57d3a;
   --color-chart-dot: #111827;
 }
 
-/* ---------------------------------------------------------------------------
-   View transitions de elemento compartido (S3 del feature `acciones-en-listas`).
-
-   La transición relaciona la fila de la tabla con la vista de edición: el
-   elemento "armado" (la fila que el usuario está por abrir) y su destino en
-   el formulario comparten el MISMO `view-transition-name`.
-   --------------------------------------------------------------------------- */
-
-/* El cross-fade por defecto de la raíz usa `mix-blend-mode: plus-difference`
-   (un hack del user-agent para que el modo oscuro no parpadee en blanco).
-   Ese hack invierte los colores mientras dura el fade, así que lo
-   neutralizamos: la transición tiene que mostrar los colores del tema. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   mix-blend-mode: normal;
 }
 
-/* Con movimiento reducido no hay animación: el cambio es instantáneo (el
-   nombre y el contenido siguen viajando, solo sin interpolación). */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
@@ -63,61 +44,22 @@
   }
 }
 
-/* El input del campo de cliente (`CustomerAutocomplete`) hereda el nombre de
-   la transición de la custom property que pone la página de edición: así el
-   componente compartido no necesita cambios (S3). */
 .transition-field input {
   view-transition-name: var(--vt-name, none);
-  view-transition-class: caja;
+  view-transition-class: box;
 }
 
-/* ---------------------------------------------------------------------------
-   Elemento compartido "chip": el nombre (del producto o del cliente) viaja
-   de la tabla al formulario como un chip de texto.
-
-   Por defecto el navegador escala la foto del elemento viejo hasta el
-   tamaño del nuevo: la celda de la tabla es un texto chico y el input del
-   formulario es una caja ancha, así que el texto se estira, se aplasta y
-   se sale de la caja (se veía como un borbón ilegible al lado del form).
-
-   La solución son DOS clases (el `view-transition-class` es solo un hook de
-   estilo: el emparejamiento de la transición lo hace el
-   `view-transition-name`):
-
-     - `.celda` → el TEXTO que viaja (la celda de la tabla).
-     - `.caja`  → la CAJA que lo recibe (el input del formulario).
-
-   OJO: Chrome le pone a los DOS pseudo-elementos del grupo (el viejo y el
-   nuevo) la clase del elemento de DESTINO de la navegación. Por eso las
-   reglas están separadas por sentido: en la ida el destino es el input
-   (clase "caja") y en la vuelta el destino es la celda (clase "celda").
-
-   En los dos sentidos pasa lo mismo: el TEXTO conserva su tamaño natural
-   (si se escala hasta el ancho del input, se estira, se aplasta y se sale
-   de la caja: se veía como un borbón ilegible al lado del form) y la CAJA
-   del input no se dibuja (si se dibuja, su foto se deforma al estirarse
-   o encogerse). El input real aparece cuando termina la transición.
-
-   En un navegador que NO siga el comportamiento de Chrome (que le pone la
-   clase del destino a los dos pseudo-elementos), la ida degrada a un
-   cross-fade limpio: no se ve el chip, pero tampoco hay deformación.
-   --------------------------------------------------------------------------- */
-
-/* El texto que viaja (la celda de la tabla). */
 .vt-cell {
-  view-transition-class: celda;
+  view-transition-class: cell;
 }
 
-/* La caja que lo recibe (el input del formulario). */
 .vt-box {
-  view-transition-class: caja;
+  view-transition-class: box;
 }
 
-/* El texto no se escala y queda centrado en el grupo (el input del
-   formulario tiene el texto al centro de la caja). */
-::view-transition-old(.celda),
-::view-transition-old(.caja),
-::view-transition-new(.celda) {
+::view-transition-old(.cell),
+::view-transition-old(.box),
+::view-transition-new(.cell) {
   inline-size: auto;
   block-size: auto;
   max-inline-size: 100%;
@@ -125,59 +67,21 @@
   transform: translateY(-50%);
 }
 
-/* La caja del input no se dibuja durante el vuelo (foto VIEJA, en la vuelta:
-   ahí es la foto del input la que no puede verse deformada).
-   `!important` porque la animación del navegador (el fade-in/out del
-   pseudo) gana sobre una declaración normal: sin el `!important` la caja
-   se vería igual. El `!important` no borra la animación (eso sí lo haría
-   `animation: none`), así que el pseudo-elemento sigue siendo observable
-   (lo usan los e2e de la view transition). */
-::view-transition-old(.celda) {
+::view-transition-old(.cell) {
   opacity: 0 !important;
 }
 
-/* ---------------------------------------------------------------------------
-   Duración de la view transition.
-
-   El browser usa 250 ms por defecto. Se declara explícita (y se aplica a
-   todos los pseudo-elementos) porque el relevo necesita que el chip que
-   vuela y la caja que entra compartan la misma línea de tiempo.
-   --------------------------------------------------------------------------- */
-
 :root {
-  --dur-transicion: 250ms;
+  --dur-transition: 250ms;
 }
 
 ::view-transition-group(*),
 ::view-transition-old(*),
 ::view-transition-new(*) {
-  animation-duration: var(--dur-transicion);
+  animation-duration: var(--dur-transition);
 }
 
-/* ---------------------------------------------------------------------------
-   El relevo: el dato que viaja se disuelve mientras la caja del input
-   aparece.
-
-   El problema que resuelve: el chip (el texto que viaja) vive en el OVERLAY
-   de la transición y el input real vive en el DOM, debajo. Por eso:
-
-     - si el chip se desvanece durante el vuelo, el valor se apaga antes de
-       llegar (no se ve "llegar" el dato);
-     - y si desaparece de golpe al terminar la transición, el valor
-       "parpadea": estaba al 100%, baja a 0 y vuelve a subir cuando
-       aparece el input real.
-
-   La solución es un cross-fade DENTRO del overlay: en el último tramo del
-   vuelo (los últimos ~12%) el chip se disuelve Y la foto del input
-   aparece. Las dos están en la misma capa → el valor nunca parpadea: se
-   transforma de "texto volando" en "texto dentro de la caja".
-
-   La caja entra al ~88% del vuelo, así que llega casi a su sitio (se ve
-   como la caja que se asienta en su lugar, no como un salto).
-   --------------------------------------------------------------------------- */
-
-/* El chip: opacidad completa durante el vuelo, se disuelve al final. */
-@keyframes chip-llega {
+@keyframes chip-arrives {
   0%,
   88% {
     opacity: 1;
@@ -187,8 +91,7 @@
   }
 }
 
-/* La caja del input: invisible durante el vuelo, aparece al final. */
-@keyframes caja-entra {
+@keyframes box-enters {
   0%,
   88% {
     opacity: 0;
@@ -198,13 +101,10 @@
   }
 }
 
-/* IDA (destino = el input → clase "caja"): el chip es el pseudo VIEJO del
-   grupo y la caja del input es el pseudo NUEVO. Los dos se cruzan en el
-   último tramo del vuelo. */
-::view-transition-old(.caja) {
-  animation: chip-llega var(--dur-transicion) linear both;
+::view-transition-old(.box) {
+  animation: chip-arrives var(--dur-transition) linear both;
 }
 
-::view-transition-new(.caja) {
-  animation: caja-entra var(--dur-transicion) linear both;
+::view-transition-new(.box) {
+  animation: box-enters var(--dur-transition) linear both;
 }

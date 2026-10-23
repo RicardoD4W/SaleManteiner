@@ -50,7 +50,7 @@ export function SoldEditPage() {
     return customer ? { id: customer.id, name: customer.name, created_at: '' } : null;
   });
 
-  const transitionName = (campo: string) => `sold-${campo}-${soldId}`;
+  const transitionName = (field: string) => `sold-${field}-${soldId}`;
 
   const backToList = () =>
     navigate('/solds', { viewTransition: true, state: { armedRowId: soldId } });

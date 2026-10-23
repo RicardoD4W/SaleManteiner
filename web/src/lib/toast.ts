@@ -28,14 +28,14 @@ function show(title: string, description?: string): void {
   });
 }
 
-export function toastCreated(tipo: ToastKind, description?: string): void {
-  show(TITLES[tipo].created, description);
+export function toastCreated(kind: ToastKind, description?: string): void {
+  show(TITLES[kind].created, description);
 }
 
-export function toastUpdated(tipo: ToastKind, description?: string): void {
-  show(TITLES[tipo].updated, description);
+export function toastUpdated(kind: ToastKind, description?: string): void {
+  show(TITLES[kind].updated, description);
 }
 
-export function toastDeleted(tipo: ToastKind, description?: string): void {
-  show(TITLES[tipo].deleted, description);
+export function toastDeleted(kind: ToastKind, description?: string): void {
+  show(TITLES[kind].deleted, description);
 }

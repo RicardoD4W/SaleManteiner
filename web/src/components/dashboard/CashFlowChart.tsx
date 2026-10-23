@@ -128,7 +128,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="compras"
             name="Compras"
-            stroke="var(--color-chart-compras)"
+            stroke="var(--color-chart-purchases)"
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
@@ -138,7 +138,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="ventas"
             name="Beneficio"
-            stroke="var(--color-chart-ventas)"
+            stroke="var(--color-chart-sales)"
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
@@ -149,7 +149,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="beneficio_real"
             name="Resultado del mes"
-            stroke="var(--color-chart-beneficio)"
+            stroke="var(--color-chart-profit)"
             strokeWidth={2.5}
             strokeDasharray="5 4"
             dot={{ r: 2, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}

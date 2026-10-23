@@ -7,9 +7,6 @@
     <meta name="color-scheme" content="light dark" />
     <title>SaleManteiner</title>
     <script>
-      // Anti-FOUC: aplica la clase `dark` al <html> antes del primer paint.
-      // Sin esto, el primer render sale en light y luego salta a dark cuando
-      // React monta el hook useTheme. Spec S4 de feature-dark-mode.md.
       (function () {
         try {
           var stored = window.localStorage.getItem('salemanteiner-theme');
@@ -27,7 +24,6 @@
             document.documentElement.classList.remove('dark');
           }
         } catch (_) {
-          // localStorage bloqueado (modo privado): arrancar en dark.
           document.documentElement.classList.add('dark');
         }
       })();
