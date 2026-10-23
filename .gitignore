@@ -46,7 +46,6 @@ test-results/
 .salemanteiner-cache/
 
 # Agent / AI tooling (metadata local de gentle-pi, no es código del proyecto)
-**/.agents/
 **/skills-lock.json
 
 # Real Wallapop session / tokens (never commit)
