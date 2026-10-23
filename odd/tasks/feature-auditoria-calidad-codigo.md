@@ -132,6 +132,12 @@ Se documentan para que queden decididas a propósito, no por olvido:
 - **CORS abierto**: `origin: true, credentials: true` refleja cualquier Origin. La app es local y sin auth, pero se puede cerrar a `localhost:5173`.
 - **Doble mecanismo de foco en los modales**: 3 de los 6 modales manejan el Escape a mano y no atrapan el Tab (los otros sí). Se unifica con el shell compartido (el trap respeta `isPending`, el manual no).
 
+- **L11** (2026-10-23) — El usuario pidió un `happy-path.md`: un checklist de todo lo que puede hacer un usuario en un flujo normal, comprobado con la skill visual. Recorrido **por la UI** (no por la API): 15 pasos, 28 capturas revisadas, 0 errores de consola. El recorrido encontró **dos cosas**:
+  - **Bug intermitente**: al guardar una venta, la respuesta del `PATCH` (sin items) entraba en la caché del detalle y la página de edición reventaba con "Cannot read properties of undefined (reading 'length')" si React llegaba a pintar el re-render antes de navegar. Los e2e no lo veían. Fix: `useUpdateSold` fusiona la respuesta con la entrada previa de la caché.
+  - **Test flaky**: `LazyCashFlowChart` assertaba de forma síncrona que el fallback existe, mientras el import dinámico podía resolver antes (la auditoría ya lo había marcado como "carrera latente").
+  - Y un detalle del guion: en el autocomplete de clientes hay que **elegir** de la lista (escribir el nombre no setea el `customer_id` → "El cliente es obligatorio"). El primer script tomaba eso por un bug de la app.
+- **L12** (2026-10-23) — `happy-path.md` en la raíz del repo + un puntero a el en AGENTS.md §8.1.
+
 ## Log
 
 - **L1** (2026-10-23) — "has mirado que este todo sin comentarios? que no haya naming de cosas en español (variables, fuciones, etc), eliminado codigo que no se use? y verificado si hay redundancia? (funciones declarados dos veces, una variable css de un color y el uso de una clase de tailwind de ese mismo color en otro lado...) y que todo sigua unas buenas practicas y buena arquitectura? esto tmb aplica a test y craga las skills necesarias antes de ponerte con esto"

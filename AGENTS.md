@@ -239,6 +239,8 @@ Comandos útiles:
 
 Un test verde no es lo mismo que "se ve bien". Antes de dar por cerrado un feature que **afecta a la UI**, hay que **mirar la web**.
 
+El guion de humo del usuario (crear un cliente, modificarlo, hacer una compra, venderla, borrarla...) está en **`happy-path.md`**: es el checklist que hay que recorrer para comprobar que un refactor no rompió nada.
+
 **El arnés no vive en el repo**: se crea en el momento de resolver la spec que lo necesita (y se puede borrar después, cuando la spec está resuelta). Un spec que **solo toca código** (refactor, renombres, limpieza) sin cambiar la funcionalidad ni el aspecto **no** lo necesita: lo verifican los gates.
 
 Cómo se arma (si hay que reconstruirlo) — **fuera del repo**, en el directorio temporal:
