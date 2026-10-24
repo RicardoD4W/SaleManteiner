@@ -8,27 +8,19 @@ interface CascadeMutation {
 }
 
 interface UseCascadeDeleteFlowOptions {
-  /** El registro que se quiere borrar (null si no hay nada abierto). */
   id: number | null;
-  /** Cambia cuando cambia el objetivo: reinicia el flujo. */
   resetKey: string | number | null;
   deleteOne: CascadeMutation;
   deleteCascade: CascadeMutation;
-  /** Si el recurso no tiene borrado en cascada, un 409 se muestra como error. */
   canCascade?: boolean;
   onClose: () => void;
 }
 
 export interface CascadeDeleteFlow {
-  /** ¿Está abierta la modal de cascada (el 409 ya llegó)? */
   inCascade: boolean;
-  /** Las ventas asociadas que manda el 409. */
   associatedSales: AssociatedSale[] | null;
-  /** El error del borrado simple. */
   error: string | null;
-  /** El error del borrado en cascada. */
   cascadeError: string | null;
-  /** ¿Está en curso el borrado en cascada? */
   isCascading: boolean;
   confirm: () => Promise<void>;
   confirmCascade: () => Promise<void>;
@@ -38,17 +30,12 @@ export interface CascadeDeleteFlow {
 
 type CascadeConflict = ApiError & { body: { associated_sales: AssociatedSale[] } };
 
-/** El 409 del server: el registro tiene ventas asociadas y no se puede borrar solo. */
 export function isCascadeConflict(err: unknown): err is CascadeConflict {
   if (!(err instanceof ApiError) || err.status !== 409) return false;
   const body = err.body as { associated_sales?: AssociatedSale[] };
   return Array.isArray(body.associated_sales) && body.associated_sales.length > 0;
 }
 
-/**
- * El flujo de borrar en cascada, igual para compras, ventas y clientes:
- * confirmar → (409 con ventas) → la modal de cascada → confirmar la cascada.
- */
 export function useCascadeDeleteFlow({
   id,
   resetKey,
@@ -63,7 +50,6 @@ export function useCascadeDeleteFlow({
   const [cascadeError, setCascadeError] = useState<string | null>(null);
   const [lastKey, setLastKey] = useState(resetKey);
 
-  // Si cambia el objetivo, el flujo vuelve a empezar (sin el parpadeo de un effect).
   if (lastKey !== resetKey) {
     setLastKey(resetKey);
     setInCascade(false);

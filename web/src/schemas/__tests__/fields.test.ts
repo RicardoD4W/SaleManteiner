@@ -8,11 +8,6 @@ import {
   QuantityField,
 } from '../fields';
 
-/**
- * La matriz del web tiene que ser la MISMA que la del server
- * (`server/src/__tests__/schemas.test.ts`): si una regla cambia de un lado,
- * el cliente manda algo que el server va a rechazar con un 422.
- */
 describe('los campos del web (misma matriz que el server)', () => {
   it('un texto vacío no es válido', () => {
     expect(ProductNameField.safeParse('').success).toBe(false);
