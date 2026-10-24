@@ -396,7 +396,7 @@ Cerrados en esta tanda (2026-10-21, **pusheados a `origin/master`**):
 
 **Próximo paso inmediato**: la app está en `master` y en `origin/master`. Opcional: un smoke manual de los flujos en `localhost:5173` (los e2e y las capturas cubren lo principal).
 
-**En curso (2026-10-23)**: el feature `componentizar-y-optimizar` (la deuda técnica de la auditoría: una fuente de la verdad, menos código y optimizar) está **cerrado y commiteado** en la rama `feature/componentizar-y-optimizar` (7 commits por encima de `master`), con los gates verdes y la verificación visual hecha. **Falta la decisión del usuario**: revisar la rama y decidir si se mergea a `master` (o se deja como PR). Refs: `odd/tasks/feature-componentizar-y-optimizar.md` (Log L6 y L10 cuentan los dos bugs que encontró: la validación del cliente que nunca se veía, y el `happy-path.md` que faltaba).
+**En curso (2026-10-23)**: el feature `componentizar-y-optimizar` (la deuda técnica de la auditoría: una fuente de la verdad, menos código y optimizar) está **cerrado y commiteado** en la rama `feature/componentizar-y-optimizar` (8 commits por encima de `master`), con los gates verdes y la verificación visual hecha. **Falta la decisión del usuario**: revisar la rama y decidir si se mergea a `master` (o se deja como PR). Refs: `odd/tasks/feature-componentizar-y-optimizar.md` (Log L6 y L10 cuentan los dos bugs que encontró: la validación del cliente que nunca se veía, y el `happy-path.md` que faltaba).
 
 Decisiones que quedaron pendientes (no bloquean nada):
 
