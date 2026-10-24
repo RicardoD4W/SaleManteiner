@@ -20,6 +20,70 @@ describe('ProductPickerModal', () => {
     vi.mocked(useBuysStock).mockReset();
   });
 
+  it('el foco inicial va al buscador', async () => {
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText('Buscar producto')).toHaveFocus();
+  });
+
+  it('Escape cierra el picker', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={onClose} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('el focus trap no deja salir el foco del diálogo', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    const dialog = screen.getByRole('dialog');
+    const search = screen.getByLabelText('Buscar producto');
+
+    expect(search).toHaveFocus();
+
+    await user.tab();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  });
+
   it('renderiza estado de carga cuando isLoading=true', () => {
     vi.mocked(useBuysStock).mockReturnValue({
       data: null,

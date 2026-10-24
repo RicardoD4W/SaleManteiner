@@ -37,6 +37,26 @@ describe('BuyNewModal', () => {
     vi.mocked(useCreateBuy).mockReturnValue(mutationMock() as never);
   });
 
+  it('el foco inicial va al primer input y el focus trap no deja salir', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog');
+    expect(screen.getByLabelText('Producto *')).toHaveFocus();
+
+    await user.tab();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('Escape cierra la modal', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(<BuyNewModal onClose={onClose} />);
+
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('un producto de solo espacios no llega al servidor', async () => {
     const user = userEvent.setup();
     const create = mutationMock();

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 import { Spinner } from '../ui/Spinner';
 import { ErrorState } from '../ui/ErrorState';
 import type { BuyWithStock } from '../../api/buys';
@@ -102,9 +103,7 @@ export function ProductPickerModal({
     );
   }, [buysWithStock, filter, initiallySelectedIds]);
 
-  const dialogRef = useRef<HTMLDivElement>(null);
   const firstFocusRef = useRef<HTMLInputElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const nextChecked: Record<number, boolean> = {};
@@ -116,22 +115,7 @@ export function ProductPickerModal({
     setChecked(nextChecked);
     setQuantities(nextQuantities);
     setFilter('');
-    requestAnimationFrame(() => {
-      (firstFocusRef.current ?? closeButtonRef.current)?.focus();
-    });
   }, [initialSelection]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
-  };
 
   const handleToggle = (id: number) => {
     setChecked((prev) => {
@@ -180,96 +164,12 @@ export function ProductPickerModal({
   const selectedCount = Object.values(checked).filter(Boolean).length;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="presentation"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="product-picker-title"
-        className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
-      >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-          <h2
-            id="product-picker-title"
-            className="text-base font-semibold text-gray-900 dark:text-gray-100"
-          >
-            Seleccionar productos
-          </h2>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-          >
-            <svg
-              aria-hidden="true"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-800">
-          <input
-            ref={firstFocusRef}
-            type="search"
-            placeholder="Buscar producto…"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-brand-400 dark:focus:ring-brand-900"
-            aria-label="Buscar producto"
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center gap-3 px-4 py-8 text-sm text-gray-500 dark:text-gray-400">
-              <Spinner size="sm" /> Cargando productos…
-            </div>
-          ) : isError ? (
-            <div className="px-4 py-6">
-              <ErrorState
-                message={`No se pudieron cargar los productos: ${error.message}`}
-                onRetry={() => refetch()}
-              />
-            </div>
-          ) : sortedBuys.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              {filter
-                ? 'No hay productos que coincidan.'
-                : 'No hay productos con stock disponible.'}
-            </div>
-          ) : (
-            <ul>
-              {sortedBuys.map((buy) => (
-                <li key={buy.id}>
-                  <ProductRow
-                    item={buy}
-                    checked={!!checked[buy.id]}
-                    onToggle={handleToggle}
-                    quantity={quantities[buy.id] ?? 1}
-                    onQuantityChange={handleQuantityChange}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
+    <Modal
+      title="Seleccionar productos"
+      onClose={onClose}
+      size="panel"
+      initialFocusRef={firstFocusRef}
+      footer={
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-800">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {selectedCount > 0
@@ -285,7 +185,52 @@ export function ProductPickerModal({
             </Button>
           </div>
         </div>
+      }
+    >
+      <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-800">
+        <input
+          ref={firstFocusRef}
+          type="search"
+          placeholder="Buscar producto…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-brand-400 dark:focus:ring-brand-900"
+          aria-label="Buscar producto"
+        />
       </div>
-    </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center gap-3 px-4 py-8 text-sm text-gray-500 dark:text-gray-400">
+            <Spinner size="sm" /> Cargando productos…
+          </div>
+        ) : isError ? (
+          <div className="px-4 py-6">
+            <ErrorState
+              message={`No se pudieron cargar los productos: ${error.message}`}
+              onRetry={() => refetch()}
+            />
+          </div>
+        ) : sortedBuys.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            {filter ? 'No hay productos que coincidan.' : 'No hay productos con stock disponible.'}
+          </div>
+        ) : (
+          <ul>
+            {sortedBuys.map((buy) => (
+              <li key={buy.id}>
+                <ProductRow
+                  item={buy}
+                  checked={!!checked[buy.id]}
+                  onToggle={handleToggle}
+                  quantity={quantities[buy.id] ?? 1}
+                  onQuantityChange={handleQuantityChange}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
   );
 }
