@@ -396,7 +396,7 @@ Cerrados en esta tanda (2026-10-21, **pusheados a `origin/master`**):
 
 **Próximo paso inmediato**: la app está en `master` y en `origin/master`. Opcional: un smoke manual de los flujos en `localhost:5173` (los e2e y las capturas cubren lo principal).
 
-**En curso (2026-10-23)**: el feature `componentizar-y-optimizar` (la deuda técnica de la auditoría: una fuente de la verdad, menos código y optimizar) está **cerrado y commiteado** en la rama `feature/componentizar-y-optimizar` (16 commits por encima de `master`), con los gates verdes y la verificación visual hecha. **Falta la decisión del usuario**: revisar la rama y decidir si se mergea a `master` (o se deja como PR). Refs: `odd/tasks/feature-componentizar-y-optimizar.md` (Log L6 y L10 cuentan los dos bugs que encontró: la validación del cliente que nunca se veía, y el `happy-path.md` que faltaba).
+**En curso (2026-10-23)**: el feature `componentizar-y-optimizar` (la deuda técnica de la auditoría: una fuente de la verdad, menos código y optimizar) está **cerrado y commiteado** en la rama `feature/componentizar-y-optimizar` (todo por encima de `master`), con los gates verdes y la verificación visual hecha. **Falta la decisión del usuario**: revisar la rama y decidir si se mergea a `master` (o se deja como PR). Refs: `odd/tasks/feature-componentizar-y-optimizar.md` (Log L6 y L10 cuentan los dos bugs que encontró: la validación del cliente que nunca se veía, y el `happy-path.md` que faltaba).
 
 Decisiones que quedaron pendientes (no bloquean nada):
 
@@ -407,7 +407,7 @@ Decisiones que quedaron pendientes (no bloquean nada):
 
 ## 13. Notas recientes
 
-- **(2026-10-23) La deuda técnica de la auditoría, cerrada: una fuente de la verdad, menos código y un bug de validación que nadie sabía.** El feature `componentizar-y-optimizar` (spec: `odd/tasks/feature-componentizar-y-optimizar.md`, 16 commits en la rama `feature/componentizar-y-optimizar`) atacó los 11 puntos de la auditoría de calidad. Lo que cambió:
+- **(2026-10-23) La deuda técnica de la auditoría, cerrada: una fuente de la verdad, menos código y un bug de validación que nadie sabía.** El feature `componentizar-y-optimizar` (spec: `odd/tasks/feature-componentizar-y-optimizar.md`, en la rama `feature/componentizar-y-optimizar`) atacó los 11 puntos de la auditoría de calidad. Lo que cambió:
   - **Una sola fuente de la verdad**: las cifras del dashboard salen de **vistas SQL** (`v_item_costs` y `v_sold_costs`, migración 004) en vez de la fórmula de prorrateo escrita 6 veces y la de beneficio 3 veces; los forms del web derivan de un schema compartido (`web/src/schemas/fields.ts` + `forms.ts`) en vez de redeclarar (y divergir) sus reglas; el `buildResolver` a mano del modal de cliente desapareció (ahora `zodResolver`).
   - **Menos código**: un `<Modal>` para los 6 modales (con el foco y el Escape unificados), un módulo de `armedRow` para la fila armada de `/buys` y `/solds` (80 líneas duplicadas), y un hook de cascada (`useCascadeDeleteFlow`) para compras, ventas y clientes (la misma máquina de estados estaba escrita dos veces).
   - **Optimizado**: los índices se **midieron** con `EXPLAIN QUERY PLAN` (se fueron 3 que el planner no podía usar y el filtro por cliente pasó de SCAN a SEARCH), el SQL se prepara una vez (el `better-sqlite3` no cachea) y el borrado en cascada ya no relee el registro (TOCTOU).
