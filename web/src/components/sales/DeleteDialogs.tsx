@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { DeleteBuyModal } from './DeleteBuyModal';
-import { useDeleteBuy, isDeleteBuy409 } from '../../hooks/useDeleteBuy';
-import type { AssociatedSale } from '../../api/types';
+import { useDeleteBuy } from '../../hooks/useDeleteBuy';
 import { useDeleteBuyCascade } from '../../hooks/useDeleteBuyCascade';
 import { useDeleteSold } from '../../hooks/useDeleteSold';
-import { apiErrorMessage } from '../../api/client';
+import { useCascadeDeleteFlow } from '../../hooks/useCascadeDeleteFlow';
 
 export type DeleteTarget =
   { kind: 'buy'; id: number; name: string } | { kind: 'sale'; id: number } | null;
@@ -20,8 +18,7 @@ interface DeleteDialogsProps {
 
 export function DeleteDialogs({ target, onClose }: DeleteDialogsProps) {
   if (target === null) return null;
-  const targetKey = `${target.kind}:${target.id}`;
-  return <DeleteDialogsFlow key={targetKey} target={target} onClose={onClose} />;
+  return <DeleteDialogsFlow target={target} onClose={onClose} />;
 }
 
 function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose: () => void }) {
@@ -29,65 +26,23 @@ function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose:
   const deleteBuyCascade = useDeleteBuyCascade();
   const deleteSold = useDeleteSold();
 
-  const [inCascade, setInCascade] = useState(false);
+  const flow = useCascadeDeleteFlow({
+    id: target.id,
+    resetKey: `${target.kind}:${target.id}`,
+    deleteOne: target.kind === 'buy' ? deleteBuy : deleteSold,
+    deleteCascade: deleteBuyCascade,
+    onClose,
+  });
 
-  const [associatedSales, setAssociatedSales] = useState<AssociatedSale[] | null>(null);
-
-  const [error, setError] = useState<string | null>(null);
-
-  const [cascadeError, setCascadeError] = useState<string | null>(null);
-
-  const handleConfirm = async () => {
-    setError(null);
-    try {
-      if (target.kind === 'buy') {
-        await deleteBuy.mutateAsync(target.id);
-      } else {
-        await deleteSold.mutateAsync(target.id);
-      }
-      onClose();
-    } catch (err) {
-      if (target.kind === 'buy' && isDeleteBuy409(err)) {
-        setAssociatedSales(err.body.associated_sales);
-        setInCascade(true);
-        return;
-      }
-      setError(apiErrorMessage(err, 'Error al eliminar'));
-    }
-  };
-
-  const handleCascadeConfirm = async () => {
-    if (target.kind !== 'buy') return;
-    setCascadeError(null);
-    try {
-      await deleteBuyCascade.mutateAsync(target.id);
-      onClose();
-    } catch (err) {
-      setCascadeError(apiErrorMessage(err, 'Error al eliminar en cascada'));
-    }
-  };
-
-  const handleClose = () => {
-    setError(null);
-    setCascadeError(null);
-    onClose();
-  };
-
-  const handleCascadeClose = () => {
-    if (deleteBuyCascade.isPending) return;
-    setCascadeError(null);
-    onClose();
-  };
-
-  if (inCascade && associatedSales && target.kind === 'buy') {
+  if (flow.inCascade && flow.associatedSales && target.kind === 'buy') {
     return (
       <DeleteBuyModal
         productName={target.name}
-        sales={associatedSales}
-        isPending={deleteBuyCascade.isPending}
-        cascadeError={cascadeError}
-        onClose={handleCascadeClose}
-        onConfirm={handleCascadeConfirm}
+        sales={flow.associatedSales}
+        isPending={flow.isCascading}
+        cascadeError={flow.cascadeError}
+        onClose={flow.closeCascade}
+        onConfirm={flow.confirmCascade}
       />
     );
   }
@@ -104,11 +59,11 @@ function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose:
           <>¿Eliminar esta venta? No se puede deshacer.</>
         )
       }
-      error={error}
+      error={flow.error}
       isPending={target.kind === 'buy' ? deleteBuy.isPending : deleteSold.isPending}
       confirmLabel="Sí, eliminar"
-      onClose={handleClose}
-      onConfirm={handleConfirm}
+      onClose={flow.close}
+      onConfirm={flow.confirm}
     />
   );
 }
