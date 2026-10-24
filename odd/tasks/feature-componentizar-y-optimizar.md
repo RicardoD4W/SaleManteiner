@@ -38,8 +38,8 @@ Cerrar la deuda técnica que dejó la auditoría: **reutilizar** lo que está du
 | --- | ------ | ----------------------------------------------------------------- | ------------ |
 | T1  | S2, S3 | server: vistas SQL (fuente de verdad de las cifras) + índices     | `cde94a9` ✅ |
 | T2  | S3     | server: statements en el factory + TOCTOU                         | `4ab47b1` ✅ |
-| T3a | S2, S3 | web: los forms derivan del schema + `zodResolver` + ref como prop | pendiente    |
-| T3b | S1     | web: hook de cascada compartido (`useCascadeDeleteFlow`)          | pendiente    |
+| T3a | S2, S3 | web: los forms derivan del schema + `zodResolver` + ref como prop | `5deb2f1` ✅ |
+| T3b | S1     | web: hook de cascada compartido (`useCascadeDeleteFlow`)          | `4099923` ✅ |
 | T4  | S1     | web: `<Modal>` compartido (6 modales)                             | pendiente    |
 | T5  | S1     | web: tabla con fila armada parametrizada                          | pendiente    |
 | T6  | S1-S3  | gates + verificación visual                                       | pendiente    |
@@ -62,3 +62,5 @@ Cerrar la deuda técnica que dejó la auditoría: **reutilizar** lo que está du
   - `forwardRef` fuera (React 19: el `ref` es un prop normal) y con él los **2 merges manuales de refs** que hacía falta para tener el ref de RHF y el propio.
   - El `useFocusTrap` ahora acepta `initialFocusSelector`, así el modal de cliente enfoca su input sin el merge de refs.
 - **L7** (2026-10-23) — **Trampa al copiar el regex de la fecha del server al web**: el del server es `/^(\d{4})-(\d{2})-(\d{2})$/` (con grupos) y sin ellos `match[1]` era `undefined` → `NaN` → **toda fecha del web era inválida**. Lo detectó el test del schema (una fecha real tiene que aceptarse); el server nunca estuvo afectado.
+- **L8** (2026-10-23) — **Límite de slice**: WU3a son 839 líneas y WU3b 151 → 1516 en dos commits, por encima de los ~400 que pide el slice. No se pudieron partir más sin dejar el repo en un estado roto: el fix de la validación (L6) y la unificación de los schemas son la **misma unidad** (si el schema no está unificado, el `noValidate` no tiene a qué atenerse) y el fix tenía que ir con sus tests. La estrategia de entrega del feature es, entonces, **una unidad por commit** (WU3a, WU3b, WU4, WU5) y el slice largo se acepta a conciencia: la revisión va por commit, no por el diff acumulado.
+- **L9** (2026-10-23) — **T4 y T5 se delegan en paralelo** (son dos unidades independientes, sin superficies de edición en común): WU4 = el shell de los 6 modales (`web/src/components/ui/Modal.tsx` + los 6 modales), WU5 = la tabla con la fila armada (`web/src/components/ui/armedRow.tsx` + las 2 páginas de lista). La verificación visual (T6) es del orquestador, con el arnés armado **fuera del repo** (en el directorio temporal), como manda AGENTS.md §8.1.
