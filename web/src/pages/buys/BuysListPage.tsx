@@ -19,6 +19,7 @@ import {
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
+import { compareRows } from '../../lib/sorting';
 import { filterBuys } from '../../lib/searchQuery';
 import type { BuyWithStock } from '../../api/buys';
 import type { Buy } from '../../schemas/buys';
@@ -70,7 +71,7 @@ export function BuysListPage() {
             {info.row.original.product_name}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('purchase_cost', {
         header: 'Coste (€)',
@@ -84,7 +85,7 @@ export function BuysListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('quantity', {
         header: 'Cantidad',
@@ -98,7 +99,7 @@ export function BuysListPage() {
             {info.getValue()}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
@@ -112,7 +113,7 @@ export function BuysListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('purchase_date', {
         header: 'Fecha compra',
@@ -126,7 +127,7 @@ export function BuysListPage() {
             {formatDate(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor((row) => row.disponibles, {
         id: 'disponibles',
@@ -149,7 +150,7 @@ export function BuysListPage() {
             </span>
           );
         },
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.display({
         id: 'actions',
@@ -174,6 +175,7 @@ export function BuysListPage() {
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    sortDescFirst: false,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });

@@ -1,5 +1,6 @@
+import { SortableTh } from './SortableTh';
 import { tableHeadClass } from './tableStyles';
-import type { SortDir } from '../../hooks/useSortable';
+import type { SortDir } from '../../lib/sorting';
 
 interface SortableTableHeadProps<T> {
   label: string;
@@ -17,24 +18,13 @@ export function SortableTableHead<T>({
   onSort,
 }: SortableTableHeadProps<T>) {
   const isActive = currentKey === sortKey;
-  const indicator = isActive ? (currentDir === 'asc' ? '▲' : '▼') : '';
   return (
-    <th
-      scope="col"
-      onClick={() => onSort(sortKey)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSort(sortKey);
-        }
-      }}
-      tabIndex={0}
-      className={`cursor-pointer ${tableHeadClass} text-left focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:focus-visible:ring-brand-400`}
-      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span className="whitespace-nowrap">{label}</span>
-
-      <span className="ml-1 inline-block w-3">{indicator}</span>
-    </th>
+    <SortableTh
+      label={label}
+      sorted={isActive ? (currentDir === 'asc' ? 'asc' : 'desc') : false}
+      onSort={() => onSort(sortKey)}
+      className={`${tableHeadClass} cursor-pointer text-left focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:focus-visible:ring-brand-400`}
+      labelClassName="whitespace-nowrap"
+    />
   );
 }

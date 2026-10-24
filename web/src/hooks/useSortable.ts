@@ -1,16 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
+import { compareValues, type SortDir } from '../lib/sorting';
 
-export type SortDir = 'asc' | 'desc' | null;
-
-function compare(a: unknown, b: unknown): number {
-  if (a == null && b == null) return 0;
-  if (a == null) return -1;
-  if (b == null) return 1;
-  if (typeof a === 'number' && typeof b === 'number') {
-    return a - b;
-  }
-  return String(a).localeCompare(String(b), 'es', { numeric: true });
-}
+export type { SortDir } from '../lib/sorting';
 
 export function useSortable<T>(
   items: T[],
@@ -46,7 +37,7 @@ export function useSortable<T>(
   const sortedItems = useMemo(() => {
     if (sortKey === null || sortDir === null) return items;
     const next = [...items].sort((a, b) => {
-      const cmp = compare(a[sortKey], b[sortKey]);
+      const cmp = compareValues(a[sortKey], b[sortKey]);
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return next;

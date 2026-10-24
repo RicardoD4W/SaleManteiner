@@ -20,6 +20,7 @@ import {
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
+import { compareRows } from '../../lib/sorting';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
 import type { SoldWithItems } from '../../schemas/solds';
@@ -94,7 +95,7 @@ export function SoldsListPage() {
             {formatDate(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor((row) => row.customerName, {
         id: 'customer',
@@ -109,7 +110,7 @@ export function SoldsListPage() {
             {info.row.original.customerName}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor((row) => row.items, {
         id: 'items',
@@ -138,7 +139,7 @@ export function SoldsListPage() {
             </ul>
           );
         },
-        sortingFn: 'basic',
+        sortingFn: compareRows,
         enableSorting: false,
       }),
       columnHelper.accessor('sale_price', {
@@ -153,7 +154,7 @@ export function SoldsListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
@@ -167,7 +168,7 @@ export function SoldsListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('profit', {
         header: 'Beneficio',
@@ -184,7 +185,7 @@ export function SoldsListPage() {
             <span className={`tabular-nums font-medium ${colorClass}`}>{formatEuro(profit)}</span>
           );
         },
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',
@@ -194,7 +195,7 @@ export function SoldsListPage() {
             {formatDate(info.getValue())}
           </span>
         ),
-        sortingFn: 'basic',
+        sortingFn: compareRows,
       }),
       columnHelper.display({
         id: 'actions',
@@ -219,6 +220,7 @@ export function SoldsListPage() {
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    sortDescFirst: false,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
