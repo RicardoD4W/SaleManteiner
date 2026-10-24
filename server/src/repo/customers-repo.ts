@@ -9,11 +9,29 @@ interface CustomerRow {
   created_at: string;
 }
 
+interface CustomerWithMetricsRow extends CustomerRow {
+  ventas: number;
+  total_gastado: number;
+}
+
+interface CustomerWithMetrics extends Customer {
+  ventas: number;
+  total_gastado: number;
+}
+
 function rowToCustomer(row: CustomerRow): Customer {
   return {
     id: row.id,
     name: row.name,
     created_at: row.created_at,
+  };
+}
+
+function rowToCustomerWithMetrics(row: CustomerWithMetricsRow): CustomerWithMetrics {
+  return {
+    ...rowToCustomer(row),
+    ventas: row.ventas,
+    total_gastado: row.total_gastado,
   };
 }
 
@@ -29,8 +47,8 @@ export type RemoveCustomerResult =
 export interface CustomersRepo {
   create(input: CreateCustomerInput): Customer;
   getById(id: number): Customer | null;
-  search(name: string): Customer[];
-  list(): Customer[];
+  search(name: string): CustomerWithMetrics[];
+  list(): CustomerWithMetrics[];
   update(id: number, input: UpdateCustomerInput): Customer | null;
   remove(id: number): RemoveCustomerResult;
   removeWithCascade(id: number): CascadeResult;
@@ -43,9 +61,25 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   `);
   const getStmt = db.prepare('SELECT * FROM customers WHERE id = ?');
   const searchStmt = db.prepare(`
-    SELECT * FROM customers WHERE name LIKE ? ESCAPE '!' ORDER BY name COLLATE NOCASE LIMIT 20
+    SELECT c.id, c.name, c.created_at,
+           COUNT(s.id) AS ventas,
+           COALESCE(SUM(s.sale_price), 0) AS total_gastado
+    FROM customers c
+    LEFT JOIN solds s ON s.customer_id = c.id
+    WHERE c.name LIKE ? ESCAPE '!'
+    GROUP BY c.id
+    ORDER BY c.name COLLATE NOCASE
+    LIMIT 20
   `);
-  const listStmt = db.prepare('SELECT * FROM customers ORDER BY name COLLATE NOCASE');
+  const listStmt = db.prepare(`
+    SELECT c.id, c.name, c.created_at,
+           COUNT(s.id) AS ventas,
+           COALESCE(SUM(s.sale_price), 0) AS total_gastado
+    FROM customers c
+    LEFT JOIN solds s ON s.customer_id = c.id
+    GROUP BY c.id
+    ORDER BY c.name COLLATE NOCASE
+  `);
   const deleteStmt = db.prepare('DELETE FROM customers WHERE id = ?');
   const updateStmt = db.prepare(`
     UPDATE customers SET name = ? WHERE id = ?
@@ -72,15 +106,15 @@ export function createCustomersRepo(db: Database): CustomersRepo {
     return row ? rowToCustomer(row) : null;
   }
 
-  function search(name: string): Customer[] {
+  function search(name: string): CustomerWithMetrics[] {
     const pattern = `%${escapeLikePattern(name)}%`;
-    const rows = searchStmt.all(pattern) as CustomerRow[];
-    return rows.map(rowToCustomer);
+    const rows = searchStmt.all(pattern) as CustomerWithMetricsRow[];
+    return rows.map(rowToCustomerWithMetrics);
   }
 
-  function list(): Customer[] {
-    const rows = listStmt.all() as CustomerRow[];
-    return rows.map(rowToCustomer);
+  function list(): CustomerWithMetrics[] {
+    const rows = listStmt.all() as CustomerWithMetricsRow[];
+    return rows.map(rowToCustomerWithMetrics);
   }
 
   function update(id: number, input: UpdateCustomerInput): Customer | null {

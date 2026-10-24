@@ -29,23 +29,17 @@ export function RevenueTab() {
 
   if (!data) return null;
 
-  const ytdRevenue = data.cashFlowByMonth.reduce((acc, m) => acc + m.ingresos, 0);
-  const ytdProfit = data.cashFlowByMonth.reduce((acc, m) => acc + m.beneficio, 0);
-  const monthsWithSales = data.cashFlowByMonth.filter((m) => m.ingresos > 0);
-  const bestMonth = monthsWithSales.reduce(
-    (best, m) => (m.ingresos > best.ingresos ? m : best),
-    monthsWithSales[0] ?? null,
-  );
+  const { ingresos: totalRevenue, beneficio: totalProfit, mejor_mes: bestMonth } = data.totals12m;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="revenue-totals">
-        <StatCard label="Ingresos" value={formatEuro(ytdRevenue)} hint="últimos 12 meses" />
+        <StatCard label="Ingresos" value={formatEuro(totalRevenue)} hint="últimos 12 meses" />
         <StatCard
           label="Beneficio"
-          value={formatEuro(ytdProfit)}
+          value={formatEuro(totalProfit)}
           hint="Ingresos menos los costes de cada venta"
-          valueClassName={profitColorClass(ytdProfit)}
+          valueClassName={profitColorClass(totalProfit)}
         />
         <StatCard
           label="Mejor mes"

@@ -89,6 +89,52 @@ describe('statsDashboard (nuevo modelo)', () => {
     }
   });
 
+  it('totals12m: los totales y el mejor mes de los últimos 12 meses', () => {
+    const customer = customersRepo.create(validCustomer({ name: 'Juan' }));
+    const buy = buysRepo.create(
+      validBuy({
+        product_name: 'Funda',
+        purchase_cost: 5,
+        quantity: 10,
+        purchase_date: todayLocalDate(),
+      }),
+    );
+
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 8,
+        associated_costs: 1,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 20,
+        associated_costs: 1,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+
+    const stats = soldsRepo.statsDashboard();
+
+    expect(stats.totals12m.ingresos).toBe(28);
+    expect(stats.totals12m.beneficio).toBe(19.5);
+    expect(stats.totals12m.mejor_mes?.month).toBe(todayLocalDate().slice(0, 7));
+    expect(stats.totals12m.mejor_mes?.ingresos).toBe(28);
+  });
+
+  it('totals12m: sin ventas no hay mejor mes', () => {
+    const stats = soldsRepo.statsDashboard();
+
+    expect(stats.totals12m.ingresos).toBe(0);
+    expect(stats.totals12m.beneficio).toBe(0);
+    expect(stats.totals12m.mejor_mes).toBeNull();
+  });
+
   it('una venta del mes actual aparece en el último slot y en topProducts', () => {
     const customer = customersRepo.create(validCustomer({ name: 'Juan' }));
     const buy = buysRepo.create(

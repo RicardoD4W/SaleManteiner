@@ -20,6 +20,11 @@ export const Customer = z.object({
   created_at: z.string(),
 });
 
+export interface CustomerWithMetrics extends Customer {
+  ventas: number;
+  total_gastado: number;
+}
+
 export type CreateCustomerInput = z.infer<typeof CreateCustomerInput>;
 export type UpdateCustomerInput = z.infer<typeof UpdateCustomerInput>;
 export type Customer = z.infer<typeof Customer>;

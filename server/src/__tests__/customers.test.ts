@@ -149,6 +149,35 @@ describe('customers repo', () => {
     it('devuelve [] si no hay clientes', () => {
       expect(repo.list()).toEqual([]);
     });
+
+    it('cada cliente trae su numero de ventas y su total gastado', () => {
+      const ana = repo.create(validCreate({ name: 'Ana' }));
+      const zara = repo.create(validCreate({ name: 'Zara' }));
+
+      seedSale(ana.id, 1, '2026-10-20');
+      seedSale(ana.id, 1, '2026-10-21');
+
+      const all = repo.list();
+      const anaRow = all.find((c) => c.id === ana.id);
+      const zaraRow = all.find((c) => c.id === zara.id);
+
+      expect(anaRow?.ventas).toBe(2);
+      expect(anaRow?.total_gastado).toBe(200);
+      expect(zaraRow?.ventas).toBe(0);
+      expect(zaraRow?.total_gastado).toBe(0);
+    });
+
+    it('la busqueda tambien trae las metricas', () => {
+      const ana = repo.create(validCreate({ name: 'Ana' }));
+      repo.create(validCreate({ name: 'Zara' }));
+      seedSale(ana.id, 1, '2026-10-20');
+
+      const results = repo.search('an');
+
+      expect(results).toHaveLength(1);
+      expect(results[0]?.ventas).toBe(1);
+      expect(results[0]?.total_gastado).toBe(100);
+    });
   });
 
   describe('update', () => {

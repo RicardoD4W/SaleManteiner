@@ -5,9 +5,6 @@ import userEvent from '@testing-library/user-event';
 vi.mock('@/hooks/useCustomers', () => ({
   useCustomers: vi.fn(),
 }));
-vi.mock('@/hooks/useSolds', () => ({
-  useSolds: vi.fn(),
-}));
 vi.mock('@/hooks/useDeleteCustomer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useDeleteCustomer')>();
   return { ...actual, useDeleteCustomer: vi.fn(), useDeleteCustomerCascade: vi.fn() };
@@ -28,50 +25,25 @@ vi.mock('@/components/sales/CustomerFormModal', () => ({
 }));
 
 import { useCustomers } from '@/hooks/useCustomers';
-import { useSolds } from '@/hooks/useSolds';
 import { useDeleteCustomer, useDeleteCustomerCascade } from '@/hooks/useDeleteCustomer';
 import { CustomersListPage } from '@/pages/customers/CustomersListPage';
 import { ApiError } from '@/api/client';
 import { renderWithProviders } from '@/test-utils/render';
 
 const customersFixture = [
-  { id: 1, name: 'Juan Pérez', created_at: '2026-09-01T10:00:00.000Z' },
-  { id: 2, name: 'Ana García', created_at: '2026-09-02T10:00:00.000Z' },
-];
-
-const soldsFixture = [
   {
     id: 1,
-    customer_id: 1,
-    sale_price: 40.0,
-    associated_costs: 2.0,
-    sold_at: '2026-10-05',
-    notes: null,
-    created_at: '2026-10-05T14:30:00.000Z',
-    profit: 10,
-    items: [],
+    name: 'Juan Pérez',
+    created_at: '2026-09-01T10:00:00.000Z',
+    ventas: 2,
+    total_gastado: 100,
   },
   {
     id: 2,
-    customer_id: 1,
-    sale_price: 60.0,
-    associated_costs: 0,
-    sold_at: '2026-10-06',
-    notes: null,
-    created_at: '2026-10-06T14:30:00.000Z',
-    profit: 20,
-    items: [],
-  },
-  {
-    id: 3,
-    customer_id: 2,
-    sale_price: 25.5,
-    associated_costs: 0,
-    sold_at: '2026-10-07',
-    notes: null,
-    created_at: '2026-10-07T14:30:00.000Z',
-    profit: 5,
-    items: [],
+    name: 'Ana García',
+    created_at: '2026-09-02T10:00:00.000Z',
+    ventas: 1,
+    total_gastado: 25.5,
   },
 ];
 
@@ -91,13 +63,6 @@ describe('CustomersListPage', () => {
     vi.clearAllMocks();
     vi.mocked(useCustomers).mockReturnValue({
       data: customersFixture as never,
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as never);
-    vi.mocked(useSolds).mockReturnValue({
-      data: soldsFixture as never,
       isLoading: false,
       isError: false,
       error: null,

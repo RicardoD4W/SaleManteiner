@@ -36,6 +36,12 @@ export interface DashboardStats {
     beneficio: number;
     resultado: number;
   }>;
+
+  totals12m: {
+    ingresos: number;
+    beneficio: number;
+    mejor_mes: { month: string; ingresos: number } | null;
+  };
   topProducts: Array<{
     product_id: number;
     product_name: string;
