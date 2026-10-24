@@ -187,7 +187,7 @@ PK compuesta: `(sold_id, buy_id)`. Una venta puede tener N items (pack multi-pro
 - **`created_at`** se setea en el INSERT (no se acepta del cliente).
 - **`purchase_date` y `sold_at`** las gestiona el cliente. El server **respeta siempre el input**: si el cliente los manda, pisa; si no, conserva el valor existente; `null` explícito borra.
 - **Coste de compra = TOTAL pagado**: el form pide el total; el backend guarda `purchase_cost` total + `quantity` y calcula el unitario con `round2(buy.purchase_cost / buy.quantity)` cuando hace falta (cálculo de beneficio, listado de stock).
-- **Beneficio por venta** (S13): `round2(sold.sale_price - sold.associated_costs - sum(item.quantity * round2(buy.purchase_cost / buy.quantity)) - sum(item.quantity * round2(buy.associated_costs / buy.quantity)))`.
+- **Beneficio por venta** (S13): la fórmula vive en la **vista SQL** `v_sold_costs` (migración `004_vistas_cifras.sql`), que es la **única** fuente de la verdad: `sale_price - associated_costs - cogs_purchase - cogs_associated`, con el coste prorrateado por unidad en la vista `v_item_costs` (`ROUND(coste_compra / cantidad, 2) * cantidad`). Ojo: usa el `ROUND` de **SQLite**, no el `round2` de JS → en un empate exacto de 3 decimales (p. ej. 0,70 € entre 4 unidades) puede diferir **1 céntimo** del `round2` de JS. Es el comportamiento que ya tenía el SQL de antes (no es un cambio del feature) y ahora está pineado en `server/src/__tests__/vistas-cifras.test.ts`.
 - **Prorrateo en packs** (S8, topProducts): `si.quantity * (s.sale_price / total_qty_de_la_venta)` para que el revenue se reparta entre los items del pack (sin over-count).
 
 Refs: `odd/tasks/feature-buys-and-solds.md` S1-S13.
