@@ -1,8 +1,13 @@
 import { useId, useRef } from 'react';
-import { useForm, type FieldErrors, type Resolver, type ResolverResult } from 'react-hook-form';
-import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateCustomerInput, UpdateCustomerInput } from '../../schemas/customers';
 import type { Customer } from '../../schemas/customers';
+import {
+  CustomerFormSchema,
+  type CustomerFormInput,
+  type CustomerFormOutput,
+} from '../../schemas/forms';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useFocusTrap } from '../ui/useFocusTrap';
@@ -12,43 +17,9 @@ import { apiErrorMessage } from '../../api/client';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
 
-type CustomerFormValues = z.infer<typeof CreateCustomerInput>;
-
-type CustomerNameSchema = typeof CreateCustomerInput | typeof UpdateCustomerInput;
-
 type CustomerFormModalProps =
   | { mode: 'create'; onClose: () => void }
   | { mode: 'edit'; customer: Customer; onClose: () => void };
-
-function nameErrorMessage(issue: { code: string }): string {
-  if (issue.code === 'too_small') return 'El nombre es obligatorio';
-  if (issue.code === 'too_big') return 'Máximo 200 caracteres';
-  return 'Nombre inválido';
-}
-
-function buildResolver(schema: CustomerNameSchema): Resolver<CustomerFormValues> {
-  return async (values): Promise<ResolverResult<CustomerFormValues>> => {
-    const result = schema.safeParse({ ...values, name: values.name.trim() });
-    if (result.success) {
-      const name = result.data.name;
-      if (typeof name !== 'string') {
-        const errors: FieldErrors<CustomerFormValues> = {
-          name: { type: 'validation', message: 'El nombre es obligatorio' },
-        };
-        return { values: {}, errors };
-      }
-      return { values: { name }, errors: {} };
-    }
-
-    const errors: FieldErrors<CustomerFormValues> = {};
-    for (const issue of result.error.issues) {
-      if (issue.path[0] === 'name' && !errors.name) {
-        errors.name = { type: 'validation', message: nameErrorMessage(issue) };
-      }
-    }
-    return { values: {}, errors };
-  };
-}
 
 export function CustomerFormModal(props: CustomerFormModalProps) {
   const { onClose } = props;
@@ -57,7 +28,6 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const nameInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const nameInputId = `${titleId}-name`;
   const nameErrorId = `${titleId}-name-error`;
@@ -67,32 +37,33 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
-  } = useForm<CustomerFormValues>({
-    resolver: buildResolver(props.mode === 'create' ? CreateCustomerInput : UpdateCustomerInput),
+  } = useForm<CustomerFormInput, unknown, CustomerFormOutput>({
+    resolver: zodResolver(CustomerFormSchema),
     defaultValues: {
       name: props.mode === 'edit' ? props.customer.name : '',
     },
   });
 
-  const { ref: registerNameRef, ...nameFieldProps } = register('name');
-
   useFocusTrap({
     dialogRef,
     onEscape: onClose,
-    initialFocusRef: nameInputRef,
+    initialFocusSelector: 'input',
   });
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const onSubmit = async (values: CustomerFormValues) => {
+  const onSubmit = async (values: CustomerFormOutput) => {
     const name = values.name.trim();
     try {
       if (props.mode === 'create') {
-        await create.mutateAsync({ name });
+        await create.mutateAsync({ name } satisfies CreateCustomerInput);
       } else {
-        await update.mutateAsync({ id: props.customer.id, input: { name } });
+        await update.mutateAsync({
+          id: props.customer.id,
+          input: { name } satisfies UpdateCustomerInput,
+        });
       }
       onClose();
     } catch (err) {
@@ -124,7 +95,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <svg
               aria-hidden="true"
@@ -143,14 +114,10 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
           <Input
-            {...nameFieldProps}
+            {...register('name')}
             id={nameInputId}
-            ref={(element) => {
-              registerNameRef(element);
-              nameInputRef.current = element;
-            }}
             label="Nombre *"
             placeholder="Nombre del cliente…"
             aria-invalid={errors.name ? true : undefined}

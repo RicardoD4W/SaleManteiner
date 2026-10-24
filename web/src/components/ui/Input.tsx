@@ -1,15 +1,13 @@
-import { forwardRef, useId, type InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes, type Ref } from 'react';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   error?: string;
   hint?: string;
+  ref?: Ref<HTMLInputElement>;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, id, className, ...rest },
-  ref,
-) {
+export function Input({ label, error, hint, id, className, ref, ...rest }: InputProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const errorId = error ? `${inputId}-error` : undefined;
@@ -52,4 +50,4 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ) : null}
     </div>
   );
-});
+}

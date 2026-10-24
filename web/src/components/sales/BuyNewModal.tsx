@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
@@ -9,27 +8,7 @@ import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage } from '../../api/client';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
-
-const BuyFormSchema = z.object({
-  product_name: z.string().min(1, 'El producto es obligatorio').max(200, 'Máximo 200 caracteres'),
-  purchase_cost: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  quantity: z
-    .number({ error: 'Introduce un número' })
-    .int('La cantidad debe ser un número entero')
-    .min(1, 'La cantidad mínima es 1'),
-  associated_costs: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales')
-    .default(0),
-  purchase_date: z.string().optional().or(z.literal('')),
-});
-
-type BuyFormInput = z.input<typeof BuyFormSchema>;
-type BuyFormOutput = z.output<typeof BuyFormSchema>;
+import { BuyFormSchema, type BuyFormInput, type BuyFormOutput } from '../../schemas/forms';
 
 interface BuyNewModalProps {
   onClose: () => void;
@@ -112,7 +91,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300"
           >
             <svg
               aria-hidden="true"
@@ -131,7 +110,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
           <Input
             label="Producto *"
             placeholder="Funda iPhone 15"

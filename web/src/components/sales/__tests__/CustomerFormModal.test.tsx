@@ -82,6 +82,21 @@ describe('CustomerFormModal', () => {
     expect(create.mutateAsync).not.toHaveBeenCalled();
   });
 
+  it('un nombre de solo espacios no llega al servidor', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock();
+    vi.mocked(useCreateCustomer).mockReturnValue(create as never);
+
+    renderWithProviders(<CustomerFormModal mode="create" onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Nombre *'), '   ');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('El nombre es obligatorio');
+    expect(create.mutateAsync).not.toHaveBeenCalled();
+  });
+
   it('llama a useCreateCustomer con el nombre y cierra al guardar', async () => {
     const user = userEvent.setup();
     const create = mutationMock({

@@ -1,21 +1,22 @@
 import { z } from 'zod';
-import { RowId, ShortText } from './common.js';
+import { RowId } from './common.js';
+import { CustomerNameField } from './fields.js';
 
 export const CreateCustomerInput = z
   .object({
-    name: ShortText,
+    name: CustomerNameField,
   })
   .strict();
 
 export const UpdateCustomerInput = z
   .object({
-    name: ShortText.optional(),
+    name: CustomerNameField.optional(),
   })
   .strict();
 
 export const Customer = z.object({
   id: RowId,
-  name: ShortText,
+  name: CustomerNameField,
   created_at: z.string(),
 });
 

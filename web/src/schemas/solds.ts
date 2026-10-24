@@ -1,12 +1,11 @@
 import { z } from 'zod';
 import { EuroMoney, LocalDate, RowId, LongText } from './common.js';
-
-const Quantity = z.number().int().min(1);
+import { QuantityField } from './fields.js';
 
 export const SaleItemInput = z
   .object({
     buy_id: RowId,
-    quantity: Quantity,
+    quantity: QuantityField,
   })
   .strict();
 
@@ -27,8 +26,8 @@ export const CreateSoldInput = z
 export const UpdateSoldInput = z
   .object({
     customer_id: RowId.optional(),
-    sale_price: z.number().nonnegative().optional(),
-    associated_costs: z.number().nonnegative().optional(),
+    sale_price: EuroMoney.optional(),
+    associated_costs: EuroMoney.optional(),
     sold_at: LocalDate.nullable().optional(),
     notes: LongText.nullable().optional(),
   })

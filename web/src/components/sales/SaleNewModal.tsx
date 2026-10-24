@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { ProductPickerModal } from './ProductPickerModal';
 import { CustomerAutocomplete } from './CustomerAutocomplete';
 import { Input } from '../ui/Input';
@@ -13,35 +12,7 @@ import { apiErrorMessage, ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
-
-const SoldFormSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        buy_id: z.number(),
-        product_name: z.string(),
-        quantity: z.number().int().min(1),
-
-        max: z.number().int().min(1),
-      }),
-    )
-    .min(1, 'Seleccioná al menos un producto'),
-  customer_id: z.number({ error: 'El cliente es obligatorio' }).int().positive(),
-  sale_price: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  associated_costs: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales')
-    .default(0),
-  sold_at: z.string().optional(),
-  notes: z.string().max(5000).optional().or(z.literal('')),
-});
-
-type SoldFormInput = z.input<typeof SoldFormSchema>;
-type SoldFormOutput = z.output<typeof SoldFormSchema>;
+import { SoldFormSchema, type SoldFormInput, type SoldFormOutput } from '../../schemas/forms';
 
 interface SelectedItem {
   buy_id: number;
@@ -68,7 +39,6 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   const create = useCreateSold();
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  const priceInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
@@ -100,15 +70,9 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     },
   });
 
-  const salePriceReg = register('sale_price', { valueAsNumber: true });
-  const setPriceInputRef = (node: HTMLInputElement | null) => {
-    salePriceReg.ref(node);
-    priceInputRef.current = node;
-  };
-
   useEffect(() => {
     if (selectedItems.length > 0 && pickerReason === null) {
-      priceInputRef.current?.focus();
+      dialogRef.current?.querySelector<HTMLInputElement>('#sale-price')?.focus();
     }
   }, [selectedItems, pickerReason]);
 
@@ -238,7 +202,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
           <CustomerAutocomplete
             value={selectedCustomer}
             onChange={(c) => {
@@ -307,12 +271,12 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
+              id="sale-price"
               label="Precio total de venta (€) *"
               type="number"
               step="0.01"
               min="0"
-              {...salePriceReg}
-              ref={setPriceInputRef}
+              {...register('sale_price', { valueAsNumber: true })}
               error={(errors.sale_price as { message?: string } | undefined)?.message}
             />
             <Input
