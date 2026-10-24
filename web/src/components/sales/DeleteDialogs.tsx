@@ -31,6 +31,7 @@ function DeleteDialogsFlow({ target, onClose }: { target: DeleteRecord; onClose:
     resetKey: `${target.kind}:${target.id}`,
     deleteOne: target.kind === 'buy' ? deleteBuy : deleteSold,
     deleteCascade: deleteBuyCascade,
+    canCascade: target.kind === 'buy',
     onClose,
   });
 

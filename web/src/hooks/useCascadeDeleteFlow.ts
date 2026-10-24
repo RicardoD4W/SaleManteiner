@@ -14,6 +14,8 @@ interface UseCascadeDeleteFlowOptions {
   resetKey: string | number | null;
   deleteOne: CascadeMutation;
   deleteCascade: CascadeMutation;
+  /** Si el recurso no tiene borrado en cascada, un 409 se muestra como error. */
+  canCascade?: boolean;
   onClose: () => void;
 }
 
@@ -52,6 +54,7 @@ export function useCascadeDeleteFlow({
   resetKey,
   deleteOne,
   deleteCascade,
+  canCascade = true,
   onClose,
 }: UseCascadeDeleteFlowOptions): CascadeDeleteFlow {
   const [inCascade, setInCascade] = useState(false);
@@ -76,14 +79,14 @@ export function useCascadeDeleteFlow({
       await deleteOne.mutateAsync(id);
       onClose();
     } catch (err) {
-      if (isCascadeConflict(err)) {
+      if (canCascade && isCascadeConflict(err)) {
         setAssociatedSales(err.body.associated_sales);
         setInCascade(true);
         return;
       }
       setError(apiErrorMessage(err, 'Error al eliminar'));
     }
-  }, [deleteOne, id, onClose]);
+  }, [canCascade, deleteOne, id, onClose]);
 
   const confirmCascade = useCallback(async () => {
     if (id === null) return;
