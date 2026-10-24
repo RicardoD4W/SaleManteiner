@@ -1,12 +1,7 @@
 import { useMemo, useState } from 'react';
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type SortingState,
-} from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useBuys } from '../../hooks/useBuys';
+import { useSortable } from '../../hooks/useSortable';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
@@ -19,7 +14,6 @@ import {
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
-import { compareRows } from '../../lib/sorting';
 import { filterBuys } from '../../lib/searchQuery';
 import type { BuyWithStock } from '../../api/buys';
 import type { Buy } from '../../schemas/buys';
@@ -44,7 +38,6 @@ function toBuyDetail(buy: BuyWithStock): Buy {
 
 export function BuysListPage() {
   const { data, isLoading, isError, error, refetch } = useBuys();
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [query, setQuery] = useState('');
@@ -61,6 +54,8 @@ export function BuysListPage() {
 
   const filteredBuys = useMemo(() => filterBuys(buysWithStock, query), [buysWithStock, query]);
 
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable(filteredBuys);
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('product_name', {
@@ -71,7 +66,6 @@ export function BuysListPage() {
             {info.row.original.product_name}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('purchase_cost', {
         header: 'Coste (€)',
@@ -85,7 +79,6 @@ export function BuysListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('quantity', {
         header: 'Cantidad',
@@ -99,7 +92,6 @@ export function BuysListPage() {
             {info.getValue()}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
@@ -113,7 +105,6 @@ export function BuysListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('purchase_date', {
         header: 'Fecha compra',
@@ -127,7 +118,6 @@ export function BuysListPage() {
             {formatDate(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor((row) => row.disponibles, {
         id: 'disponibles',
@@ -150,7 +140,6 @@ export function BuysListPage() {
             </span>
           );
         },
-        sortingFn: compareRows,
       }),
       columnHelper.display({
         id: 'actions',
@@ -171,13 +160,9 @@ export function BuysListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<BuyWithStock>({
-    data: filteredBuys,
+    data: sortedItems,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    sortDescFirst: false,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   const handleQueryChange = (value: string) => {
@@ -261,6 +246,11 @@ export function BuysListPage() {
         <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
+            sort={{
+              columnId: sortKey,
+              direction: sortDir,
+              onSort: (columnId) => onSort(columnId as keyof BuyWithStock),
+            }}
             footer={
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
                 <span>

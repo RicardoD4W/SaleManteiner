@@ -1,12 +1,7 @@
 import { useMemo, useState } from 'react';
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type SortingState,
-} from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useSolds } from '../../hooks/useSolds';
+import { useSortable } from '../../hooks/useSortable';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
@@ -20,7 +15,6 @@ import {
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
-import { compareRows } from '../../lib/sorting';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
 import type { SaleItemOutput } from '../../schemas/solds';
 import type { SoldWithItems } from '../../schemas/solds';
@@ -48,7 +42,6 @@ function toSoldDetail(sold: SoldWithCustomer): SoldWithItems {
 export function SoldsListPage() {
   const { data: solds, isLoading, isError, error, refetch } = useSolds();
   const { data: customers } = useCustomers();
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [query, setQuery] = useState('');
@@ -81,6 +74,8 @@ export function SoldsListPage() {
     [soldsWithCustomer, query],
   );
 
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable(filteredSolds);
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('sold_at', {
@@ -95,10 +90,8 @@ export function SoldsListPage() {
             {formatDate(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
-      columnHelper.accessor((row) => row.customerName, {
-        id: 'customer',
+      columnHelper.accessor('customerName', {
         header: 'Cliente',
         size: 140,
         cell: (info) => (
@@ -110,7 +103,6 @@ export function SoldsListPage() {
             {info.row.original.customerName}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor((row) => row.items, {
         id: 'items',
@@ -139,7 +131,6 @@ export function SoldsListPage() {
             </ul>
           );
         },
-        sortingFn: compareRows,
         enableSorting: false,
       }),
       columnHelper.accessor('sale_price', {
@@ -154,7 +145,6 @@ export function SoldsListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
@@ -168,7 +158,6 @@ export function SoldsListPage() {
             {formatEuro(info.getValue())}
           </TravellingCell>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('profit', {
         header: 'Beneficio',
@@ -185,7 +174,6 @@ export function SoldsListPage() {
             <span className={`tabular-nums font-medium ${colorClass}`}>{formatEuro(profit)}</span>
           );
         },
-        sortingFn: compareRows,
       }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',
@@ -195,7 +183,6 @@ export function SoldsListPage() {
             {formatDate(info.getValue())}
           </span>
         ),
-        sortingFn: compareRows,
       }),
       columnHelper.display({
         id: 'actions',
@@ -216,13 +203,9 @@ export function SoldsListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<SoldWithCustomer>({
-    data: filteredSolds,
+    data: sortedItems,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    sortDescFirst: false,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   const handleQueryChange = (value: string) => {
@@ -307,6 +290,11 @@ export function SoldsListPage() {
         <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
+            sort={{
+              columnId: sortKey,
+              direction: sortDir,
+              onSort: (columnId) => onSort(columnId as keyof SoldWithCustomer),
+            }}
             footer={
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
                 <span>
