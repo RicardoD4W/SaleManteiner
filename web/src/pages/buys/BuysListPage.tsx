@@ -1,6 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -12,6 +10,12 @@ import { useBuys } from '../../hooks/useBuys';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
+import {
+  ArmedRowProvider,
+  RowActions,
+  TravellingCell,
+  useArmedRow,
+} from '../../components/ui/armedRow';
 import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
@@ -25,84 +29,16 @@ import { Button } from '../../components/ui/Button';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
 
-function transitionName(field: string, id: number): string {
-  return `buy-${field}-${id}`;
-}
-
-function readArmedRow(state: unknown): number | null {
-  if (typeof state !== 'object' || state === null || !('armedRowId' in state)) return null;
-  const value = (state as { armedRowId?: unknown }).armedRowId;
-  return typeof value === 'number' ? value : null;
-}
-
-interface ArmedRowContext {
-  armedRowId: number | null;
-
-  armRow: (row: BuyWithStock) => void;
-}
-
-const ArmedRowContext = createContext<ArmedRowContext>({
-  armedRowId: null,
-  armRow: () => {},
-});
-
-function TravellingCell({
-  row,
-  field,
-  className,
-  children,
-}: {
-  row: BuyWithStock;
-
-  field: string;
-
-  className?: string;
-  children: ReactNode;
-}) {
-  const { armedRowId } = useContext(ArmedRowContext);
-  const armed = row.id === armedRowId;
-  const name = transitionName(field, row.id);
-  return (
-    <span
-      className={['vt-cell', className ?? ''].join(' ')}
-      style={armed ? { viewTransitionName: name } : undefined}
-      data-vt-name={armed ? name : undefined}
-    >
-      {children}
-    </span>
-  );
-}
-
-function ActionsCell({
-  row,
-  onBorrar,
-}: {
-  row: BuyWithStock;
-  onBorrar: (row: BuyWithStock) => void;
-}) {
-  const { armRow } = useContext(ArmedRowContext);
-  return (
-    <div className="flex items-center gap-3">
-      <Link
-        to={`/buys/${row.id}`}
-        viewTransition
-        onMouseEnter={() => armRow(row)}
-        onFocus={() => armRow(row)}
-        onPointerDown={() => armRow(row)}
-        className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-      >
-        Editar
-      </Link>
-      <button
-        type="button"
-        onClick={() => onBorrar(row)}
-        aria-label={`Borrar ${row.product_name}`}
-        className="cursor-pointer text-sm font-medium text-red-700 hover:underline dark:text-red-400"
-      >
-        Borrar
-      </button>
-    </div>
-  );
+function toBuyDetail(buy: BuyWithStock): Buy {
+  return {
+    id: buy.id,
+    product_name: buy.product_name,
+    purchase_cost: buy.purchase_cost,
+    quantity: buy.quantity,
+    associated_costs: buy.associated_costs,
+    purchase_date: buy.purchase_date,
+    created_at: buy.created_at,
+  };
 }
 
 export function BuysListPage() {
@@ -114,29 +50,11 @@ export function BuysListPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
-  const [armed, setArmed] = useState<{ id: number; navigation: string } | null>(null);
-  const location = useLocation();
-  const queryClient = useQueryClient();
-
-  const rowFromState = readArmedRow(location.state);
-
-  const armedRowId = armed && armed.navigation === location.key ? armed.id : rowFromState;
-
-  const armRow = useCallback(
-    (buy: BuyWithStock) => {
-      setArmed({ id: buy.id, navigation: location.key });
-      queryClient.setQueryData<Buy>(['buys', buy.id], {
-        id: buy.id,
-        product_name: buy.product_name,
-        purchase_cost: buy.purchase_cost,
-        quantity: buy.quantity,
-        associated_costs: buy.associated_costs,
-        purchase_date: buy.purchase_date,
-        created_at: buy.created_at,
-      });
-    },
-    [location.key, queryClient],
-  );
+  const { contextValue } = useArmedRow({
+    transitionPrefix: 'buy',
+    detailKey: 'buys',
+    toDetail: toBuyDetail,
+  });
 
   const buysWithStock = useMemo<BuyWithStock[]>(() => data ?? [], [data]);
 
@@ -238,9 +156,11 @@ export function BuysListPage() {
         header: '',
         size: 140,
         cell: (info) => (
-          <ActionsCell
+          <RowActions
             row={info.row.original}
-            onBorrar={(row) => setDeleteTarget({ kind: 'buy', id: row.id, name: row.product_name })}
+            editBasePath="/buys"
+            deleteAriaLabel={`Borrar ${info.row.original.product_name}`}
+            onDelete={(row) => setDeleteTarget({ kind: 'buy', id: row.id, name: row.product_name })}
           />
         ),
       }),
@@ -261,11 +181,6 @@ export function BuysListPage() {
   const handleQueryChange = (value: string) => {
     setQuery(value);
   };
-
-  const armedContextValue = useMemo<ArmedRowContext>(
-    () => ({ armedRowId, armRow }),
-    [armedRowId, armRow],
-  );
 
   const resultsText =
     query.trim() === ''
@@ -341,7 +256,7 @@ export function BuysListPage() {
           </button>
         </div>
       ) : (
-        <ArmedRowContext.Provider value={armedContextValue}>
+        <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
             footer={
@@ -355,7 +270,7 @@ export function BuysListPage() {
               </div>
             }
           />
-        </ArmedRowContext.Provider>
+        </ArmedRowProvider>
       )}
       {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
 

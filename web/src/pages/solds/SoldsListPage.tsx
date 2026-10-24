@@ -1,6 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -13,6 +11,12 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
+import {
+  ArmedRowProvider,
+  RowActions,
+  TravellingCell,
+  useArmedRow,
+} from '../../components/ui/armedRow';
 import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
@@ -26,84 +30,18 @@ import { Button } from '../../components/ui/Button';
 
 const columnHelper = createColumnHelper<SoldWithCustomer>();
 
-function transitionName(field: string, id: number): string {
-  return `sold-${field}-${id}`;
-}
-
-function readArmedRow(state: unknown): number | null {
-  if (typeof state !== 'object' || state === null || !('armedRowId' in state)) return null;
-  const value = (state as { armedRowId?: unknown }).armedRowId;
-  return typeof value === 'number' ? value : null;
-}
-
-interface ArmedRowContext {
-  armedRowId: number | null;
-
-  armRow: (row: SoldWithCustomer) => void;
-}
-
-const ArmedRowContext = createContext<ArmedRowContext>({
-  armedRowId: null,
-  armRow: () => {},
-});
-
-function TravellingCell({
-  row,
-  field,
-  className,
-  children,
-}: {
-  row: SoldWithCustomer;
-
-  field: string;
-
-  className?: string;
-  children: ReactNode;
-}) {
-  const { armedRowId } = useContext(ArmedRowContext);
-  const armed = row.id === armedRowId;
-  const name = transitionName(field, row.id);
-  return (
-    <span
-      className={['vt-cell', className ?? ''].join(' ')}
-      style={armed ? { viewTransitionName: name } : undefined}
-      data-vt-name={armed ? name : undefined}
-    >
-      {children}
-    </span>
-  );
-}
-
-function ActionsCell({
-  row,
-  onBorrar,
-}: {
-  row: SoldWithCustomer;
-  onBorrar: (row: SoldWithCustomer) => void;
-}) {
-  const { armRow } = useContext(ArmedRowContext);
-  return (
-    <div className="flex items-center gap-3">
-      <Link
-        to={`/solds/${row.id}`}
-        viewTransition
-        onMouseEnter={() => armRow(row)}
-        onFocus={() => armRow(row)}
-        onPointerDown={() => armRow(row)}
-        className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-      >
-        Editar
-      </Link>
-      <button
-        type="button"
-        onClick={() => onBorrar(row)}
-        aria-label={`Borrar venta #${row.id}`}
-        className="cursor-pointer text-sm font-medium text-red-700 hover:underline dark:text-red-400"
-      >
-        Borrar
-      </button>
-    </div>
-  );
+function toSoldDetail(sold: SoldWithCustomer): SoldWithItems {
+  return {
+    id: sold.id,
+    customer_id: sold.customer_id,
+    sale_price: sold.sale_price,
+    associated_costs: sold.associated_costs,
+    sold_at: sold.sold_at,
+    notes: sold.notes,
+    created_at: sold.created_at,
+    customer_name: sold.customerName,
+    items: sold.items,
+  };
 }
 
 export function SoldsListPage() {
@@ -116,31 +54,11 @@ export function SoldsListPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
-  const [armed, setArmed] = useState<{ id: number; navigation: string } | null>(null);
-  const location = useLocation();
-  const queryClient = useQueryClient();
-
-  const rowFromState = readArmedRow(location.state);
-
-  const armedRowId = armed && armed.navigation === location.key ? armed.id : rowFromState;
-
-  const armRow = useCallback(
-    (sold: SoldWithCustomer) => {
-      setArmed({ id: sold.id, navigation: location.key });
-      queryClient.setQueryData<SoldWithItems>(['solds', sold.id], {
-        id: sold.id,
-        customer_id: sold.customer_id,
-        sale_price: sold.sale_price,
-        associated_costs: sold.associated_costs,
-        sold_at: sold.sold_at,
-        notes: sold.notes,
-        created_at: sold.created_at,
-        customer_name: sold.customerName,
-        items: sold.items,
-      });
-    },
-    [location.key, queryClient],
-  );
+  const { contextValue } = useArmedRow({
+    transitionPrefix: 'sold',
+    detailKey: 'solds',
+    toDetail: toSoldDetail,
+  });
 
   const customerMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -283,9 +201,11 @@ export function SoldsListPage() {
         header: '',
         size: 130,
         cell: (info) => (
-          <ActionsCell
+          <RowActions
             row={info.row.original}
-            onBorrar={(row) => setDeleteTarget({ kind: 'sale', id: row.id })}
+            editBasePath="/solds"
+            deleteAriaLabel={`Borrar venta #${info.row.original.id}`}
+            onDelete={(row) => setDeleteTarget({ kind: 'sale', id: row.id })}
           />
         ),
       }),
@@ -307,11 +227,6 @@ export function SoldsListPage() {
     setQuery(value);
     table.setPageIndex(0);
   };
-
-  const armedContextValue = useMemo<ArmedRowContext>(
-    () => ({ armedRowId, armRow }),
-    [armedRowId, armRow],
-  );
 
   const resultsText =
     query.trim() === ''
@@ -387,7 +302,7 @@ export function SoldsListPage() {
           </button>
         </div>
       ) : (
-        <ArmedRowContext.Provider value={armedContextValue}>
+        <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
             footer={
@@ -401,7 +316,7 @@ export function SoldsListPage() {
               </div>
             }
           />
-        </ArmedRowContext.Provider>
+        </ArmedRowProvider>
       )}
       {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
 
