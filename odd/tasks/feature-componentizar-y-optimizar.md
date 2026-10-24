@@ -42,7 +42,7 @@ Cerrar la deuda técnica que dejó la auditoría: **reutilizar** lo que está du
 | T3b | S1     | web: hook de cascada compartido (`useCascadeDeleteFlow`)          | `4099923` ✅ |
 | T4  | S1     | web: `<Modal>` compartido (6 modales)                             | `6d13c4b` ✅ |
 | T5  | S1     | web: tabla con fila armada parametrizada                          | `631d940` ✅ |
-| T6  | S1-S3  | gates + verificación visual                                       | pendiente    |
+| T6  | S1-S3  | gates + verificación visual                                       | `6db8d81` ✅ |
 
 ## Log
 
