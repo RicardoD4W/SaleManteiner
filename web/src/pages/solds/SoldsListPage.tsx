@@ -23,7 +23,7 @@ import { errorAlertClass } from '../../components/ui/tableStyles';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Button } from '../../components/ui/Button';
 
-const columnHelper = createColumnHelper<SoldWithCustomer>();
+const columnHelper = createColumnHelper<SoldRow>();
 
 function toSoldDetail(sold: SoldWithCustomer): SoldWithItems {
   return {
@@ -37,6 +37,10 @@ function toSoldDetail(sold: SoldWithCustomer): SoldWithItems {
     customer_name: sold.customerName,
     items: sold.items,
   };
+}
+
+interface SoldRow extends SoldWithCustomer {
+  firstProduct: string;
 }
 
 export function SoldsListPage() {
@@ -60,11 +64,12 @@ export function SoldsListPage() {
     return map;
   }, [customers]);
 
-  const soldsWithCustomer: SoldWithCustomer[] = useMemo(
+  const soldsWithCustomer: SoldRow[] = useMemo(
     () =>
       (solds ?? []).map((s) => ({
         ...s,
         customerName: customerMap.get(s.customer_id) ?? `Cliente #${s.customer_id}`,
+        firstProduct: s.items[0]?.product_name ?? '',
       })),
     [solds, customerMap],
   );
@@ -104,12 +109,12 @@ export function SoldsListPage() {
           </TravellingCell>
         ),
       }),
-      columnHelper.accessor((row) => row.items, {
-        id: 'items',
+      columnHelper.accessor('firstProduct', {
+        id: 'firstProduct',
         header: 'Productos',
         size: 210,
         cell: (info) => {
-          const items = info.getValue() as SaleItemOutput[];
+          const items = info.row.original.items as SaleItemOutput[];
           if (items.length === 0) {
             return <span className="text-xs text-gray-400 dark:text-gray-500">—</span>;
           }
@@ -131,7 +136,6 @@ export function SoldsListPage() {
             </ul>
           );
         },
-        enableSorting: false,
       }),
       columnHelper.accessor('sale_price', {
         header: 'Precio (€)',
@@ -202,7 +206,7 @@ export function SoldsListPage() {
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable<SoldWithCustomer>({
+  const table = useReactTable<SoldRow>({
     data: sortedItems,
     columns,
     getCoreRowModel: getCoreRowModel(),
@@ -293,7 +297,7 @@ export function SoldsListPage() {
             sort={{
               columnId: sortKey,
               direction: sortDir,
-              onSort: (columnId) => onSort(columnId as keyof SoldWithCustomer),
+              onSort: (columnId) => onSort(columnId as keyof SoldRow),
             }}
             footer={
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
