@@ -112,7 +112,12 @@ SaleManteiner/
         └── .agents/skills/      ← skills cargadas en web
 ├── desktop/                    ← shell de escritorio (Tauri 2) + sidecar con el server (§14)
 │   ├── package.json            ← workspace npm con @tauri-apps/cli (tauri dev / build / icon)
-│   └── src-tauri/              ← proyecto Rust: tauri.conf.json, capabilities/, src/main.rs, icons/
+│   ├── Cargo.toml / build.rs   ← proyecto Rust (deps: tauri, plugins shell/updater/process/log)
+│   ├── tauri.conf.json         ← config del shell (ventana, bundle, CSP)
+│   ├── capabilities/default.json ← permisos (core, updater, process, shell:allow-execute)
+│   ├── src/                    ← main.rs (thin) + lib.rs (toda la lógica)
+│   ├── icons/                  ← el set de íconos (generado con `tauri icon`)
+│   └── .agents/skills/         ← skills cargadas en desktop (ver §9)
 └── odd/                        ← docs del ODD
     ├── happy-path.md           ← guion de humo del usuario (el checklist de §8.1)
     └── tasks/                  ← un doc por feature (specs + tasks + log)
@@ -305,6 +310,16 @@ En **cada** pedido del usuario hay que evaluar **explícitamente** si el cambio 
 - `web/.agents/skills/visual-verification/SKILL.md` — el checklist de verificación visual (qué mirar y en qué orden: la pantalla que cambió, dark mode, móvil, los modales). **Cargar en toda feature con UI** (ver §8.1).
 - `web/.agents/skills/seo/SKILL.md` — meta tags, OG, JSON-LD. NO aplica a esta SPA salvo que se reactive SSR.
 
+**`desktop/.agents/skills/`** (cargar antes de tocar `desktop/**`):
+
+- `desktop/.agents/skills/tauri-v2/SKILL.md` — Tauri v2: `tauri.conf.json`, comandos Rust (`#[tauri::command]`), IPC (`invoke`/`emit`/channels), **capabilities y permisos**, updater y distribución, sidecars. **Cargar ante cualquier cambio en `desktop/**`** (la config, el shell Rust, el bundling y el updater son territorio suyo). Sus `references/`: `capabilities-reference`, `ipc-patterns`, `plugin-reference` (**los strings exactos de permisos** de cada plugin), `updater-distribution` (firma, HTTPS y publicación) y `advanced-runtime` (sidecars, tray, deep links).
+- `desktop/.agents/skills/rust-best-practices/SKILL.md` — Rust idiomático (Apollo GraphQL): ownership/borrowing, `Result` en vez de `panic`, clippy, performance, error handling, tests y documentación. **Cargar antes de escribir o revisar código Rust** (los 9 capítulos de `references/` son el deep-dive).
+
+**Criterio para `desktop/`** (el mismo de `web/` y `server/`, o sea la regla de evaluación por prompt de arriba): si el pedido toca `desktop/**`, se listan estas dos skills, se decide **cargar / no cargar** dejando el motivo, y **en caso de duda se carga**. Dos matices:
+
+- `tauri-v2` se carga siempre que se toque la config, el shell, las capabilities o el updater. Si el pedido es solo de **packaging** (el script que arma el sidecar) o de documentación, se puede seguir sin ella → pero si ese script define rutas o nombres que el shell usa, la `tauri-v2` es la que dice cuáles (`externalBin`, el sufijo del target triple, los permisos).
+- `rust-best-practices` se carga solo si se escribe o revisa **código Rust**. No hace falta para tocar el `Cargo.toml` (dependencias) ni el JSON de configuración.
+
 ### Reglas duras
 
 1. **SIEMPRE** cargar las skills relevantes **antes** de la primera lectura o edición de un archivo del workspace.
@@ -461,7 +476,7 @@ Decisiones que quedaron pendientes (no bloquean nada):
 **Qué es**: un shell de escritorio que **empaqueta la app sin reescribirla**. El web compilado (`web/dist`) y el server (`server/dist`) viajan dentro del instalador; el shell (Tauri 2) abre la ventana y el server corre como **sidecar** (un proceso Node que el shell lanza y cierra).
 
 - **Spec, tareas y Log**: `odd/tasks/feature-app-de-escritorio.md`. Rama: `feature/app-de-escritorio`.
-- **Estructura**: `desktop/` es un **workspace npm** (como `web/` y `server/`) con `@tauri-apps/cli`; el proyecto Rust va en `desktop/src-tauri/`.
+- **Estructura**: `desktop/` es un **workspace npm** (como `web/` y `server/`) con `@tauri-apps/cli`; el proyecto Rust vive **plano en `desktop/`** (`Cargo.toml`, `tauri.conf.json`, `capabilities/`, `src/`, `icons/`).
 
 ### Decisiones (2026-10-25)
 
@@ -473,17 +488,24 @@ Decisiones que quedaron pendientes (no bloquean nada):
 | **Auto-update**               | El cliente **no maneja git**: la app se actualiza sola. La firma del updater es con **minisign** (`tauri signer generate`): **gratis y obligatoria** (Tauri no deja desactivar el updater). La clave **pública** va en `tauri.conf.json`; la **privada nunca se comparte**. Hay que publicar los instaladores en un endpoint (GitHub Releases o `/updates` propio).                                                                   |
 | **Firma de Windows**          | Es **otra** firma, aparte del updater. Sin firmar, Windows muestra _"Windows te protegió tu PC"_ → "Más información → Ejecutar". Con un certificado OV (desde ~129 USD/año) el editor aparece con nombre, pero **no** garantiza que desaparezca el aviso (desde 2026 las EV **tampoco** dan reputación inmediata). La vía suave sin Store es **instalar en la máquina del cliente**: si el archivo no viene descargado, no hay aviso. |
 
-### Requisitos nuevos (hoy no hay nada de esto en la máquina)
+### Requisitos (verificados en esta máquina el 2026-10-25)
 
-1. **Visual Studio Build Tools 2022** con el workload _"Desarrollo para el escritorio con C++"_ + el Windows SDK: **sin `cl.exe` no hay linker** y `cargo build` falla para el target `x86_64-pc-windows-msvc`. Descarga: <https://aka.ms/vs/17/release/vs_BuildTools.exe> (~5-8 GB).
-2. **WebView2 Runtime**: ya viene en Windows 10/11 (aquí 155.0.4283.62) → Tauri **no** lo empaqueta ni lo descarga.
-3. **Rust**: `rustc` 1.87 con el target msvc (ya instalado). Sin el Build Tools no compila.
+1. **Visual Studio Build Tools 2022** con el workload _"Desarrollo para el escritorio con C++"_ → **el linker** (`cl.exe`). Instalado en `G:\DevTools\Visual Studio` (MSVC 14.51) → `cargo build` funciona.
+2. **Rust**: `rustc` **1.99.1** (había 1.87, y `tauri` 2.12 exige **≥ 1.90** → hizo falta `rustup update`).
+3. **WebView2 Runtime**: ya viene en Windows 10/11 (aquí 155.0.4283.62) → Tauri **no** lo empaqueta ni lo descarga.
 4. **Node**: para construir (ya está) y **para el sidecar** → el instalador lo lleva dentro (el cliente **no** instala Node).
 5. **Firma**: un certificado OV si se quiere firmar el ejecutable (decisión pendiente, §12.6) y **la clave minisign del updater** (gratis).
+
+### Estado verificado
+
+- `cargo build` → `desktop/target/debug/salemanteiner-desktop.exe` ✓ (con el toolchain y el linker).
+- `npx tauri build --debug` → **`desktop/target/debug/bundle/nsis/SaleManteiner_0.1.0_x64-setup.exe`** (4,18 MiB **sin** el sidecar: con Node + server + web serán ~40 MB) ✓.
+- Los **iconos** salen del favicon del repo (`web/public/favicon.svg` → `tauri icon`).
+- **No** hacen falta los paquetes JS `@tauri-apps/api` ni `@tauri-apps/plugin-*`: el shell conduce todo desde Rust y el web no llama a la API de Tauri.
 
 ### Cómo se construye y cómo se prueba
 
 - `npm run build:web` + `npm run build:server` → los dos artefactos que viaja el sidecar.
 - `npm run dev:desktop` → el shell en modo desarrollo.
-- `npm run build:desktop` → el instalador en `desktop/src-tauri/target/release/bundle/nsis/`.
+- `npm run build:desktop` → el instalador en `desktop/target/release/bundle/nsis/` (con `--debug` va a `target/debug/`).
 - **T7 (el smoke que de verdad valida el requisito)**: instalar en una máquina **sin Node** → doble clic en el icono → la app abre, guarda datos y **se actualiza sola**.

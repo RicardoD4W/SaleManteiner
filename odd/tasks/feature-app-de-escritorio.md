@@ -177,7 +177,7 @@ Para **el cliente**, la app tiene que cumplir esto:
 | --- | ----- | ------------------------------------ | ------------ |
 | T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅ |
 | T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅ |
-| T3  | S2    | workspace `desktop/` (npm) + el CLI  | pendiente    |
+| T3  | S2    | workspace `desktop/` + el esqueleto  | `8145b89` ✅ |
 | T4  | S2    | server: empaquetado como sidecar     | pendiente    |
 | T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente    |
 | T6  | S4-S5 | instalador + firma + auto-update     | pendiente    |
@@ -203,3 +203,4 @@ Para **el cliente**, la app tiene que cumplir esto:
   - **La BD**: ruta canónica por plataforma (`%LOCALAPPDATA%\SaleManteiner\` en Windows) con fallback al `~/.salemanteiner/data.db` de siempre → nadie pierde datos.
   - **La firma de Windows** (certificado OV, desde ~129 USD/año) queda **pendiente**: quita el "editor desconocido" pero **no** garantiza que desaparezca el aviso de SmartScreen (desde 2026 las EV tampoco dan reputación inmediata) → la vía suave sin Store es **instalar en la máquina del cliente**.
   - **Requisito bloqueante**: sin **Visual Studio Build Tools 2022** (workload C++) no hay `cl.exe` y `cargo build` falla para el target `x86_64-pc-windows-msvc`. El usuario lo está instalando.
+- **L7** (2026-10-25) — **El esqueleto de `desktop/` está y compila** (`8145b89`). Decisiones de layout: el proyecto Rust vive **plano en `desktop/`** (no `desktop/src-tauri/`), y el **CLI de Tauri quedó dentro del workspace `desktop/`** (no en el root). Lo verificado: `cargo build` → `salemanteiner-desktop.exe` (con el linker de los Visual Studio Build Tools, instalados en `G:\DevTools\Visual Studio`) y `npx tauri build --debug` → el instalador **`SaleManteiner_0.1.0_x64-setup.exe`** (4,18 MiB **sin** el sidecar). Requisitos que salieron al hacerlo: **`rustup update`** (tauri 2.12 exige rustc ≥ 1.90 y había 1.87) y **ignorar `target/` y `gen/`** en el `.gitignore`/`.prettierignore` raíz (si no, `format:check` revisaba 743 archivos del build).
