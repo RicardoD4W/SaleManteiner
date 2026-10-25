@@ -7,6 +7,7 @@ node_modules/
 
 # Build outputs
 dist/
+target/                     ← build de Rust (cargo), solo en desktop/
 # Artefactos de `tsc -b` (tsconfig.node.json): NUNCA deben quedar junto al
 # fuente, porque Vite prioriza vite.config.js sobre vite.config.ts y el
 # config compilado（旧）taparía al real.

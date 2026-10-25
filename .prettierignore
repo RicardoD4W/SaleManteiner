@@ -1,6 +1,8 @@
 node_modules
 dist
 build
+target
+gen
 .cache
 .vite
 coverage
