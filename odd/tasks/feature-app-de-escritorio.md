@@ -173,15 +173,15 @@ Para **el cliente**, la app tiene que cumplir esto:
 
 ## Tasks
 
-| ID  | Spec  | Ruta                                 | Commit       |
-| --- | ----- | ------------------------------------ | ------------ |
-| T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅ |
-| T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅ |
-| T3  | S2    | workspace `desktop/` + el esqueleto  | `8145b89` ✅ |
-| T4  | S2    | server: empaquetado como sidecar     | pendiente    |
-| T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente    |
-| T6  | S4-S5 | instalador + firma + auto-update     | pendiente    |
-| T7  | S4    | smoke: arranque en frío sin Node     | pendiente    |
+| ID  | Spec  | Ruta                                 | Commit                            |
+| --- | ----- | ------------------------------------ | --------------------------------- |
+| T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅                      |
+| T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅                      |
+| T3  | S2    | workspace `desktop/` + el esqueleto  | `8145b89` ✅                      |
+| T4  | S2    | server: empaquetado como sidecar     | `pendiente` (armado y verificado) |
+| T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente                         |
+| T6  | S4-S5 | instalador + firma + auto-update     | pendiente                         |
+| T7  | S4    | smoke: arranque en frío sin Node     | pendiente                         |
 
 **T1** es esta spec. **T2** es el habilitador (va primero y no bloquea). **T3** es el workspace `/desktop` con el CLI de Tauri (hecho). La **PWA (O1) sale de la ruta de entrega**: el cliente no puede tener un server en marcha (S3) → queda como extra opcional para desarrollo. **T4-T7** son la ruta elegida (O3).
 
@@ -204,3 +204,10 @@ Para **el cliente**, la app tiene que cumplir esto:
   - **La firma de Windows** (certificado OV, desde ~129 USD/año) queda **pendiente**: quita el "editor desconocido" pero **no** garantiza que desaparezca el aviso de SmartScreen (desde 2026 las EV tampoco dan reputación inmediata) → la vía suave sin Store es **instalar en la máquina del cliente**.
   - **Requisito bloqueante**: sin **Visual Studio Build Tools 2022** (workload C++) no hay `cl.exe` y `cargo build` falla para el target `x86_64-pc-windows-msvc`. El usuario lo está instalando.
 - **L7** (2026-10-25) — **El esqueleto de `desktop/` está y compila** (`8145b89`). Decisiones de layout: el proyecto Rust vive **plano en `desktop/`** (no `desktop/src-tauri/`), y el **CLI de Tauri quedó dentro del workspace `desktop/`** (no en el root). Lo verificado: `cargo build` → `salemanteiner-desktop.exe` (con el linker de los Visual Studio Build Tools, instalados en `G:\DevTools\Visual Studio`) y `npx tauri build --debug` → el instalador **`SaleManteiner_0.1.0_x64-setup.exe`** (4,18 MiB **sin** el sidecar). Requisitos que salieron al hacerlo: **`rustup update`** (tauri 2.12 exige rustc ≥ 1.90 y había 1.87) y **ignorar `target/` y `gen/`** en el `.gitignore`/`.prettierignore` raíz (si no, `format:check` revisaba 743 archivos del build).
+- **L8** (2026-10-25) — **T4 (el sidecar) armado y verificado.** El script `desktop/scripts/pack-sidecar.mjs` arma el runtime de la app en dos carpetas:
+  - `desktop/binaries/salemanteiner-server-x86_64-pc-windows-msvc.exe` → **el node de la máquina renombrado** con el sufijo del target triple que Tauri exige (82,9 MiB). El shell lo lanza con el script del server como argumento.
+  - `desktop/resources/server/` → el `server/dist` + sus **dependencias de runtime podadas** (85 paquetes, solo prod: express, cors, pino, pino-http, zod y better-sqlite3 con su binario nativo) = 35,8 MiB. Se instalan con un `npm install --omit=dev` en el destino, para no arrastrar el `node_modules` del root (400+ MiB).
+  - `desktop/resources/web/` → el `web/dist` (6,8 MiB), que **sirve el propio sidecar** → un solo origen.
+  - **Total: 125,6 MiB** de runtime (el instalador NSIS lo comprime; el objetivo de tamaño es trabajo de T6).
+  - **Verificado**: el paquete arranca (`PORT` + `SALEMANTEINER_DIR` + `SALEMANTEINER_WEB_DIR`), `/` y `/buys` devuelven el HTML, `/api/health` responde JSON y los assets se sirven → el "un solo origen" funciona **con el runtime empaquetado**, no solo en el repo.
+  - **Dos trampas de Windows que비용an un rato**: (1) `execFileSync('npm')` no puede lanzar el shim `.cmd` → hay que usar `npm.cmd` con `shell: true`; (2) un directorio vacío con un watcher encima no se puede borrar (`EBUSY`) → el script limpia el **contenido** y reusa el directorio en vez de `rm -rf` la raíz.

@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  salemanteiner_desktop_lib::run();
+    salemanteiner_desktop_lib::run();
 }
