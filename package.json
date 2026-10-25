@@ -6,15 +6,18 @@
   "type": "module",
   "workspaces": [
     "web",
-    "server"
+    "server",
+    "desktop"
   ],
   "scripts": {
     "dev": "npm-run-all --parallel dev:server dev:web",
     "dev:web": "npm --workspace web run dev",
     "dev:server": "npm --workspace server run dev",
+    "dev:desktop": "npm --workspace desktop run dev",
     "build": "npm-run-all build:server build:web",
     "build:web": "npm --workspace web run build",
     "build:server": "npm --workspace server run build",
+    "build:desktop": "npm --workspace desktop run build",
     "typecheck": "npm-run-all typecheck:web typecheck:server",
     "typecheck:web": "npm --workspace web run typecheck",
     "typecheck:server": "npm --workspace server run typecheck",
