@@ -63,11 +63,16 @@ Para **el cliente**, la app tiene que cumplir esto:
 5. **No ve errores**: si algo falla, la ventana muestra un mensaje, no una consola con un stack trace.
 6. **Se actualiza solo** (o al menos no hay que hacer `git pull`).
 
-### S5 — Lo que hay que decidir antes de elegir tecnología
+### S5 — Las decisiones de entrega (RESPONDIDO)
 
-1. **¿Cómo se lo entregamos?** (descargar un instalador · un ZIP portable · un enlace que instala la PWA · Microsoft Store)
-2. **¿Firmamos el ejecutable?** (sin firmar, Windows muestra "Windowsoprotegió tu PC" → el cliente tiene que hacer clic en "Más información → Ejecutar"; con firma, desaparece)
-3. **¿Dónde queda la BD en la máquina del cliente?** (`%APPDATA%\SaleManteiner\` es lo estándar en Windows; `~/.salemanteiner/` es lo que ya usa el repo)
+> "quiero pasrale yo el ejecutable o el instalador, no quiero que abra la ms store"
+>
+> "me gusta el auto update, vamos a usarlo. el usuario no maneja git"
+
+1. **Entrega**: el instalador **NSIS** (~40 MB) lo pasa el usuario a mano al cliente. **Sin Microsoft Store.**
+2. **Auto-update**: el cliente **no maneja git** → la app **se actualiza sola**. La firma del updater es con **minisign** (`tauri signer generate`): **gratis y obligatoria** (Tauri no deja desactivar el updater). La clave **pública** va en `tauri.conf.json`; la **privada nunca se comparte**. Hay que publicar los instaladores en un endpoint (GitHub Releases o un `/updates` propio).
+3. **Firma de Windows**: es **otra** firma, aparte del updater. Sin firmar, Windows muestra _"Windows te protegió tu PC"_ → "Más información → Ejecutar". Con un certificado OV (desde ~129 USD/año) el editor aparece con nombre, pero **no** garantiza que desaparezca el aviso (desde 2026 las EV **tampoco** dan reputación inmediata). **La vía suave sin Store es instalar en la máquina del cliente**: si el archivo no viene descargado, no hay aviso. → **Pendiente**: comprar el certificado o asumir el aviso.
+4. **La BD**: `%LOCALAPPDATA%\SaleManteiner\data.db` (Windows), `~/Library/Application Support/` (macOS), `$XDG_DATA_HOME/` (Linux) → lo canónico (los datos son de esa máquina, no "roaming"). Se respetan `SALEMANTEINER_DIR`/`SALEMANTEINER_DB`, y **si la ruta nueva está vacía pero existe el `~/.salemanteiner/data.db` de siempre, se usa el viejo** → nadie pierde datos.
 
 ## Las opciones, con números de este repo
 
@@ -137,6 +142,14 @@ Para **el cliente**, la app tiene que cumplir esto:
 
 **El razonamiento de fondo**: con S3/S4 respondidas, **el runtime deja de ser opcional** (el cliente no puede instalar Node) → el criterio pasa a ser **"instalador chico + cero conocimientos + el backend sin reescribir"** → eso deja a **O3** (Tauri 2) como la única que cumple todo sin reescribir la capa de datos. **O5** la cumple más rápido de usar (ni instalador) pero a costa de reescribir la capa de datos y de mover los datos al perfil del navegador.
 
+## Requisitos nuevos (hoy no hay nada de esto en la máquina)
+
+1. **Visual Studio Build Tools 2022** con el workload _"Desarrollo para el escritorio con C++"_ + el Windows SDK: **sin `cl.exe` no hay linker** y `cargo build` falla para el target `x86_64-pc-windows-msvc` (<https://aka.ms/vs/17/release/vs_BuildTools.exe>, ~5-8 GB).
+2. **WebView2 Runtime**: ya viene en Windows 10/11 (aquí 155.0.4283.62) → Tauri no lo empaqueta.
+3. **Rust**: `rustc` 1.87 con el target msvc (ya instalado). Sin el Build Tools no compila.
+4. **Node**: para construir (ya está) y **para el sidecar** → el instalador lo lleva dentro (el cliente **no** instala Node).
+5. **Firma**: un certificado OV si se quiere firmar el ejecutable (pendiente) y **la clave minisign del updater** (gratis).
+
 ## Recomendación
 
 1. **T2 — el habilitador (sigue igual)**: que el server sirva el `web/dist` con el fallback de SPA → **un solo origen**. Es útil por sí solo (hoy "producción" son 2 procesos), lo necesita el sidecar de Tauri (el web y la API en el mismo origen) y **no bloquea** ninguna decisión.
@@ -146,8 +159,9 @@ Para **el cliente**, la app tiene que cumplir esto:
    - **Un solo origen**: el web compilado lo sirve el propio sidecar (→ por eso T2 va primero).
    - **Icono**: `tauri.conf.json` + `icon.ico` → acceso directo en el escritorio y el icono de la app.
    - **Instalador** (NSIS) + **auto-update**; y el aviso de SmartScreen se resuelve firmando (S5.2) o aceptando el "Más información → Ejecutar" (1 clic extra la primera vez).
-3. **La BD del cliente**: `%APPDATA%\SaleManteiner\data.db` (o la que ya usa el repo) → **el mismo path que hoy**, para que los datos no "desaparezcan".
-4. **Si el cliente se resiste a instalar nada**: **O5** es el camino (PWA con los datos en el navegador) → es un proyecto aparte, no una fase de este.
+3. **La BD del cliente**: `%LOCALAPPDATA%\SaleManteiner\data.db` (o la que ya usa el repo) → **el mismo path que hoy**, para que los datos no "desaparezcan".
+4. **Auto-update siempre** (decidido el 2026-10-25): el cliente no maneja git → la app se actualiza sola con el updater de Tauri (firma minisign, gratis y obligatoria). El hosting de los releases es la única pieza que falta decidir (GitHub Releases o un endpoint propio).
+5. **Si el cliente se resiste a instalar nada**: **O5** es el camino (PWA con los datos en el navegador) → es un proyecto aparte, no una fase de este.
 
 ## Riesgos
 
@@ -163,13 +177,13 @@ Para **el cliente**, la app tiene que cumplir esto:
 | --- | ----- | ------------------------------------ | ------------ |
 | T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅ |
 | T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅ |
-| T3  | S3-S4 | web: manifest + iconos + SW (PWA)    | pendiente    |
+| T3  | S2    | workspace `desktop/` (npm) + el CLI  | pendiente    |
 | T4  | S2    | server: empaquetado como sidecar     | pendiente    |
 | T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente    |
 | T6  | S4-S5 | instalador + firma + auto-update     | pendiente    |
 | T7  | S4    | smoke: arranque en frío sin Node     | pendiente    |
 
-**T1** es esta spec. **T2** es el habilitador (va primero y no bloquea). **T3** (PWA) queda como opción para el desarrollo, no como entrega al cliente (S3). **T4-T7** son la ruta elegida (O3).
+**T1** es esta spec. **T2** es el habilitador (va primero y no bloquea). **T3** es el workspace `/desktop` con el CLI de Tauri (hecho). La **PWA (O1) sale de la ruta de entrega**: el cliente no puede tener un server en marcha (S3) → queda como extra opcional para desarrollo. **T4-T7** son la ruta elegida (O3).
 
 ## Log
 
@@ -183,3 +197,9 @@ Para **el cliente**, la app tiene que cumplir esto:
   - **Nueva aceptación (S4)**: un icono, doble clic, ventana propia, sin consola, sin instalar nada más, datos en la máquina del cliente, sin errores a la vista y actualización sin `git pull`.
   - **Pendientes de S5**: cómo se entrega (instalador / ZIP / enlace / Store), si se firma el ejecutable (SmartScreen) y dónde queda la BD en la máquina del cliente.
 - **L5** (2026-10-25) — **T2 implementado** (`2d6f7c4`): el server ya sirve el `web/dist` con fallback de SPA, y el contrato de la API queda intacto (`/api/*` igual, 404 JSON para lo que no existe). Verificado en el build real (`node server/dist/index.js`): `/` y `/buys` devuelven el HTML, los assets se sirven y la API sigue en JSON; **213/213** tests del server (8 nuevos) y **0 errores de consola** en el navegador. Con esto el "un solo origen" que necesita el sidecar de Tauri ya está.
+- **L6** (2026-10-25) — **Las decisiones de entrega, cerradas por el usuario**:
+  - **"quiero pasrale yo el ejecutable o el instalador, no quiero que abra la ms store"** → entrega **manual** de un instalador **NSIS**; **fuera la Microsoft Store**.
+  - **"me gusta el auto update, vamos a usarlo. el usuario no maneja git"** → **auto-update sí o sí**: la app se actualiza sola. La firma del updater es **minisign** (`tauri signer generate`): gratis y **obligatoria** (Tauri no deja desactivar el updater); la clave **pública** va en `tauri.conf.json` y la **privada nunca se comparte**. Falta decidir **dónde se publican los instaladores** (GitHub Releases o un `/updates` propio).
+  - **La BD**: ruta canónica por plataforma (`%LOCALAPPDATA%\SaleManteiner\` en Windows) con fallback al `~/.salemanteiner/data.db` de siempre → nadie pierde datos.
+  - **La firma de Windows** (certificado OV, desde ~129 USD/año) queda **pendiente**: quita el "editor desconocido" pero **no** garantiza que desaparezca el aviso de SmartScreen (desde 2026 las EV tampoco dan reputación inmediata) → la vía suave sin Store es **instalar en la máquina del cliente**.
+  - **Requisito bloqueante**: sin **Visual Studio Build Tools 2022** (workload C++) no hay `cl.exe` y `cargo build` falla para el target `x86_64-pc-windows-msvc`. El usuario lo está instalando.
