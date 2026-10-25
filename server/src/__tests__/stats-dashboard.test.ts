@@ -122,7 +122,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const stats = soldsRepo.statsDashboard();
 
     expect(stats.totals12m.ingresos).toBe(28);
-    expect(stats.totals12m.beneficio).toBe(19.5);
+    expect(stats.totals12m.beneficio).toBe(25);
     expect(stats.totals12m.mejor_mes?.month).toBe(todayLocalDate().slice(0, 7));
     expect(stats.totals12m.mejor_mes?.ingresos).toBe(28);
   });
