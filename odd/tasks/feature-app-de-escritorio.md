@@ -159,15 +159,15 @@ Para **el cliente**, la app tiene que cumplir esto:
 
 ## Tasks
 
-| ID  | Spec  | Ruta                                 | Commit    |
-| --- | ----- | ------------------------------------ | --------- |
-| T1  | S1-S3 | esta spec: comparar y decidir        | pendiente |
-| T2  | S2    | server: servir el web + fallback SPA | pendiente |
-| T3  | S3-S4 | web: manifest + iconos + SW (PWA)    | pendiente |
-| T4  | S2    | server: empaquetado como sidecar     | pendiente |
-| T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente |
-| T6  | S4-S5 | instalador + firma + auto-update     | pendiente |
-| T7  | S4    | smoke: arranque en frío sin Node     | pendiente |
+| ID  | Spec  | Ruta                                 | Commit       |
+| --- | ----- | ------------------------------------ | ------------ |
+| T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅ |
+| T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅ |
+| T3  | S3-S4 | web: manifest + iconos + SW (PWA)    | pendiente    |
+| T4  | S2    | server: empaquetado como sidecar     | pendiente    |
+| T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente    |
+| T6  | S4-S5 | instalador + firma + auto-update     | pendiente    |
+| T7  | S4    | smoke: arranque en frío sin Node     | pendiente    |
 
 **T1** es esta spec. **T2** es el habilitador (va primero y no bloquea). **T3** (PWA) queda como opción para el desarrollo, no como entrega al cliente (S3). **T4-T7** son la ruta elegida (O3).
 
@@ -182,3 +182,4 @@ Para **el cliente**, la app tiene que cumplir esto:
   - **O5 (PWA con los datos en el navegador)** queda como la alternativa más suave (ni instalador) pero exige reescribir la capa de datos y mueve los datos al perfil del navegador.
   - **Nueva aceptación (S4)**: un icono, doble clic, ventana propia, sin consola, sin instalar nada más, datos en la máquina del cliente, sin errores a la vista y actualización sin `git pull`.
   - **Pendientes de S5**: cómo se entrega (instalador / ZIP / enlace / Store), si se firma el ejecutable (SmartScreen) y dónde queda la BD en la máquina del cliente.
+- **L5** (2026-10-25) — **T2 implementado** (`2d6f7c4`): el server ya sirve el `web/dist` con fallback de SPA, y el contrato de la API queda intacto (`/api/*` igual, 404 JSON para lo que no existe). Verificado en el build real (`node server/dist/index.js`): `/` y `/buys` devuelven el HTML, los assets se sirven y la API sigue en JSON; **213/213** tests del server (8 nuevos) y **0 errores de consola** en el navegador. Con esto el "un solo origen" que necesita el sidecar de Tauri ya está.
