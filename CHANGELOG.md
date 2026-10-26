@@ -14,7 +14,7 @@
 
 ### Corregido
 
-- **El auto-update fallaba a mitad de la instalación**: el updater de Windows cierra la app pero dejaba vivo el **sidecar** (el proceso Node), que tenía abierto el addon nativo de `better-sqlite3`. El instalador no podía escribirlo ("Error abriendo archivo para escritura") y la actualización se caía. Ahora el sidecar se cierra **después de descargar y antes de instalar** (`desktop/src/lib.rs`).
+- **El auto-update fallaba a mitad de la instalación**: el updater de Windows cierra la app pero dejaba vivo el **sidecar** (el proceso Node), que tenía abierto el addon nativo de `better-sqlite3`. El instalador no podía escribirlo ("Error abriendo archivo para escritura") y la actualización se caía. Ahora el sidecar se cierra **después de descargar y antes de instalar** (`desktop/src/lib.rs`). Verificado de punta a punta: la app instalada 0.1.0 detectó la 0.1.1, preguntó con el diálogo nativo, descargó, instaló y se reinició en 0.1.1.
 
 ## [0.1.1] - 2026-10-26
 
