@@ -40,23 +40,15 @@ fn start_server(app: &AppHandle) -> Result<(u16, CommandChild), Box<dyn Error>> 
     }
     let web_path = resources.join("web");
     let web_dir = dunce::simplified(&web_path);
-    // La carpeta de datos NO puede ser la de instalación: el desinstalador de
-    // NSIS borra $INSTDIR entero, y con los datos adentro se perderían las
-    // ventas. Se usa la carpeta roaming (fuera de $INSTDIR) con un nombre claro.
-    let data_path = match app.path().app_config_dir()?.parent() {
-        Some(root) => root.join("SaleManteiner"),
-        None => app.path().app_config_dir()?,
-    };
-    let data_dir = dunce::simplified(&data_path);
-    std::fs::create_dir_all(data_dir)?;
-
+    // La carpeta de datos NO la decide el shell: la resuelve el server (una sola
+    // fuente de la verdad) y nunca es la de instalación (el desinstalador de NSIS
+    // borra $INSTDIR entero, y con los datos adentro se perderían las ventas).
     let port = free_port()?;
     log::info!(
-        "[server] recursos={} entrypoint={} web={} data={}",
+        "[server] recursos={} entrypoint={} web={}",
         resources.display(),
         entrypoint.display(),
-        web_dir.display(),
-        data_dir.display()
+        web_dir.display()
     );
     let (events, child) = app
         .shell()
@@ -64,7 +56,6 @@ fn start_server(app: &AppHandle) -> Result<(u16, CommandChild), Box<dyn Error>> 
         .args([entrypoint.to_string_lossy().to_string()])
         .current_dir(&resources)
         .env("PORT", port.to_string())
-        .env("SALEMANTEINER_DIR", data_dir.to_string_lossy().to_string())
         .env(
             "SALEMANTEINER_WEB_DIR",
             web_dir.to_string_lossy().to_string(),

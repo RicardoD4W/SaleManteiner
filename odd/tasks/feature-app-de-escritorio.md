@@ -173,15 +173,16 @@ Para **el cliente**, la app tiene que cumplir esto:
 
 ## Tasks
 
-| ID  | Spec  | Ruta                                 | Commit                            |
-| --- | ----- | ------------------------------------ | --------------------------------- |
-| T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅                      |
-| T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅                      |
-| T3  | S2    | workspace `desktop/` + el esqueleto  | `8145b89` ✅                      |
-| T4  | S2    | server: empaquetado como sidecar     | `pendiente` (armado y verificado) |
-| T5  | S4    | shell Tauri: ventana, icono, ciclo   | pendiente                         |
-| T6  | S4-S5 | instalador + firma + auto-update     | pendiente                         |
-| T7  | S4    | smoke: arranque en frío sin Node     | pendiente                         |
+| ID  | Spec  | Ruta                                 | Commit                   |
+| --- | ----- | ------------------------------------ | ------------------------ |
+| T1  | S1-S3 | esta spec: comparar y decidir        | `8ea2c98` ✅             |
+| T2  | S2    | server: servir el web + fallback SPA | `2d6f7c4` ✅             |
+| T3  | S2    | workspace `desktop/` + el esqueleto  | `8145b89` ✅             |
+| T4  | S2    | server: empaquetado como sidecar     | `511e2e8` ✅             |
+| T5  | S4    | shell Tauri: ventana, icono, ciclo   | `dfeac0b` ✅             |
+| T6  | S4-S5 | instalador + firma + auto-update     | `2174987` + `d879499` ✅ |
+| T7  | S4    | smoke: arranque en frío sin Node     | verificado (L11) ✅      |
+| T8  | S5.4  | server: la ruta de la BD + fallback  | este commit ✅           |
 
 **T1** es esta spec. **T2** es el habilitador (va primero y no bloquea). **T3** es el workspace `/desktop` con el CLI de Tauri (hecho). La **PWA (O1) sale de la ruta de entrega**: el cliente no puede tener un server en marcha (S3) → queda como extra opcional para desarrollo. **T4-T7** son la ruta elegida (O3).
 
@@ -224,3 +225,11 @@ Para **el cliente**, la app tiene que cumplir esto:
 - **L11** (2026-10-26) — **T7 (el smoke) verde, y un hallazgo que casi nos costó caro.** Se instaló el instalador de verdad (`SaleManteiner_0.1.0_x64-setup.exe`, 36,5 MiB) y se arrancó **con el PATH sin node** → la app abre, el **node embebido** levanta el server y todo responde (200 en `/`, `/api/health` y los deep links). El web que sirve es el del bundle, no el del repo.
   - **El hallazgo**: el instalador deja la app en `%LOCALAPPDATA%\SaleManteiner\` y la carpeta de datos era **la misma** → con una instalación por máquina esa carpeta no es escribible (la app no podría crear la BD) y el desinstalador se lleva `$INSTDIR` entero. **La BD se movió a `%APPDATA%\SaleManteiner\`** (fuera de la instalación), con el mismo nombre claro. Verificado instalando y reinstalando: la app en LOCALAPPDATA, la BD en APPDATA.
   - **Lo que quedó pendente**: la **firma de Windows** (Authenticode) — sin ella el cliente ve el aviso de SmartScreen al descargar el instalador (§12.6) — y el instalador de NSIS en **inglés** (se traduce con una plantilla propia, `bundle.nsis.template`).
+- **L12** (2026-10-26) — **T8: la BD la decide el server, con fallback a la legacy (la opción A que eligió el usuario).** El hueco de S5.4 (la spec dice "si la ruta nueva está vacía pero existe el `~/.salemanteiner/data.db` de siempre, se usa el viejo") estaba escrito pero **no implementado**, y la app instalada abría con la BD vacía mientras el dev veía los datos de siempre: dos bases separadas.
+  - **La decisión (Opción A, del usuario)**: el `if` vive en el **server** (`server/src/config.ts` + `server/src/db/resolve-path.ts`), no en el shell → **una sola fuente de la verdad** para "dónde están los datos" y aplica a todos (dev e instalada).
+  - **El orden de resolución**: `SALEMANTEINER_DB` (archivo) > `SALEMANTEINER_DIR` (carpeta) > la **ruta canónica** por plataforma (`%APPDATA%\SaleManteiner` en Windows, `~/Library/Application Support/SaleManteiner` en macOS, `$XDG_DATA_HOME/SaleManteiner` en Linux) > **y, si la canónica no tiene datos pero la legacy sí, se usa la legacy**. Los overrides explícitos mandan siempre → el e2e y el arnés visual siguen aislados (y nunca tocan la BD del usuario).
+  - **El "¿tiene datos?"** es un probe **readonly** (`server/src/db/probe.ts`): si la BD no existe, tiene el esquema pero cero filas, o no se puede leer, cuenta como "sin datos" → **nadie pierde datos** y una BD corrupta no se come la buena. Verificado que un `readonly` sobre una BD **con WAL** lee bien (el caso real: la del usuario tiene el WAL de 1 MB).
+  - **El shell dejó de decidir**: `desktop/src/lib.rs` ya **no** pasa `SALEMANTEINER_DIR` (que además era lo que hacía el fallback inalcanzable: con la variable puesta, el server no podía mirar la legacy). En Linux la ruta del cliente pasa de `~/.config/SaleManteiner` a `~/.local/share/SaleManteiner` (la convención XDG de datos; no hay cliente Linux todavía).
+  - **El arranque lo dice**: el log del server ahora lleva `dbSource` (`canonical` | `legacy` | `explicit-file` | `explicit-dir`).
+  - **Verificación**: 16 tests nuevos (`server/src/__tests__/db-path.test.ts`: la resolución con un probe falso + la resolución con el probe real sobre BDs SQLite de verdad) → **229/229 server + 275/275 web**, typecheck/lint/format limpios, `cargo check` del shell, y **verificación visual** (4 capturas revisadas a ojo: compras, dashboard, dark y móvil; 0 errores de consola) corriendo contra una **copia** de la BD real en un home falso. En la máquina, la resolución real da `legacy` → `C:\Users\titan\.salemanteiner\data.db`.
+  - **La BD canónica de esta máquina** (creada por el smoke test de L11, con una compra "wdad") quedó **renombrada** a `.bak-20261026-094600` (no borrada) → así el fallback entra en juego y la app instalada ve los 32 registros de siempre.
