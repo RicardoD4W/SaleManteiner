@@ -503,6 +503,13 @@ Decisiones que quedaron pendientes (no bloquean nada):
 - Los **iconos** salen del favicon del repo (`web/public/favicon.svg` → `tauri icon`).
 - **No** hacen falta los paquetes JS `@tauri-apps/api` ni `@tauri-apps/plugin-*`: el shell conduce todo desde Rust y el web no llama a la API de Tauri.
 
+### El auto-update (decidido)
+
+- **Claves minisign**: la **privada** está en `~/.salemanteiner/desktop-updater/updater.key` (**fuera del repo**) con su password en `password.txt` al lado; la **pública** va en `tauri.conf.json` (`plugins.updater.pubkey`). Si se pierde cualquiera de las dos, **no se pueden firmar más updates**.
+- **Para firmar un build**: `TAURI_SIGNING_PRIVATE_KEY_PATH` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en el entorno → el bundler firma los artefactos y genera el `.sig` que el updater verifica.
+- **El endpoint** apunta a las GitHub Releases (`releases/latest/download/latest.json`) → cada release tiene que publicar el instalador **y** el `latest.json`.
+- La **firma de Windows** (Authenticode) es **otra** cosa y sigue pendiente de decidir (§12.6): sin ella, el cliente ve el aviso de SmartScreen.
+
 ### Cómo se construye y cómo se prueba
 
 - `npm run build:web` + `npm run build:server` → los dos artefactos que viaja el sidecar.
