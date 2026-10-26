@@ -40,7 +40,13 @@ fn start_server(app: &AppHandle) -> Result<(u16, CommandChild), Box<dyn Error>> 
     }
     let web_path = resources.join("web");
     let web_dir = dunce::simplified(&web_path);
-    let data_path = app.path().local_data_dir()?.join("SaleManteiner");
+    // La carpeta de datos NO puede ser la de instalación: el desinstalador de
+    // NSIS borra $INSTDIR entero, y con los datos adentro se perderían las
+    // ventas. Se usa la carpeta roaming (fuera de $INSTDIR) con un nombre claro.
+    let data_path = match app.path().app_config_dir()?.parent() {
+        Some(root) => root.join("SaleManteiner"),
+        None => app.path().app_config_dir()?,
+    };
     let data_dir = dunce::simplified(&data_path);
     std::fs::create_dir_all(data_dir)?;
 
