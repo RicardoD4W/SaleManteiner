@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "updater:default",
+    "dialog:allow-message",
     "process:default",
     {
       "identifier": "shell:allow-execute",

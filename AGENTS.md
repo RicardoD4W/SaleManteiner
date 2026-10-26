@@ -513,7 +513,9 @@ Decisiones que quedaron pendientes (no bloquean nada):
 
 - **Claves minisign**: la **privada** está en `~/.salemanteiner/desktop-updater/updater.key` (**fuera del repo**) con su password en `password.txt` al lado; la **pública** va en `tauri.conf.json` (`plugins.updater.pubkey`). Si se pierde cualquiera de las dos, **no se pueden firmar más updates**.
 - **Para firmar un build**: `TAURI_SIGNING_PRIVATE_KEY_PATH` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en el entorno → el bundler firma los artefactos y genera el `.sig` que el updater verifica.
-- **El endpoint** apunta a las GitHub Releases (`releases/latest/download/latest.json`) → cada release tiene que publicar el instalador **y** el `latest.json`.
+- **El endpoint** apunta a las GitHub Releases (`releases/latest/download/latest.json`) → cada release tiene que publicar el instalador **y** el `latest.json`. **El repo es público** → el updater del cliente lo lee sin credenciales (verificado: API y web responden 200 anónimamente).
+- **El flujo, de punta a punta**: `npm run build:app` (con las variables de firma en el entorno) → `node desktop/scripts/release.mjs` (arma el `latest.json`) → publicás la release en GitHub con el instalador, el `.sig` y el `latest.json`. El cliente abre la app → el shell hace `check_update()` → si hay versión nueva, un **diálogo nativo** pregunta → si acepta, descarga, **verifica la firma minisign** (si no calza, no instala) y reinicia la app. **Los datos no se tocan**: la BD vive en `%APPDATA%\SaleManteiner`, fuera de la carpeta que reemplaza el instalador.
+- **Todo el check vive en Rust** (`desktop/src/lib.rs`, `check_for_updates`): el web no llama a la API de Tauri (decisión del repo: el shell conduce todo desde Rust). Si no hay red o no hay release, el check **falla en silencio** (solo un log): la app nunca se bloquea por no poder actualizarse.
 - La **firma de Windows** (Authenticode) es **otra** cosa y sigue pendiente de decidir (§12.6): sin ella, el cliente ve el aviso de SmartScreen.
 
 ### Cómo se construye y cómo se prueba

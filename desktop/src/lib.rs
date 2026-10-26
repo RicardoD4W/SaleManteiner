@@ -4,8 +4,10 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager, Url, WindowEvent};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
+use tauri_plugin_updater::UpdaterExt;
 
 const SERVER_READY_TIMEOUT: Duration = Duration::from_secs(30);
 const SIDECAR_NAME: &str = "salemanteiner-server";
@@ -100,6 +102,67 @@ fn kill_sidecar(app: &AppHandle) {
     }
 }
 
+fn check_for_updates(app: &AppHandle) {
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let updater = match handle.updater() {
+            Ok(updater) => updater,
+            Err(error) => {
+                log::warn!("[updater] no puedo crear el updater: {error}");
+                return;
+            }
+        };
+        let update = match updater.check().await {
+            Ok(Some(update)) => update,
+            Ok(None) => {
+                log::info!("[updater] la app está al día");
+                return;
+            }
+            Err(error) => {
+                log::warn!("[updater] la comprobación falló (sin red o sin release): {error}");
+                return;
+            }
+        };
+        let current = handle.package_info().version.to_string();
+        let latest = update.version.clone();
+        log::info!("[updater] hay versión nueva: {current} -> {latest}");
+        let confirmed = handle
+            .dialog()
+            .message(format!(
+                "Hay una versión nueva de SaleManteiner ({current} → {latest}).\n\n¿Instalarla ahora?"
+            ))
+            .blocking_show();
+        if !confirmed {
+            log::info!("[updater] el usuario pospuso la actualización");
+            return;
+        }
+        let mut downloaded = 0u64;
+        let mut total = 0u64;
+        let result = update
+            .download_and_install(
+                |chunk, size| {
+                    downloaded += chunk as u64;
+                    if let Some(size) = size {
+                        total = size;
+                    }
+                    log::info!("[updater] descargando {downloaded}/{total} bytes");
+                },
+                || log::info!("[updater] descarga completa"),
+            )
+            .await;
+        if let Err(error) = result {
+            log::error!("[updater] falló la instalación: {error}");
+            handle
+                .dialog()
+                .message(format!("No se pudo instalar la actualización:\n\n{error}"))
+                .blocking_show();
+            return;
+        }
+        log::info!("[updater] instalada; reiniciando la app");
+        handle.restart();
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -110,6 +173,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
@@ -120,6 +184,7 @@ pub fn run() {
                 let url = Url::parse(&format!("http://127.0.0.1:{port}"))?;
                 window.navigate(url)?;
             }
+            check_for_updates(&handle);
             Ok(())
         })
         .on_window_event(|window, event| {
