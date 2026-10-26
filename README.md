@@ -112,11 +112,12 @@ Si esa carpeta está vacía pero tenés una base vieja en `~/.salemanteiner/data
 
 Instalador para Windows, macOS y Linux. **No necesitás instalar Node ni abrir una terminal**: doble clic en el ícono y la app arranca.
 
-1. Bajá el instalador de la [release](https://github.com/RicardoD4W/SaleManteiner/releases).
-2. Instalalo y abrí la app desde el ícono.
-3. Listo: la app **se actualiza sola** (no tenés que saber qué versión tenés).
+1. Bajá el **`.zip`** de la [release](https://github.com/RicardoD4W/SaleManteiner/releases) y descomprimilo.
+2. Dentro está el instalador: doble clic y seguí los pasos (todo en español).
+3. Abrí la app desde el ícono: **no necesitás instalar Node ni abrir una terminal**.
+4. Listo: la app **se actualiza sola** (no tenés que saber qué versión tenés).
 
-En Windows, sin firmar, aparece el aviso "Windows te protegió tu PC" → **Más información → Ejecutar**.
+> **Por qué el `.zip` y no el `.exe`**: Windows marca los archivos descargados y eso dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un zip no lleva esa marca → el cliente descomprime y ejecuta, sin avisos. Si aun así lo viera, es **Más información → Ejecutar** (o, mejor, que le pases el archivo a mano y lo instales en su máquina).
 
 ### Versión web (para desarrollo)
 
