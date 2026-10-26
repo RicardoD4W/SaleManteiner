@@ -14,10 +14,10 @@ describe('AppVersion', () => {
 
     render(<AppVersion />);
 
-    const footer = screen.getByText(/SaleManteiner/);
+    const footer = screen.getByText(/AFB:/);
     expect(footer.textContent).toContain('1.2.3');
-    expect(footer.textContent).toContain('front 0.4.5');
-    expect(footer.textContent).toContain('back 0.6.7');
+    expect(footer.textContent).toContain('- 0.4.5');
+    expect(footer.textContent).toContain('- 0.6.7');
   });
 
   it('sin versiones inyectadas muestra "dev" en vez de romperse', () => {
@@ -27,6 +27,6 @@ describe('AppVersion', () => {
 
     render(<AppVersion />);
 
-    expect(screen.getByText(/SaleManteiner/).textContent).toContain('dev');
+    expect(screen.getByText(/AFB:/).textContent).toContain('dev');
   });
 });

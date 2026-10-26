@@ -5,7 +5,7 @@ export function AppVersion() {
 
   return (
     <footer className="border-t border-gray-200 bg-white px-4 py-2 text-center text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-      SaleManteiner {app} · front {front} · back {back}
+      AFB: {app} - {front} - {back}
     </footer>
   );
 }
