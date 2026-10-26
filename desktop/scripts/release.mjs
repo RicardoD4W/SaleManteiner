@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,30 @@ export const ENDPOINT = `https://github.com/${REPO}/releases/latest/download/lat
 
 export function installerName(version) {
   return `SaleManteiner_${version}_x64-setup.exe`;
+}
+
+export function installerZipName(version) {
+  return `SaleManteiner_${version}_x64-setup.zip`;
+}
+
+/**
+ * El instalador dentro de un ZIP: el "Mark of the Web" (la marca que Windows
+ * pone a los archivos descargados) no viaja dentro de un archivo comprimido, así
+ * que el cliente no ve el aviso de "Windows te protegió tu PC" y no hace falta
+ * un certificado de firma de Windows (que cuesta plata).
+ */
+export function buildInstallerZip(installerPath, zipPath) {
+  if (existsSync(zipPath)) return zipPath;
+  execFileSync(
+    'powershell',
+    [
+      '-NoProfile',
+      '-Command',
+      `Compress-Archive -LiteralPath '${installerPath}' -DestinationPath '${zipPath}' -Force`,
+    ],
+    { stdio: 'inherit' },
+  );
+  return zipPath;
 }
 
 export function readLocalVersion() {

@@ -7,8 +7,10 @@ import {
   ENDPOINT,
   REPO,
   RELEASE_DIR,
+  buildInstallerZip,
   buildLatestJson,
   installerName,
+  installerZipName,
   readLocalVersion,
 } from './release.mjs';
 
@@ -148,6 +150,12 @@ async function main() {
   );
   log(`latest.json armado en ${latestPath}`);
 
+  const installerZip = buildInstallerZip(
+    installer,
+    path.join(RELEASE_DIR, installerZipName(localVersion)),
+  );
+  log(`instalador comprimido en ${installerZip} (para el cliente: sin aviso de SmartScreen)`);
+
   const releaseResponse = await fetch(`${api}/releases`, {
     method: 'POST',
     headers: { ...headers, 'content-type': 'application/json' },
@@ -185,6 +193,7 @@ async function main() {
   }
 
   await uploadAsset(release.id, installer, 'application/octet-stream');
+  await uploadAsset(release.id, installerZip, 'application/zip');
   await uploadAsset(release.id, signatureFile, 'text/plain');
   await uploadAsset(release.id, latestPath, 'application/json');
 

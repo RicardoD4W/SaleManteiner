@@ -58,7 +58,35 @@ npm run build:desktop     # = desktop/ → build:app
 
 GitHub → **Settings (perfil) → Developer settings → Personal access tokens** → _Fine-grained_ → resource `SaleManteiner` → _Repository permissions: **Contents: Read and write**_ (o el token clásico con el scope `public_repo`). Se pasa por entorno como `GITHUB_TOKEN` o `GH_TOKEN`. Alternativa: `gh auth login` → el token queda en el credential manager y se expone como `GH_TOKEN`.
 
-## 5. Versiones (una fuente por artifact)
+### Qué hay en la release
+
+| Archivo                               | Para qué                                                      |
+| ------------------------------------- | ------------------------------------------------------------- |
+| `SaleManteiner_<v>_x64-setup.exe`     | el instalador (lo usa el updater)                             |
+| `SaleManteiner_<v>_x64-setup.zip`     | **el instalador comprimido**: es lo que se le pasa al cliente |
+| `SaleManteiner_<v>_x64-setup.exe.sig` | la firma minisign (la verifica el updater)                    |
+| `latest.json`                         | el manifiesto que el updater consulta (versión, URL y firma)  |
+
+**Por qué el ZIP**: Windows marca los archivos descargados con el _Mark of the Web_, y esa marca es la que dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un ZIP no la lleva → el cliente descomprime y ejecuta, sin avisos y **sin necesidad de un certificado de firma de Windows** (que cuesta plata). El updater sigue usando el `.exe` directamente, así que las actualizaciones tampoco pasan por ese aviso.
+
+### El instalador, en español
+
+El instalador de NSIS sale en español: Tauri 2.12 ya trae la traducción (`bundle.windows.nsis.languages = ["Spanish"]`) y deja los textos que usa en `desktop/nsis/Spanish.nsh` (se puede customizear ahí).
+
+## 5. Firmar el instalador (la decisión de Authenticode)
+
+Son **dos firmas distintas**:
+
+| Firma                            | Para qué                                                              | Costo                                 |
+| -------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
+| **minisign** (la del updater)    | que la app verifique que la descarga es auténtica antes de instalarla | gratis, ya hecha                      |
+| **Authenticode** (la de Windows) | que Windows muestre el nombre del editor y no el aviso de SmartScreen | certificado de pago (OV ~129 USD/año) |
+
+**Recomendación: no comprar el certificado ahora.** Con el ZIP el cliente no ve el aviso de SmartScreen, y si aun así lo ve, el camino es "Más información → Ejecutar" o, mejor, **instalar en la máquina del cliente** (se le pasa el archivo a mano y no hay descarga). Además, desde 2026 los certificados EV tampoco dan reputación inmediata en SmartScreen: el aviso puede aparecer igual.
+
+Si algún día se decide comprarlo, el soporte ya está en el build de Tauri (`bundle.windows.certificateThumbprint` para el almacén de certificados de Windows, o `bundle.windows.signCommand` para `signtool` con un `.pfx`) y `bundle.windows.timestampUrl` + `tsp` para el sellado de tiempo. No hay nada que escribir en el repo hasta que exista el certificado.
+
+## 6. Versiones (una fuente por artifact)
 
 | Artifact | Fuente de verdad          |
 | -------- | ------------------------- |
@@ -70,16 +98,18 @@ GitHub → **Settings (perfil) → Developer settings → Personal access tokens
 
 El server expone `GET /api/version` → `{ app, front, back }` (la del back sale de su propio `package.json` — siempre cierta, también en el runtime empaquetado—; la de la app se puede forzar con `SALE_MANTEINER_APP_VERSION`; la del front viene del manifiesto). El web muestra las tres en el footer (`web/src/components/layout/AppVersion.tsx`) y cae a "dev" cuando no están inyectadas.
 
-## 6. Estado verificado
+## 7. Estado verificado
 
 - `cargo build` → `desktop/target/debug/salemanteiner-desktop.exe` ✓.
-- Instalador NSIS construido (4,18 MiB **sin** sidecar; con Node + server + web serán ~40 MB).
+- **Instalador firmado 0.1.0**: 36,62 MiB (Node + server + web adentro) + `.sig` minisign ✓.
+- **Instalado en un sandbox** (`%TEMP%\sm-e2e\app`): arranca, levanta el sidecar, sirve el web y la BD cae en el directorio temporal (`dbSource: explicit-dir`) → la BD real del usuario no se toca ✓. Captura revisada: dashboard en dark, 4 tabs, KPIs, chart y el footer con las versiones ✓.
 - Los íconos salen del favicon del repo (`web/public/favicon.svg` → `tauri icon`).
 - El smoke en frío (L11 del feature doc): la app instalada abre, guarda datos y el sidecar muere con la ventana.
 
-## 7. Qué falta
+## 8. Qué falta
 
-1. **Rehacer el instalador firmado** (el actual es anterior al fix de la ruta de la BD y al auto-update): `npm run build:app` con las variables de firma → `node desktop/scripts/release.mjs` → publicar la release.
-2. **Probar el auto-update de punta a punta**: publicar la `v0.1.1` y abrir la app instalada → debería preguntar y actualizarse sola.
-3. **Firma de Windows (Authenticode)**: decisión del usuario; la vía suave sin Store es instalar en la máquina del cliente.
-4. **Traducir el instalador al español** (hoy está en inglés).
+1. ~~**Rehacer el instalador firmado**~~ → hecho (0.1.0 firmado y verificado; 0.1.1 firmado y publicado).
+2. ~~**Probar el auto-update de punta a punta**~~ → hecho: la app instalada detecta la 0.1.1, pregunta, descarga, verifica la firma y se actualiza.
+3. **Firma de Windows (Authenticode)**: **no comprar por ahora** (decisión del 2026-10-26): con el ZIP el cliente no ve el aviso de SmartScreen y, si lo ve, la vía suave es instalar en la máquina del cliente. El soporte en el build ya estádocumentado en §5.
+4. ~~**Traducir el instalador al español**~~ → hecho (`bundle.windows.nsis.languages = ["Spanish"]`).
+5. **Falta probarlo en una máquina sin Node** (el smoke en frío de verdad, en la máquina del cliente).
