@@ -24,7 +24,6 @@ export function installerZipName(version) {
  * un certificado de firma de Windows (que cuesta plata).
  */
 export function buildInstallerZip(installerPath, zipPath) {
-  if (existsSync(zipPath)) return zipPath;
   execFileSync(
     'powershell',
     [
