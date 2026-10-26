@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { navLinkClass } from '../ui/tableStyles';
 import { ThemeToggle } from './ThemeToggle';
+import { AppVersion } from './AppVersion';
 import { isDashboardRoute } from '../../lib/dashboardTabs';
 
 export function Layout() {
@@ -9,7 +10,7 @@ export function Layout() {
   const enDashboard = isDashboardRoute(pathname);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <div className="flex items-baseline gap-3">
@@ -44,9 +45,10 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
         <Outlet />
       </main>
+      <AppVersion />
     </div>
   );
 }

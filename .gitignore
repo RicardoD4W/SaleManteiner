@@ -59,3 +59,6 @@ web/visual/.output/
 
 # Worktrees de revisión (nunca se commitean)
 .worktrees/
+
+# manifiesto de versiones (generado por scripts/write-versions.mjs)
+server/version.json

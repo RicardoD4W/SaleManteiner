@@ -102,6 +102,17 @@ try {
   fail(`falló el npm install de las dependencias de runtime: ${err.message}`);
 }
 
+log('  escribiendo el manifiesto de versiones');
+try {
+  execFileSync(
+    process.execPath,
+    [path.join(REPO, 'scripts', 'write-versions.mjs'), '--target', runtimeDir],
+    { stdio: 'inherit' },
+  );
+} catch (err) {
+  fail(`no pude escribir el manifiesto de versiones: ${err.message}`);
+}
+
 const webDist = path.join(REPO, 'web', 'dist');
 if (!existsSync(webDist)) fail('falta web/dist → corré `npm run build:web` primero');
 cpSync(webDist, path.join(RESOURCES, 'web'), { recursive: true });

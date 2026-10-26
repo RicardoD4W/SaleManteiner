@@ -7,6 +7,7 @@ import path from 'node:path';
 import { logger } from './logger.js';
 import { WEB_DIR } from './config.js';
 import { healthRouter } from './routes/health.js';
+import { versionRouter } from './routes/version.js';
 import { buysRouter } from './routes/buys.js';
 import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
@@ -35,6 +36,7 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use(pinoHttp({ logger }));
 
   app.use('/api/health', healthRouter({ service: SERVICE, version: VERSION }));
+  app.use('/api/version', versionRouter());
   app.use('/api/buys', buysRouter({ repo: deps.buysRepo }));
   app.use('/api/solds', soldsRouter({ repo: deps.soldsRepo }));
   app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
