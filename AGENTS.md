@@ -518,7 +518,7 @@ Decisiones que quedaron pendientes (no bloquean nada):
 
 ### Cómo se construye y cómo se prueba
 
-- `npm run build:web` + `npm run build:server` → los dos artefactos que viaja el sidecar.
+- **`npm run build:app`** (desde `desktop/`, o `npm run build:desktop` desde la raíz) → **la cadena completa, en orden**: compila el front (`web/dist`), compila el back (`server/dist`), re-empaqueta el sidecar (node + server + web) y genera el instalador en `desktop/target/release/bundle/nsis/`. **Es el comando de entrega**: un `tauri build` a secas empaquetaría el sidecar viejo (el bug que casi nos costó caro en L11).
+- `npm run pack:sidecar` (en `desktop/`) → solo re-empaqueta el runtime (node + server + web), sin generar el instalador.
 - `npm run dev:desktop` → el shell en modo desarrollo.
-- `npm run build:desktop` → el instalador en `desktop/target/release/bundle/nsis/` (con `--debug` va a `target/debug/`).
 - **T7 (el smoke que de verdad valida el requisito)**: instalar en una máquina **sin Node** → doble clic en el icono → la app abre, guarda datos y **se actualiza sola**.

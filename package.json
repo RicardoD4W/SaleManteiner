@@ -17,7 +17,7 @@
     "build": "npm-run-all build:server build:web",
     "build:web": "npm --workspace web run build",
     "build:server": "npm --workspace server run build",
-    "build:desktop": "npm --workspace desktop run build",
+    "build:desktop": "npm --workspace desktop run build:app",
     "typecheck": "npm-run-all typecheck:web typecheck:server",
     "typecheck:web": "npm --workspace web run typecheck",
     "typecheck:server": "npm --workspace server run typecheck",
