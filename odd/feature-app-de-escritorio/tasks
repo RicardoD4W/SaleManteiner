@@ -1,4 +1,0 @@
-Feature: app de escritorio (Tauri 2 + sidecar)
-Spec: odd/tasks/feature-app-de-escritorio.md
-Tasks: T1-T8 (T8 = la ruta de la BD con fallback a la legacy)
-Engram: topic "feature-app-de-escritorio" (project scope)

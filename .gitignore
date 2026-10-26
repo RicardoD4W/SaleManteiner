@@ -62,3 +62,6 @@ web/visual/.output/
 
 # manifiesto de versiones (generado por scripts/write-versions.mjs)
 server/version.json
+
+# Docs del ODD (workflow de gentle-shell): es un extra local, no parte del repo
+odd/
