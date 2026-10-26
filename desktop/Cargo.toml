@@ -2,7 +2,7 @@
 name = "salemanteiner-desktop"
 version = "0.1.0"
 description = "Shell de escritorio de SaleManteiner (Tauri 2)"
-authors = ["ricardo"]
+authors = ["rickydev03"]
 edition = "2024"
 rust-version = "1.90"
 
@@ -22,3 +22,4 @@ tauri-plugin-log = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+dunce = "1"
