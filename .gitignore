@@ -58,3 +58,6 @@ web/visual/.output/
 
 # Worktrees de revisión (nunca se commitean)
 .worktrees/
+
+# Docs del ODD (workflow de gentle-shell): es un extra local, no parte del repo
+odd/
