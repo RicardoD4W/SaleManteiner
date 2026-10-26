@@ -18,6 +18,7 @@
     "build:web": "npm --workspace web run build",
     "build:server": "npm --workspace server run build",
     "build:desktop": "npm --workspace desktop run build:app",
+    "publish:new-version": "npm --workspace desktop run publish:new-version",
     "typecheck": "npm-run-all typecheck:web typecheck:server",
     "typecheck:web": "npm --workspace web run typecheck",
     "typecheck:server": "npm --workspace server run typecheck",

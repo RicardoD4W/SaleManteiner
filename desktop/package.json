@@ -10,6 +10,7 @@
     "build:app": "npm --prefix .. run build:web && npm --prefix .. run build:server && node scripts/pack-sidecar.mjs && tauri build",
     "icon": "tauri icon",
     "pack:sidecar": "node scripts/pack-sidecar.mjs",
+    "publish:new-version": "node scripts/publish-new-version.mjs",
     "release": "node scripts/release.mjs"
   },
   "devDependencies": {
