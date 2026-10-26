@@ -15,6 +15,8 @@
 | Doc                                      | Qué contiene                                                                                      | Leelo cuando…                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | [ARCHITECTURE.md](ARCHITECTURE.md)       | Estructura del repo, stack, modelo de datos, ruta de la BD, reglas de código y convenciones de UI | Vas a tocar código o a cambiar el modelo         |
+| [WEB.md](WEB.md)                         | Detalle técnico del frontend: rutas, TanStack Query, componentes, búsqueda, estilos, tests        | Tocás `web/**`                                   |
+| [SERVER.md](SERVER.md)                   | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocás `server/**`                                |
 | [PRODUCT.md](PRODUCT.md)                 | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión           |
 | [WORKFLOW.md](WORKFLOW.md)               | Arranque, comandos, gates, verificación visual, skills, flujo ODD, trampas del repo               | Empezás a trabajar o vas a commitear             |
 | [DESKTOP.md](DESKTOP.md)                 | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente       |

@@ -9,6 +9,8 @@
 SaleManteiner/
 ├── AGENTS.md                 ← punto de entrada para agentes (leelo primero)
 ├── ARCHITECTURE.md           ← este doc
+├── WEB.md                    ← detalle técnico del frontend
+├── SERVER.md                 ← detalle técnico del backend
 ├── PRODUCT.md                ← qué es la app, decisiones de producto, roadmap
 ├── WORKFLOW.md               ← gates, verificación visual, skills, ODD
 ├── DESKTOP.md                ← la app de escritorio (Tauri 2)
@@ -23,67 +25,15 @@ SaleManteiner/
 └── desktop/                  ← shell de escritorio (Tauri 2) + sidecar
 ```
 
-### `server/` — backend (Node 20 + Express 5 + better-sqlite3)
+### Dónde mirar qué
 
-```text
-server/src/
-├── config.ts                 ← rutas, puerto, log level, WEB_DIR
-├── version.ts                ← lee app/front/back version en runtime
-├── logger.ts                 ← Pino
-├── app.ts                    ← crea la app Express, registra routers, sirve el web/dist
-├── index.ts                  ← entrypoint (listen + shutdown limpio)
-├── db/
-│   ├── index.ts              ← openDb (WAL + FK + mkdir del padre)
-│   ├── migrate.ts            ← runMigrations
-│   ├── resolve-path.ts       ← decide la ruta de la BD (ver §4)
-│   ├── probe.ts              ← probe readonly: "¿esta ruta tiene datos?"
-│   └── migrations/           ← 001..005 (001/002 legacy, 003 modelo actual, 004 vistas, 005 índices)
-├── lib/
-│   ├── round.ts              ← round2(): mitiga el error IEEE 754
-│   └── defined-only.ts       ← filtra undefined en los patches
-├── schemas/                  ← Zod: common, buys, solds, customers
-├── repo/                     ← buys-repo, solds-repo, customers-repo, types
-├── routes/                   ← health, version, buys, solds, customers, dashboard, _shared
-└── __tests__/                ← tests del server (BD :memory:)
-```
+| Workspace  | Qué contiene                                                                                  | Detalle                  |
+| ---------- | --------------------------------------------------------------------------------------------- | ------------------------ |
+| `server/`  | Node + Express + SQLite: config, DB, migraciones, schemas Zod, repos, rutas, tests            | [SERVER.md](SERVER.md)   |
+| `web/`     | React + Vite + Tailwind: rutas, datos (TanStack Query), componentes, búsqueda, estilos, tests | [WEB.md](WEB.md)         |
+| `desktop/` | Shell Tauri 2 + sidecar + instalador + auto-update                                            | [DESKTOP.md](DESKTOP.md) |
 
-### `web/` — frontend (React 19 + Vite 8 + Tailwind 4)
-
-```text
-web/src/
-├── main.tsx                  ← root + QueryClientProvider
-├── App.tsx                   ← RouterProvider (/, /buys, /buys/:id, /solds, /solds/:id, /customers)
-├── index.css                 ← @import "tailwindcss" + @custom-variant dark + @theme
-├── api/                      ← client + buys/solds/customers (mirror del server) + types
-├── components/
-│   ├── ui/                   ← Button, Input, Textarea, Card, Modal, VirtualTable,
-│   │                            SortableTh, ConfirmDeleteModal, useFocusTrap, armedRow, …
-│   ├── sales/                ← BuyNewModal, SaleNewModal, ProductPickerModal,
-│   │                            CustomerAutocomplete, CustomerFormModal, Delete*Modal/Dialogs
-│   ├── dashboard/            ← CashFlowChart, LazyCashFlowChart, StatCard
-│   └── layout/               ← Layout (nav + footer de versiones), NavLink, ThemeToggle, AppVersion
-├── hooks/                    ← use* (datos y mutaciones), useSortable, useCascadeDeleteFlow, useTheme
-├── lib/                      ← format, round, sorting, toast, queryClient, searchQuery, dashboardTabs
-├── pages/                    ← buys/, solds/, customers/, dashboard/ (4 tabs)
-├── schemas/                  ← Zod del web: common, buys, solds, customers, fields, forms
-├── test-utils/               ← fixtures + render
-└── e2e/                      ← specs de Playwright
-```
-
-### `desktop/` — shell de escritorio
-
-```text
-desktop/
-├── tauri.conf.json           ← ventana, bundle, CSP, plugins.updater.pubkey
-├── capabilities/default.json ← permisos (core, updater, process, shell:allow-execute)
-├── Cargo.toml / build.rs     ← proyecto Rust (tauri + plugins shell/updater/process/log)
-├── src/{main.rs,lib.rs}      ← main.rs thin; toda la lógica en lib.rs
-├── scripts/                  ← pack-sidecar.mjs, release.mjs, publish-new-version.mjs
-├── resources/                ← el sidecar empaquetado (node + server + web)
-└── icons/                    ← íconos generados (tauri icon)
-```
-
-Detalle de la app de escritorio: [DESKTOP.md](DESKTOP.md).
+Lo que **no** depende del workspace (modelo de datos, reglas del repo, convenciones, API) vive en este doc.
 
 ## 2. Stack
 
