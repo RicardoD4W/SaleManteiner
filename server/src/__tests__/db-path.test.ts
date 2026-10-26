@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import Database from 'better-sqlite3';
@@ -56,11 +57,15 @@ describe('canonicalDataDir', () => {
     ).toBe(join(FAKE_APPDATA, 'SaleManteiner'));
   });
 
-  it('en Windows sin APPDATA usa LOCALAPPDATA', () => {
+  it('en Windows sin APPDATA usa el roaming del home y nunca la carpeta de instalación', () => {
     const local = join(sep(), 'home', 'tester', 'AppData', 'Local');
-    expect(
-      canonicalDataDir({ env: { LOCALAPPDATA: local }, home: FAKE_HOME, platform: 'win32' }),
-    ).toBe(join(local, 'SaleManteiner'));
+    const dir = canonicalDataDir({
+      env: { LOCALAPPDATA: local },
+      home: FAKE_HOME,
+      platform: 'win32',
+    });
+    expect(dir).toBe(join(FAKE_HOME, 'AppData', 'Roaming', 'SaleManteiner'));
+    expect(dir.toLowerCase()).not.toContain(join('appdata', 'local').toLowerCase());
   });
 
   it('en macOS usa ~/Library/Application Support/SaleManteiner', () => {
@@ -216,5 +221,58 @@ describe('resolveDbPath con el probe real', () => {
       hasData: hasUserData,
     });
     expect(resolution).toEqual({ path: join(canonicalDir, 'data.db'), source: 'canonical' });
+  });
+});
+
+describe('regresiones de la resolucion de la BD', () => {
+  const TABLE_SQL: Record<string, { create: string; insert: string }> = {
+    customers: {
+      create: 'CREATE TABLE customers (id INTEGER PRIMARY KEY)',
+      insert: 'INSERT INTO customers (id) VALUES (1)',
+    },
+    solds: {
+      create: 'CREATE TABLE solds (id INTEGER PRIMARY KEY)',
+      insert: 'INSERT INTO solds (id) VALUES (1)',
+    },
+    sale_items: {
+      create: 'CREATE TABLE sale_items (id INTEGER PRIMARY KEY)',
+      insert: 'INSERT INTO sale_items (id) VALUES (1)',
+    },
+  };
+
+  it.each(Object.entries(TABLE_SQL))(
+    'el probe ve datos si la unica tabla con filas es %s',
+    (_table, sql) => {
+      const dbPath = join(tempDir(), 'data.db');
+      const db = new Database(dbPath);
+      db.exec(sql.create);
+      db.prepare(sql.insert).run();
+      db.close();
+      expect(hasUserData(dbPath)).toBe(true);
+    },
+  );
+
+  it('el probe no modifica el data.db ni el WAL (no escribe, no hace checkpoint)', () => {
+    const dbPath = join(tempDir(), 'data.db');
+    const writer = new Database(dbPath);
+    writer.pragma('journal_mode = WAL');
+    writer.exec('CREATE TABLE buys (id INTEGER PRIMARY KEY, product_name TEXT NOT NULL)');
+    writer.prepare('INSERT INTO buys (product_name) VALUES (?)').run('x');
+    const hash = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+    const before = [hash(dbPath), hash(`${dbPath}-wal`)];
+    expect(hasUserData(dbPath)).toBe(true);
+    expect([hash(dbPath), hash(`${dbPath}-wal`)]).toEqual(before);
+    writer.close();
+  });
+
+  it('con el env del e2e (SALEMANTEINER_DIR + SALEMANTEINER_DB) no se mira la legacy', () => {
+    const dir = join(tempDir(), 'e2e');
+    const resolution = resolveDbPath({
+      env: { SALEMANTEINER_DIR: dir, SALEMANTEINER_DB: join(dir, 'data.db') },
+      home: FAKE_HOME,
+      platform: 'win32',
+      hasData: () => true,
+    });
+    expect(resolution.source).toBe('explicit-file');
   });
 });

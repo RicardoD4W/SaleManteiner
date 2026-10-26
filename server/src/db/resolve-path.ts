@@ -21,7 +21,7 @@ export function canonicalDataDir(options: {
 }): string {
   const { env, home, platform } = options;
   if (platform === 'win32') {
-    const appData = env.APPDATA?.trim() || env.LOCALAPPDATA?.trim();
+    const appData = env.APPDATA?.trim();
     if (appData) return path.join(appData, 'SaleManteiner');
     return path.join(home, 'AppData', 'Roaming', 'SaleManteiner');
   }
