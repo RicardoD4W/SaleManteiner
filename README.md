@@ -30,10 +30,18 @@ Ver `odd/tasks/` para el detalle de cada feature (specs, tareas y log).
 SaleManteiner/
 ├── web/            # Frontend React 19 + Vite + TypeScript + Tailwind 4
 ├── server/         # Backend Node 20 + Express + TypeScript
+├── desktop/        # Shell de escritorio Tauri 2 (el server corre como sidecar)
 ├── odd/tasks/      # Feature docs por unidad de trabajo
 ├── AGENTS.md       # Contexto del proyecto (léelo primero)
+├── ARCHITECTURE.md # Estructura, modelo de datos y convenciones de código
+├── PRODUCT.md      # Decisiones de producto y roadmap
+├── WORKFLOW.md     # Arranque, gates, verificación visual y skills
+├── DESKTOP.md      # La app de escritorio (Tauri 2)
+├── STATUS.md       # Estado actual y pendientes
 └── package.json    # Workspaces de npm
 ```
+
+Los docs de la raíz están pensados para agentes: [`AGENTS.md`](AGENTS.md) es el punto de entrada y el resto se leen desde ahí.
 
 ## Requisitos
 
@@ -86,9 +94,11 @@ npm run lint                          # ESLint en web/ y server/
 npm run format                        # Prettier en todo el repo
 npm run format:check                  # Prettier en modo verificación (GATE: tiene que pasar)
 npm run build                         # Build de producción de web/ y server/
-npm test --workspaces -- --run        # Vitest en server (176 tests) + web (198 tests)
-npm run e2e -w web                    # Playwright (31 e2e: flujos, borrado en cascada, view transitions, tablas)
-npm run visual -w web                 # Verificación visual: capturas en web/visual/shots/ (ver AGENTS.md §8.1)
+npm test --workspaces -- --run        # Vitest en server (238 tests) + web (277 tests)
+npm run e2e -w web                    # Playwright (36 e2e: flujos, borrado en cascada, view transitions, tablas)
+
+# Verificación visual (obligatoria si tocás la UI): el arnés se arma en el
+# momento y las capturas se miran con la herramienta read → WORKFLOW.md §4
 ```
 
 ## Documentación

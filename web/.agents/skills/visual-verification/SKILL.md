@@ -17,7 +17,7 @@ Un test verde no demuestra que la UI se vea bien. Este skill es el paso de
   (typecheck, lint, format, tests).
 
 **El arnés no vive en el repo**: se crea en el momento de resolver la spec
-que lo necesita (ver AGENTS.md §8.1) y se puede borrar cuando la spec está
+que lo necesita (ver WORKFLOW.md §4) y se puede borrar cuando la spec está
 resuelta.
 
 ## Procedimiento
@@ -67,7 +67,7 @@ explícitamente — no se da por verificado.
 
 - La app es de una sola página en español (`/`, `/buys`, `/solds`,
   `/customers`); sin i18n.
-- Tokens de color y convención de dark mode: `AGENTS.md` §9.
+- Tokens de color y convención de dark mode: `ARCHITECTURE.md` §6.
 - El MCP de Playwright de esta máquina apunta al Chrome de sistema, que no
   está instalado: usar el Chromium del repo (`npx playwright install
   chromium`) o el script de captura.
