@@ -15,10 +15,7 @@ SaleManteiner/
 ├── WORKFLOW.md               ← gates, verificación visual, skills, ODD
 ├── DESKTOP.md                ← la app de escritorio (Tauri 2)
 ├── STATUS.md                 ← estado actual, pendientes, historial
-├── odd/
-│   ├── happy-path.md         ← guion de humo del usuario (checklist de UI)
-│   ├── tasks/                ← un doc por feature (specs + tasks + log)
-│   └── HANDOFF.md            ← estado de la última sesión cerrada
+├── odd/                      ← docs del ODD (local, gitignored: no van al repo)
 ├── scripts/write-versions.mjs← genera web/.env + server/version.json
 ├── server/                   ← backend Node + Express
 ├── web/                      ← frontend React + Vite

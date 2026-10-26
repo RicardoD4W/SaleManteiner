@@ -12,19 +12,16 @@
 
 ## 1. Mapa de documentos
 
-| Doc                                      | Qué contiene                                                                                      | Leelo cuando…                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| [ARCHITECTURE.md](ARCHITECTURE.md)       | Estructura del repo, stack, modelo de datos, ruta de la BD, reglas de código y convenciones de UI | Vas a tocar código o a cambiar el modelo         |
-| [WEB.md](WEB.md)                         | Detalle técnico del frontend: rutas, TanStack Query, componentes, búsqueda, estilos, tests        | Tocás `web/**`                                   |
-| [SERVER.md](SERVER.md)                   | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocás `server/**`                                |
-| [DESKTOP.md](DESKTOP.md)                 | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente       |
-| [PRODUCT.md](PRODUCT.md)                 | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión           |
-| [WORKFLOW.md](WORKFLOW.md)               | Arranque, comandos, gates, verificación visual, skills, flujo ODD, trampas del repo               | Empezás a trabajar o vas a commitear             |
-| [STATUS.md](STATUS.md)                   | Estado actual, pendientes, decisiones abiertas, historial                                         | Necesitás saber qué falta                        |
-| [`odd/happy-path.md`](odd/happy-path.md) | Guion de humo del usuario (checklist de la UI)                                                    | Hay que verificar que un refactor no rompió nada |
-| [`odd/tasks/`](odd/tasks/)               | Un doc por feature: specs (S#), tareas (T#) y Log (L#)                                            | Quieres el detalle histórico de un feature       |
-| [`odd/HANDOFF.md`](odd/HANDOFF.md)       | Estado de la última sesión cerrada y cómo retomar                                                 | Retomás un trabajo interrumpido                  |
-| [README.md](README.md)                   | Instalación y uso para una persona (no un agente)                                                 | El cliente o un humano nuevo lee el repo         |
+| Doc                                | Qué contiene                                                                                      | Leelo cuando…                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura del repo, stack, modelo de datos, ruta de la BD, reglas de código y convenciones de UI | Vas a tocar código o a cambiar el modelo   |
+| [WEB.md](WEB.md)                   | Detalle técnico del frontend: rutas, TanStack Query, componentes, búsqueda, estilos, tests        | Tocás `web/**`                             |
+| [SERVER.md](SERVER.md)             | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocás `server/**`                          |
+| [DESKTOP.md](DESKTOP.md)           | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente |
+| [PRODUCT.md](PRODUCT.md)           | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión     |
+| [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, verificación visual, skills, flujo ODD, trampas del repo               | Empezás a trabajar o vas a commitear       |
+| [STATUS.md](STATUS.md)             | Estado actual, pendientes, decisiones abiertas, historial                                         | Necesitás saber qué falta                  |
+| [README.md](README.md)             | Instalación y uso para una persona (no un agente)                                                 | El cliente o un humano nuevo lee el repo   |
 
 ## 2. Stack
 
@@ -52,7 +49,7 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 - `format:check` **es** gate (el repo está normalizado con Prettier desde 2026-10-19).
 - `npm run test:e2e` también es gate cuando el cambio toca flujos de la UI.
-- **Verificación visual**: obligatoria para cambios con UI → [WORKFLOW.md §4](WORKFLOW.md#4-verificación-visual-no-negociable-para-cambios-con-ui). El checklist del usuario está en [`odd/happy-path.md`](odd/happy-path.md) y las capturas se miran con la herramienta `read`.
+- **Verificación visual**: obligatoria para cambios con UI → [WORKFLOW.md §4](WORKFLOW.md#4-verificación-visual-no-negociable-para-cambios-con-ui) (incluye el guion de humo del usuario) y las capturas se miran con la herramienta `read`.
 
 ## 4. Reglas del repo (no negociables)
 

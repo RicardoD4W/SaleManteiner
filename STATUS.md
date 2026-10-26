@@ -59,4 +59,4 @@
 | 2026-10-25 | **App de escritorio**: Tauri 2 + sidecar, instalador NSIS, auto-update con minisign. Suite del web 3× más rápida.                                                                                                                                               |
 | 2026-10-26 | **La ruta de la BD la decide el server** (canónica por plataforma + fallback a la legacy); RDD nativo arreglado (binario package-local); `build:app`, `publish:new-version` y el **sistema de versiones** (footer con app/front/back).                          |
 
-El detalle de cada hito está en el Log del feature doc correspondiente (`odd/tasks/`), y el de la última sesión en [`odd/HANDOFF.md`](odd/HANDOFF.md).
+El detalle de cada hito está en el Log del feature doc correspondiente (`odd/tasks/`, local y no versionado), y el de la última sesión en `odd/HANDOFF.md`.

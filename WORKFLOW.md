@@ -54,7 +54,7 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 **Alcance**: aplica a los cambios que tocan la UI (textos, layout, estilos, componentes). Una spec **solo de código** (refactor, renombre, limpieza) que no cambia ni la funcionalidad ni el aspecto **no** la requiere: la verifican los gates.
 
-**El guion de humo** está en [`odd/happy-path.md`](odd/happy-path.md): es el checklist de todo lo que puede hacer un usuario (crear un cliente, modificarlo, hacer una compra, venderla, borrarla, filtrar, ordenar, cascadas, dark, móvil). Hay que recorrerlo **mirando la web** para comprobar que un refactor no rompió nada.
+**El guion de humo** está en `odd/happy-path.md` (local, no versionado): es el checklist de todo lo que puede hacer un usuario (crear un cliente, modificarlo, hacer una compra, venderla, borrarla, filtrar, ordenar, cascadas, dark, móvil). Hay que recorrerlo **mirando la web** para comprobar que un refactor no rompió nada.
 
 **El arnés no vive en el repo**: se arma en el momento de resolver la spec que lo necesita (y se puede borrar después). Las capturas que produce quedan fuera de git (`web/visual/shots/`).
 

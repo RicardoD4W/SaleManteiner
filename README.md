@@ -136,17 +136,16 @@ npm run dev
 
 ## Documentación
 
-| Doc                                      | Qué hay                                                                   |
-| ---------------------------------------- | ------------------------------------------------------------------------- |
-| [ARCHITECTURE.md](ARCHITECTURE.md)       | Arquitectura general: stack, modelo de datos, reglas de código, API       |
-| [WEB.md](WEB.md)                         | Detalle técnico del frontend (React, estado, componentes, estilos, tests) |
-| [SERVER.md](SERVER.md)                   | Detalle técnico del backend (Express, rutas, repos, migraciones, errores) |
-| [DESKTOP.md](DESKTOP.md)                 | La app de escritorio: sidecar, instalador, auto-update, versiones         |
-| [WORKFLOW.md](WORKFLOW.md)               | Cómo se trabaja en el repo: gates, verificación visual, skills            |
-| [PRODUCT.md](PRODUCT.md)                 | Decisiones de producto y roadmap                                          |
-| [STATUS.md](STATUS.md)                   | Estado actual y pendientes                                                |
-| [`odd/tasks/`](odd/tasks/)               | Un doc por feature: qué se pidió, qué se hizo y por qué                   |
-| [`odd/happy-path.md`](odd/happy-path.md) | Guion de humo: todo lo que puede hacer un usuario                         |
+| Doc                                | Qué hay                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitectura general: stack, modelo de datos, reglas de código, API       |
+| [WEB.md](WEB.md)                   | Detalle técnico del frontend (React, estado, componentes, estilos, tests) |
+| [SERVER.md](SERVER.md)             | Detalle técnico del backend (Express, rutas, repos, migraciones, errores) |
+| [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones         |
+| [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, verificación visual, skills            |
+| [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
+| [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
+| [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
 
 ---
 

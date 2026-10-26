@@ -2,7 +2,7 @@
 
 > Un shell de escritorio que **empaqueta la app sin reescribirla**: el web compilado (`web/dist`) y el server (`server/dist`) viajan dentro del instalador; el shell (Tauri 2) abre la ventana y el server corre como **sidecar** (un proceso Node que el shell lanza y cierra con ella).
 
-- **Spec, tareas y Log**: [`odd/tasks/feature-app-de-escritorio.md`](odd/tasks/feature-app-de-escritorio.md).
+- **Spec, tareas y Log**: `odd/tasks/feature-app-de-escritorio.md` (local, no versionado).
 - **Rama**: `feature/app-de-escritorio`.
 - **Workspace**: `desktop/` es un workspace npm (como `web/` y `server/`) con `@tauri-apps/cli`; el proyecto Rust vive **plano en `desktop/`** (`Cargo.toml`, `tauri.conf.json`, `capabilities/`, `src/`, `icons/`).
 
