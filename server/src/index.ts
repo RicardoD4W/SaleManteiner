@@ -5,7 +5,7 @@ import { runMigrations } from './db/migrate.js';
 import { createBuysRepo } from './repo/buys-repo.js';
 import { createSoldsRepo } from './repo/solds-repo.js';
 import { createCustomersRepo } from './repo/customers-repo.js';
-import { DB_PATH, HOST, PORT } from './config.js';
+import { DB_PATH, DB_SOURCE, HOST, PORT } from './config.js';
 
 const db = openDb(DB_PATH);
 runMigrations(db);
@@ -16,7 +16,10 @@ const customersRepo = createCustomersRepo(db);
 const app = createApp({ buysRepo, soldsRepo, customersRepo });
 
 const server = app.listen(PORT, HOST, () => {
-  logger.info({ port: PORT, host: HOST, dbPath: DB_PATH }, 'SaleManteiner server listening');
+  logger.info(
+    { port: PORT, host: HOST, dbPath: DB_PATH, dbSource: DB_SOURCE },
+    'SaleManteiner server listening',
+  );
 });
 
 function shutdown(signal: string): void {

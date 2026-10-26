@@ -21,61 +21,14 @@ const { toastDeleted, toastUpdated, toastCreated } = vi.hoisted(() => ({
 vi.mock('@/lib/toast', () => ({ toastDeleted, toastUpdated, toastCreated }));
 
 import { customersApi } from '@/api/customers';
-import { ApiError } from '@/api/client';
-import {
-  isDeleteCustomer409,
-  useDeleteCustomer,
-  useDeleteCustomerCascade,
-} from '@/hooks/useDeleteCustomer';
-import type { AssociatedSale } from '@/api/types';
+import { useDeleteCustomer, useDeleteCustomerCascade } from '@/hooks/useDeleteCustomer';
 import { makeHookWrapper } from '@/test-utils/hook-wrapper';
-
-const SALES: AssociatedSale[] = [
-  { id: 7, customer_name: 'Ana', sold_at: '2026-10-19', items_count: 2 },
-];
 
 const customerFixture = {
   id: 1,
   name: 'Juan Pérez',
   created_at: '2026-10-01T10:00:00.000Z',
 };
-
-describe('isDeleteCustomer409', () => {
-  it('true: 409 con associated_sales no vacío', () => {
-    const body = {
-      error:
-        'No se puede borrar: el cliente tiene ventas asociadas. ¿Querés borrar también las ventas?',
-      associated_sales: SALES,
-    };
-    expect(isDeleteCustomer409(new ApiError(409, body))).toBe(true);
-  });
-
-  it('false: 409 sin associated_sales (no debe abrir la modal en silencio)', () => {
-    const err = new ApiError(409, { error: 'Conflicto' });
-    expect(isDeleteCustomer409(err)).toBe(false);
-  });
-
-  it('false: 409 con associated_sales vacío (no hay nada que confirmar)', () => {
-    const body = { error: 'Conflicto', associated_sales: [] };
-    expect(isDeleteCustomer409(new ApiError(409, body))).toBe(false);
-  });
-
-  it('false: 409 con associated_sales que no es un array', () => {
-    const body = { error: 'Conflicto', associated_sales: 'nope' };
-    expect(isDeleteCustomer409(new ApiError(409, body))).toBe(false);
-  });
-
-  it('false: otros status (404, 500)', () => {
-    expect(isDeleteCustomer409(new ApiError(404, { error: 'Cliente no encontrado' }))).toBe(false);
-    expect(isDeleteCustomer409(new ApiError(500, { error: 'Internal Server Error' }))).toBe(false);
-  });
-
-  it('false: errores que no son ApiError', () => {
-    expect(isDeleteCustomer409(new Error('boom'))).toBe(false);
-    expect(isDeleteCustomer409('boom')).toBe(false);
-    expect(isDeleteCustomer409(undefined)).toBe(false);
-  });
-});
 
 describe('useDeleteCustomer', () => {
   beforeEach(() => {

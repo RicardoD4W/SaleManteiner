@@ -2,7 +2,6 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { CustomerAutocomplete } from '../../components/sales/CustomerAutocomplete';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/ui/Textarea';
@@ -16,23 +15,11 @@ import { apiErrorMessage } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
-
-const SoldEditFormSchema = z.object({
-  customer_id: z.number({ error: 'El cliente es obligatorio' }).int().positive(),
-  sale_price: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  associated_costs: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  sold_at: z.string().optional(),
-  notes: z.string().max(5000).optional().or(z.literal('')),
-});
-
-type SoldEditFormInput = z.input<typeof SoldEditFormSchema>;
-type SoldEditFormOutput = z.output<typeof SoldEditFormSchema>;
+import {
+  SoldEditFormSchema,
+  type SoldEditFormInput,
+  type SoldEditFormOutput,
+} from '../../schemas/forms';
 
 export function SoldEditPage() {
   const { id } = useParams();
@@ -193,7 +180,7 @@ export function SoldEditPage() {
 
       <Card>
         <CardBody>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <div
               className="transition-field"
               style={{ '--vt-name': transitionName('client') } as CSSProperties}

@@ -2,8 +2,12 @@ import express, { type ErrorRequestHandler, type Express } from 'express';
 import cors from 'cors';
 import { pinoHttp } from 'pino-http';
 import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { logger } from './logger.js';
+import { WEB_DIR } from './config.js';
 import { healthRouter } from './routes/health.js';
+import { versionRouter } from './routes/version.js';
 import { buysRouter } from './routes/buys.js';
 import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
@@ -21,6 +25,7 @@ export interface CreateAppDeps {
   buysRepo: BuysRepo;
   soldsRepo: SoldsRepo;
   customersRepo: CustomersRepo;
+  webDir?: string | null;
 }
 
 export function createApp(deps: CreateAppDeps): Express {
@@ -31,10 +36,22 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use(pinoHttp({ logger }));
 
   app.use('/api/health', healthRouter({ service: SERVICE, version: VERSION }));
+  app.use('/api/version', versionRouter());
   app.use('/api/buys', buysRouter({ repo: deps.buysRepo }));
   app.use('/api/solds', soldsRouter({ repo: deps.soldsRepo }));
   app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
   app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
+
+  const webDir = deps.webDir === undefined ? WEB_DIR : deps.webDir;
+  if (webDir && existsSync(webDir)) {
+    app.use(express.static(webDir, { index: false }));
+    app.get(/^(?!\/api\/).*/, (req, res, next) => {
+      if (path.extname(req.path)) return next();
+      if (!req.accepts('html')) return next();
+      res.sendFile(path.join(webDir, 'index.html'));
+    });
+    logger.info({ webDir }, 'Sirviendo el web compilado');
+  }
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Not Found', path: req.path });

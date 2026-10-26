@@ -1,13 +1,7 @@
-import { useState } from 'react';
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal';
 import { DeleteCustomerModal } from './DeleteCustomerModal';
-import {
-  useDeleteCustomer,
-  useDeleteCustomerCascade,
-  isDeleteCustomer409,
-} from '../../hooks/useDeleteCustomer';
-import type { AssociatedSale } from '../../api/types';
-import { apiErrorMessage } from '../../api/client';
+import { useDeleteCustomer, useDeleteCustomerCascade } from '../../hooks/useDeleteCustomer';
+import { useCascadeDeleteFlow } from '../../hooks/useCascadeDeleteFlow';
 import type { Customer } from '../../schemas/customers';
 
 interface DeleteCustomerDialogsProps {
@@ -20,65 +14,25 @@ export function DeleteCustomerDialogs({ customer, onClose }: DeleteCustomerDialo
   const deleteCustomer = useDeleteCustomer();
   const deleteCustomerCascade = useDeleteCustomerCascade();
 
-  const [inCascade, setInCascade] = useState(false);
-
-  const [associatedSales, setAssociatedSales] = useState<AssociatedSale[] | null>(null);
-
-  const [error, setError] = useState<string | null>(null);
-
-  const [cascadeError, setCascadeError] = useState<string | null>(null);
-
-  const close = () => {
-    setInCascade(false);
-    setAssociatedSales(null);
-    setError(null);
-    setCascadeError(null);
-    onClose();
-  };
-
-  const handleConfirm = async () => {
-    if (!customer) return;
-    setError(null);
-    try {
-      await deleteCustomer.mutateAsync(customer.id);
-      close();
-    } catch (err) {
-      if (isDeleteCustomer409(err)) {
-        setAssociatedSales(err.body.associated_sales);
-        setInCascade(true);
-        return;
-      }
-      setError(apiErrorMessage(err, 'Error al eliminar'));
-    }
-  };
-
-  const handleCascadeConfirm = async () => {
-    if (!customer) return;
-    setCascadeError(null);
-    try {
-      await deleteCustomerCascade.mutateAsync(customer.id);
-      close();
-    } catch (err) {
-      setCascadeError(apiErrorMessage(err, 'Error al eliminar en cascada'));
-    }
-  };
-
-  const handleCascadeClose = () => {
-    if (deleteCustomerCascade.isPending) return;
-    close();
-  };
+  const flow = useCascadeDeleteFlow({
+    id: customer?.id ?? null,
+    resetKey: customer?.id ?? null,
+    deleteOne: deleteCustomer,
+    deleteCascade: deleteCustomerCascade,
+    onClose,
+  });
 
   if (!customer) return null;
 
-  if (inCascade && associatedSales) {
+  if (flow.inCascade && flow.associatedSales) {
     return (
       <DeleteCustomerModal
         customerName={customer.name}
-        sales={associatedSales}
-        isPending={deleteCustomerCascade.isPending}
-        cascadeError={cascadeError}
-        onClose={handleCascadeClose}
-        onConfirm={handleCascadeConfirm}
+        sales={flow.associatedSales}
+        isPending={flow.isCascading}
+        cascadeError={flow.cascadeError}
+        onClose={flow.closeCascade}
+        onConfirm={flow.confirmCascade}
       />
     );
   }
@@ -91,11 +45,11 @@ export function DeleteCustomerDialogs({ customer, onClose }: DeleteCustomerDialo
           ¿Eliminar <strong>"{customer.name}"</strong>? No se puede deshacer.
         </>
       }
-      error={error}
+      error={flow.error}
       isPending={deleteCustomer.isPending}
       confirmLabel="Sí, eliminar"
-      onClose={close}
-      onConfirm={handleConfirm}
+      onClose={flow.close}
+      onConfirm={flow.confirm}
     />
   );
 }

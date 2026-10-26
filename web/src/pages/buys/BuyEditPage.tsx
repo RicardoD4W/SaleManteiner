@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -13,26 +12,7 @@ import { apiErrorMessage } from '../../api/client';
 import { formatDate } from '../../lib/format';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
-
-const BuyFormSchema = z.object({
-  product_name: z.string().min(1, 'El producto es obligatorio').max(200, 'Máximo 200 caracteres'),
-  purchase_cost: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  quantity: z
-    .number({ error: 'Introduce un número' })
-    .int('La cantidad debe ser un número entero')
-    .min(1, 'La cantidad mínima es 1'),
-  associated_costs: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  purchase_date: z.string().optional().or(z.literal('')),
-});
-
-type BuyFormInput = z.input<typeof BuyFormSchema>;
-type BuyFormOutput = z.output<typeof BuyFormSchema>;
+import { BuyFormSchema, type BuyFormInput, type BuyFormOutput } from '../../schemas/forms';
 
 export function BuyEditPage() {
   const { id } = useParams();
@@ -157,7 +137,7 @@ export function BuyEditPage() {
 
       <Card>
         <CardBody>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <Input
               label="Producto *"
               placeholder="Funda iPhone 15"

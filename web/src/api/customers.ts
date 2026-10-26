@@ -1,9 +1,9 @@
 import { apiFetch } from './client.js';
-import type { Customer } from '../schemas/customers.js';
+import type { Customer, CustomerWithMetrics } from '../schemas/customers.js';
 import type { CreateCustomerInput, UpdateCustomerInput } from '../schemas/customers.js';
 
 interface ListResponse {
-  data: Customer[];
+  data: CustomerWithMetrics[];
 }
 interface ItemResponse {
   data: Customer;

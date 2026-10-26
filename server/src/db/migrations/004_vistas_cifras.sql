@@ -2,10 +2,6 @@ DROP INDEX IF EXISTS idx_sale_items_sold;
 
 DROP INDEX IF EXISTS idx_customers_name;
 
-DROP INDEX IF EXISTS idx_buys_purchase_date;
-
-DROP INDEX IF EXISTS idx_solds_sold_at;
-
 CREATE VIEW IF NOT EXISTS v_item_costs AS
 SELECT si.sold_id,
        si.buy_id,

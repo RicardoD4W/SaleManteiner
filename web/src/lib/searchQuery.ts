@@ -223,6 +223,6 @@ export function filterBuys(buys: BuyWithStock[], query: string): BuyWithStock[] 
   return filterRowsByTokens(buys.map(toBuySearchRow), tokens).map((row) => row.item);
 }
 
-export function filterSolds(solds: SoldWithCustomer[], query: string): SoldWithCustomer[] {
-  return filterSearchRows(solds.map(toSoldSearchRow), query).map((row) => row.item);
+export function filterSolds<T extends SoldWithCustomer>(solds: T[], query: string): T[] {
+  return filterSearchRows(solds.map(toSoldSearchRow), query).map((row) => row.item as T);
 }

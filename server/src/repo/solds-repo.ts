@@ -93,6 +93,11 @@ export interface DashboardStats {
     beneficio: number;
     resultado: number;
   }>;
+  totals12m: {
+    ingresos: number;
+    beneficio: number;
+    mejor_mes: { month: string; ingresos: number } | null;
+  };
   topProducts: Array<{
     product_id: number;
     product_name: string;
@@ -490,6 +495,17 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       };
     });
 
+    const monthsWithSales = cashFlowByMonth.filter((m) => m.ingresos > 0);
+    const bestMonth = monthsWithSales.reduce(
+      (best, m) => (m.ingresos > (best?.ingresos ?? 0) ? m : best),
+      monthsWithSales[0] ?? null,
+    );
+    const totals12m = {
+      ingresos: round2(cashFlowByMonth.reduce((acc, m) => acc + m.ingresos, 0)),
+      beneficio: round2(cashFlowByMonth.reduce((acc, m) => acc + m.beneficio, 0)),
+      mejor_mes: bestMonth ? { month: bestMonth.month, ingresos: bestMonth.ingresos } : null,
+    };
+
     const topProducts = topProductsStmt.all() as Array<{
       product_id: number;
       product_name: string;
@@ -527,6 +543,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     return {
       kpis,
       cashFlowByMonth,
+      totals12m,
       topProducts: topProductsFormatted,
       topBuyers: topBuyersFormatted,
     };

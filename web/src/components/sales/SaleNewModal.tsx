@@ -1,47 +1,19 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { ProductPickerModal } from './ProductPickerModal';
 import { CustomerAutocomplete } from './CustomerAutocomplete';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 import { useCreateSold } from '../../hooks/useCreateSold';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage, ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
-
-const SoldFormSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        buy_id: z.number(),
-        product_name: z.string(),
-        quantity: z.number().int().min(1),
-
-        max: z.number().int().min(1),
-      }),
-    )
-    .min(1, 'Seleccioná al menos un producto'),
-  customer_id: z.number({ error: 'El cliente es obligatorio' }).int().positive(),
-  sale_price: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales'),
-  associated_costs: z
-    .number({ error: 'Introduce un número' })
-    .nonnegative('No puede ser negativo')
-    .multipleOf(0.01, 'Máximo 2 decimales')
-    .default(0),
-  sold_at: z.string().optional(),
-  notes: z.string().max(5000).optional().or(z.literal('')),
-});
-
-type SoldFormInput = z.input<typeof SoldFormSchema>;
-type SoldFormOutput = z.output<typeof SoldFormSchema>;
+import { SoldFormSchema, type SoldFormInput, type SoldFormOutput } from '../../schemas/forms';
 
 interface SelectedItem {
   buy_id: number;
@@ -66,9 +38,6 @@ interface SaleNewModalProps {
 
 export function SaleNewModal({ onClose }: SaleNewModalProps) {
   const create = useCreateSold();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  const priceInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
@@ -100,30 +69,11 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
     },
   });
 
-  const salePriceReg = register('sale_price', { valueAsNumber: true });
-  const setPriceInputRef = (node: HTMLInputElement | null) => {
-    salePriceReg.ref(node);
-    priceInputRef.current = node;
-  };
-
   useEffect(() => {
     if (selectedItems.length > 0 && pickerReason === null) {
-      priceInputRef.current?.focus();
+      document.getElementById('sale-price')?.focus();
     }
   }, [selectedItems, pickerReason]);
-
-  useEffect(() => {
-    if (pickerReason !== null) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose, pickerReason]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && pickerReason === null) onClose();
-  };
 
   const handlePickerConfirm = (
     items: Array<{ buy_id: number; product_name: string; quantity: number; max: number }>,
@@ -199,178 +149,137 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="presentation"
-      onClick={handleBackdropClick}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900"
-      >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-          <h2 id={titleId} className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Nueva venta
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-          >
-            <svg
-              aria-hidden="true"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+    <Modal title="Nueva venta" onClose={onClose} size="wide" initialFocusSelector="#sale-price">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
+        <CustomerAutocomplete
+          value={selectedCustomer}
+          onChange={(c) => {
+            setSelectedCustomer(c);
+            if (c) setValue('customer_id' as keyof SoldFormOutput, c.id);
+          }}
+          error={
+            (errors.customer_id as { message?: string } | undefined)?.message ??
+            (errors.root?.type === 'custom' && !selectedCustomer
+              ? 'El cliente es obligatorio'
+              : undefined)
+          }
+        />
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">
+            Productos ({selectedItems.length})
+          </legend>
+          <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
+            {selectedItems.map((item, idx) => {
+              const isFixed = item.max === 1;
+              return (
+                <div
+                  key={item.buy_id}
+                  className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+                >
+                  <span className="text-sm text-gray-800 dark:text-gray-200">
+                    {item.product_name}
+                  </span>
+                  {isFixed ? (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">1 unidad</span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <label htmlFor={`qty-${item.buy_id}`} className="sr-only">
+                        Cantidad para {item.product_name}
+                      </label>
+                      <input
+                        id={`qty-${item.buy_id}`}
+                        type="number"
+                        min={1}
+                        max={item.max}
+                        defaultValue={item.quantity}
+                        {...register(`items.${idx}.quantity` as const, { valueAsNumber: true })}
+                        className="w-16 rounded-md border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      <span className="text-xs text-gray-400 dark:text-gray-500">/ {item.max}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setPickerReason('change')}
+              className="mt-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              + Cambiar productos
+            </button>
+          </div>
+          {errors.items?.message ? (
+            <p className="mt-1 text-sm text-red-700 dark:text-red-400">{errors.items.message}</p>
+          ) : null}
+        </fieldset>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            id="sale-price"
+            label="Precio total de venta (€) *"
+            type="number"
+            step="0.01"
+            min="0"
+            {...register('sale_price', { valueAsNumber: true })}
+            error={(errors.sale_price as { message?: string } | undefined)?.message}
+          />
+          <Input
+            label="Gastos asociados (€)"
+            type="number"
+            step="0.01"
+            min="0"
+            {...register('associated_costs', { valueAsNumber: true })}
+            error={(errors.associated_costs as { message?: string } | undefined)?.message}
+            hint="Envío, comisión, etc. (opcional)"
+          />
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-          <CustomerAutocomplete
-            value={selectedCustomer}
-            onChange={(c) => {
-              setSelectedCustomer(c);
-              if (c) setValue('customer_id' as keyof SoldFormOutput, c.id);
-            }}
-            error={
-              (errors.customer_id as { message?: string } | undefined)?.message ??
-              (errors.root?.type === 'custom' && !selectedCustomer
-                ? 'El cliente es obligatorio'
-                : undefined)
-            }
-          />
+        <Input
+          label="Fecha de venta"
+          type="date"
+          {...register('sold_at')}
+          error={(errors.sold_at as { message?: string } | undefined)?.message}
+          hint="Día de la venta (default hoy)"
+        />
 
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">
-              Productos ({selectedItems.length})
-            </legend>
-            <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950">
-              {selectedItems.map((item, idx) => {
-                const isFixed = item.max === 1;
-                return (
-                  <div
-                    key={item.buy_id}
-                    className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-                  >
-                    <span className="text-sm text-gray-800 dark:text-gray-200">
-                      {item.product_name}
-                    </span>
-                    {isFixed ? (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">1 unidad</span>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <label htmlFor={`qty-${item.buy_id}`} className="sr-only">
-                          Cantidad para {item.product_name}
-                        </label>
-                        <input
-                          id={`qty-${item.buy_id}`}
-                          type="number"
-                          min={1}
-                          max={item.max}
-                          defaultValue={item.quantity}
-                          {...register(`items.${idx}.quantity` as const, { valueAsNumber: true })}
-                          className="w-16 rounded-md border border-gray-300 bg-white px-2 py-1 text-center text-sm text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                        />
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          / {item.max}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() => setPickerReason('change')}
-                className="mt-1 text-sm text-brand-600 hover:underline dark:text-brand-400"
-              >
-                + Cambiar productos
-              </button>
-            </div>
-            {errors.items?.message ? (
-              <p className="mt-1 text-sm text-red-700 dark:text-red-400">{errors.items.message}</p>
-            ) : null}
-          </fieldset>
+        <Textarea
+          label="Notas"
+          placeholder="Lo que quieras apuntar (opcional)"
+          {...register('notes')}
+          error={(errors.notes as { message?: string } | undefined)?.message}
+        />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Precio total de venta (€) *"
-              type="number"
-              step="0.01"
-              min="0"
-              {...salePriceReg}
-              ref={setPriceInputRef}
-              error={(errors.sale_price as { message?: string } | undefined)?.message}
-            />
-            <Input
-              label="Gastos asociados (€)"
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('associated_costs', { valueAsNumber: true })}
-              error={(errors.associated_costs as { message?: string } | undefined)?.message}
-              hint="Envío, comisión, etc. (opcional)"
-            />
+        {errors.root ? (
+          <div className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
+            {errors.root.message}
           </div>
+        ) : null}
 
-          <Input
-            label="Fecha de venta"
-            type="date"
-            {...register('sold_at')}
-            error={(errors.sold_at as { message?: string } | undefined)?.message}
-            hint="Día de la venta (default hoy)"
-          />
-
-          <Textarea
-            label="Notas"
-            placeholder="Lo que quieras apuntar (opcional)"
-            {...register('notes')}
-            error={(errors.notes as { message?: string } | undefined)?.message}
-          />
-
-          {errors.root ? (
-            <div className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
-              {errors.root.message}
-            </div>
-          ) : null}
-
-          {stockError ? (
-            <div className={cn(errorAlertClass, 'p-3')} role="alert">
-              <p className="font-medium">{stockError.error}</p>
-              <ul className="mt-1 list-disc pl-4">
-                {stockError.items.map((item) => (
-                  <li key={item.buy_id}>
-                    <strong>{item.product_name}</strong>: {item.disponibles} disponibles, intentaste
-                    vender {item.solicitado}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" isLoading={isSubmitting || create.isPending}>
-              Crear venta
-            </Button>
+        {stockError ? (
+          <div className={cn(errorAlertClass, 'p-3')} role="alert">
+            <p className="font-medium">{stockError.error}</p>
+            <ul className="mt-1 list-disc pl-4">
+              {stockError.items.map((item) => (
+                <li key={item.buy_id}>
+                  <strong>{item.product_name}</strong>: {item.disponibles} disponibles, intentaste
+                  vender {item.solicitado}
+                </li>
+              ))}
+            </ul>
           </div>
-        </form>
-      </div>
-    </div>
+        ) : null}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" isLoading={isSubmitting || create.isPending}>
+            Crear venta
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

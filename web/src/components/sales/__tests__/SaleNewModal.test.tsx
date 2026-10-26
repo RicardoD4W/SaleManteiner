@@ -158,6 +158,50 @@ describe('SaleNewModal', () => {
     expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
   });
 
+  it('Escape con el picker abierto cancela el picker, no la venta', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(<SaleNewModal onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    await user.click(screen.getByRole('button', { name: /Confirmar/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /\+ Cambiar productos/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Seleccionar productos')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Productos (1)')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('el foco inicial de la venta cae en el precio', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    await user.click(screen.getByRole('button', { name: /Confirmar/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Precio total de venta (€) *')).toHaveFocus();
+  });
+
   it('cerrar el picker inicial con Escape cancela la venta entera', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -171,5 +215,33 @@ describe('SaleNewModal', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+  });
+
+  it('al cerrar el picker de productos el foco vuelve al precio', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    await user.click(screen.getByRole('button', { name: /Confirmar/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /\+ Cambiar productos/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Seleccionar productos')).toBeInTheDocument();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Precio total de venta (€) *')).toHaveFocus();
+    });
   });
 });

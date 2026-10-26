@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos mínimos del shell de escritorio",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "updater:default",
+    "dialog:allow-message",
+    "process:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "salemanteiner-server", "args": true, "sidecar": true }]
+    }
+  ]
+}

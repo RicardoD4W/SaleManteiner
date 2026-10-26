@@ -1,15 +1,22 @@
-import { forwardRef, useId, type TextareaHTMLAttributes } from 'react';
+import { useId, type Ref, type TextareaHTMLAttributes } from 'react';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   hint?: string;
+  ref?: Ref<HTMLTextAreaElement>;
 }
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { label, error, hint, id, className, rows = 3, ...rest },
+export function Textarea({
+  label,
+  error,
+  hint,
+  id,
+  className,
+  rows = 3,
   ref,
-) {
+  ...rest
+}: TextareaProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const errorId = error ? `${inputId}-error` : undefined;
@@ -41,7 +48,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         {...rest}
       />
       {error ? (
-        <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
+        <p id={errorId} role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : hint ? (
@@ -51,4 +58,4 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       ) : null}
     </div>
   );
-});
+}

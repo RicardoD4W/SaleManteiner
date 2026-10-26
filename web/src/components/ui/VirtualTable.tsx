@@ -2,6 +2,8 @@ import { useRef, type ReactNode } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { tableHeadClass } from './tableStyles';
+import { SortableTh } from './SortableTh';
+import type { SortDir } from '../../lib/sorting';
 
 interface VirtualTableProps<TData> {
   table: Table<TData>;
@@ -11,6 +13,14 @@ interface VirtualTableProps<TData> {
   estimateRowHeight?: number;
 
   footer?: ReactNode;
+
+  sort?: {
+    columnId: string | null;
+
+    direction: SortDir;
+
+    onSort: (columnId: string) => void;
+  };
 }
 
 export function VirtualTable<TData>({
@@ -18,6 +28,7 @@ export function VirtualTable<TData>({
   maxHeight = '70vh',
   estimateRowHeight = 44,
   footer,
+  sort,
 }: VirtualTableProps<TData>) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
@@ -47,34 +58,28 @@ export function VirtualTable<TData>({
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="flex w-full">
                 {hg.headers.map((header) => {
-                  const sorted = header.column.getIsSorted();
+                  const sorted = sort?.columnId === header.column.id ? sort.direction : null;
+                  const label = flexRender(header.column.columnDef.header, header.getContext());
+                  const style = {
+                    flex: `${header.getSize()} 1 0`,
+                    cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                  };
+                  if (!header.column.getCanSort()) {
+                    return (
+                      <th key={header.id} style={style} className={`${tableHeadClass} text-left`}>
+                        {label}
+                      </th>
+                    );
+                  }
                   return (
-                    <th
+                    <SortableTh
                       key={header.id}
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{
-                        flex: `${header.getSize()} 1 0`,
-                        cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                      }}
+                      label={label}
+                      sorted={sorted === 'asc' ? 'asc' : sorted === 'desc' ? 'desc' : false}
+                      onSort={() => sort?.onSort(header.column.id)}
                       className={`${tableHeadClass} text-left`}
-                      aria-sort={
-                        sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
-                      }
-                    >
-                      <span className="flex items-center gap-1">
-                        <span className="min-w-0 truncate">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                        </span>
-                        {header.column.getCanSort() ? (
-                          <span
-                            className="inline-block w-3 shrink-0 text-center"
-                            aria-hidden="true"
-                          >
-                            {sorted === 'asc' ? '▲' : sorted === 'desc' ? '▼' : ''}
-                          </span>
-                        ) : null}
-                      </span>
-                    </th>
+                      style={style}
+                    />
                   );
                 })}
               </tr>

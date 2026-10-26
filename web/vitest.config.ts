@@ -12,6 +12,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    pool: 'vmThreads',
+    maxWorkers: 5,
     globals: false,
     setupFiles: ['./src/test-utils/setup.ts'],
     css: false,

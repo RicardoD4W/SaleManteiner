@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useSolds } from '../../hooks/useSolds';
 import { useSortable } from '../../hooks/useSortable';
 import { Spinner } from '../../components/ui/Spinner';
 import { errorAlertClass, tableHeadClass } from '../../components/ui/tableStyles';
@@ -24,7 +23,6 @@ interface CustomerRow {
 
 export function CustomersListPage() {
   const { data: customers, isLoading, isError, error, refetch } = useCustomers();
-  const { data: solds } = useSolds();
 
   const [editing, setEditing] = useState<Customer | null>(null);
 
@@ -32,31 +30,16 @@ export function CustomersListPage() {
 
   const [deleting, setDeleting] = useState<Customer | null>(null);
 
-  const metricsByCustomer = useMemo(() => {
-    const map = new Map<number, { ventas: number; total_gastado: number }>();
-    for (const sold of solds ?? []) {
-      const previous = map.get(sold.customer_id) ?? { ventas: 0, total_gastado: 0 };
-      map.set(sold.customer_id, {
-        ventas: previous.ventas + 1,
-        total_gastado: round2(previous.total_gastado + sold.sale_price),
-      });
-    }
-    return map;
-  }, [solds]);
-
   const rows = useMemo<CustomerRow[]>(
     () =>
-      (customers ?? []).map((customer) => {
-        const metrics = metricsByCustomer.get(customer.id);
-        return {
-          id: customer.id,
-          name: customer.name,
-          ventas: metrics?.ventas ?? 0,
-          total_gastado: metrics?.total_gastado ?? 0,
-          customer,
-        };
-      }),
-    [customers, metricsByCustomer],
+      (customers ?? []).map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        ventas: customer.ventas,
+        total_gastado: round2(customer.total_gastado),
+        customer,
+      })),
+    [customers],
   );
 
   const { sortedItems, sortKey, sortDir, onSort } = useSortable<CustomerRow>(rows);

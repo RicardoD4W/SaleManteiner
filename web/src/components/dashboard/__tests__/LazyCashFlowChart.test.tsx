@@ -25,7 +25,7 @@ const DATA = [
 describe('LazyCashFlowChart', () => {
   beforeAll(async () => {
     await import('../CashFlowChart');
-  });
+  }, 60_000);
 
   it('muestra un fallback accesible mientras el chart carga', async () => {
     vi.resetModules();

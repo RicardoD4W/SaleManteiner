@@ -20,9 +20,16 @@ interface FocusTrapOptions {
   onEscape: () => void;
 
   initialFocusRef?: RefObject<HTMLElement | null>;
+
+  initialFocusSelector?: string;
 }
 
-export function useFocusTrap({ dialogRef, onEscape, initialFocusRef }: FocusTrapOptions): void {
+export function useFocusTrap({
+  dialogRef,
+  onEscape,
+  initialFocusRef,
+  initialFocusSelector,
+}: FocusTrapOptions): void {
   const onEscapeRef = useRef(onEscape);
   useEffect(() => {
     onEscapeRef.current = onEscape;
@@ -31,14 +38,18 @@ export function useFocusTrap({ dialogRef, onEscape, initialFocusRef }: FocusTrap
   useEffect(() => {
     const previouslyFocused = document.activeElement;
     const node = dialogRef.current;
-    const target = initialFocusRef?.current ?? getFocusableElements(node)[0] ?? node;
+    const target =
+      initialFocusRef?.current ??
+      (initialFocusSelector ? node?.querySelector<HTMLElement>(initialFocusSelector) : null) ??
+      getFocusableElements(node)[0] ??
+      node;
     target?.focus();
     return () => {
       if (previouslyFocused instanceof HTMLElement && document.contains(previouslyFocused)) {
         previouslyFocused.focus();
       }
     };
-  }, [dialogRef, initialFocusRef]);
+  }, [dialogRef, initialFocusRef, initialFocusSelector]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
