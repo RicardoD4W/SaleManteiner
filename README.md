@@ -146,7 +146,7 @@ npm run dev
 | [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, verificación visual, skills            |
 | [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
 | [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
-| [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
+| [CHANGELOG.md](CHANGELOG.md)       | Qué cambió en cada versión                                                |
 
 ---
 

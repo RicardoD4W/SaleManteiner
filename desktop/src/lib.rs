@@ -138,8 +138,8 @@ fn check_for_updates(app: &AppHandle) {
         }
         let mut downloaded = 0u64;
         let mut total = 0u64;
-        let result = update
-            .download_and_install(
+        let bytes = match update
+            .download(
                 |chunk, size| {
                     downloaded += chunk as u64;
                     if let Some(size) = size {
@@ -149,8 +149,28 @@ fn check_for_updates(app: &AppHandle) {
                 },
                 || log::info!("[updater] descarga completa"),
             )
-            .await;
-        if let Err(error) = result {
+            .await
+        {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                log::error!("[updater] falló la descarga: {error}");
+                handle
+                    .dialog()
+                    .message(format!("No se pudo descargar la actualización:\n\n{error}"))
+                    .blocking_show();
+                return;
+            }
+        };
+
+        // El sidecar tiene abiertos los archivos del runtime (el addon nativo de
+        // better-sqlite3, por ejemplo). Si sigue vivo, el instalador no puede
+        // escribirlos y la actualización falla a mitad ("Error abriendo archivo
+        // para escritura"). Por eso se cierra ANTES de instalar: la app queda
+        // sin backend un instante, pero el instalador puede reemplazar todo.
+        log::info!("[updater] cerrando el sidecar para liberar los archivos");
+        kill_sidecar(&handle);
+
+        if let Err(error) = update.install(bytes) {
             log::error!("[updater] falló la instalación: {error}");
             handle
                 .dialog()
