@@ -1,0 +1,19 @@
+# Config de gitleaks para este repo.
+#
+# El objetivo es escanear el CÓDIGO, no los artefactos de build ni las claves
+# públicas (que por definición son públicas).
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Artefactos de build de Rust (desktop/target/): son gitignored y contienen metadata del compilador con cadenas que parecen claves."
+paths = [
+  '''(?i)(^|[\\/])target[\\/]''',
+]
+
+[[allowlists]]
+description = "La clave pública del updater (minisign) es pública por diseño: viaja dentro de la app para que el cliente verifique el instalador firmado. La privada nunca se commitea (vive en ~/.salemanteiner/desktop-updater/)."
+paths = [
+  '''^desktop[\\/]tauri\.conf\.json$''',
+]

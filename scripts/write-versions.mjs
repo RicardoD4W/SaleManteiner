@@ -6,7 +6,11 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..');
 
 function readJson(file) {
-  return JSON.parse(readFileSync(file, 'utf8'));
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch (err) {
+    throw new Error(`no puedo leer el JSON de ${file}: ${err.message}`);
+  }
 }
 
 function log(msg) {

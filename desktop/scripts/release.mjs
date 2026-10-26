@@ -13,8 +13,13 @@ export function installerName(version) {
 }
 
 export function readLocalVersion() {
-  const conf = JSON.parse(readFileSync(path.join(DESKTOP, 'tauri.conf.json'), 'utf8'));
-  return conf.version;
+  const confPath = path.join(DESKTOP, 'tauri.conf.json');
+  try {
+    const conf = JSON.parse(readFileSync(confPath, 'utf8'));
+    return conf.version;
+  } catch (err) {
+    throw new Error(`no puedo leer la versión en ${confPath}: ${err.message}`);
+  }
 }
 
 export function buildLatestJson(version, signatureFile) {
