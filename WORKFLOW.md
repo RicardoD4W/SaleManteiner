@@ -6,9 +6,9 @@
 ## 1. Arranque
 
 ```bash
-# 1) Node 20+ (fnm)
-fnm install 20   # solo la primera vez
-fnm use 20
+# 1) Node 22+ (fnm)
+fnm install 22   # solo la primera vez
+fnm use 22
 
 # 2) deps (solo la primera vez)
 npm install

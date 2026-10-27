@@ -27,7 +27,7 @@
 | Capa             | Tecnología                                               |
 | ---------------- | -------------------------------------------------------- |
 | Frontend         | React 19 + TypeScript + Vite 8 + Tailwind 4              |
-| Backend          | Node 20 LTS + Express 5 + TypeScript + better-sqlite3 13 |
+| Backend          | Node 22 LTS + Express 5 + TypeScript + better-sqlite3 13 |
 | Validación       | Zod 4                                                    |
 | Logging          | Pino 10 + pino-http 11                                   |
 | Tests            | Vitest 5 (server + web) + Playwright (e2e)               |

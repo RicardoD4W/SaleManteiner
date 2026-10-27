@@ -121,7 +121,7 @@ Instalador para Windows, macOS y Linux. **No necesitás instalar Node ni abrir u
 
 ### Versión web (para desarrollo)
 
-Necesitás **Node.js 20 LTS** (recomendado: [fnm](https://github.com/Schniz/fnm)).
+Necesitás **Node.js 22 LTS** (recomendado: [fnm](https://github.com/Schniz/fnm)).
 
 ```bash
 git clone https://github.com/RicardoD4W/SaleManteiner.git
@@ -152,7 +152,7 @@ npm run dev
 
 ## Tecnología
 
-React 19 · TypeScript · Vite 8 · Tailwind 4 · TanStack Query · TanStack Table · Recharts · Node 20 · Express 5 · SQLite (better-sqlite3) · Zod · Pino · Vitest · Playwright · Tauri 2 (escritorio)
+React 19 · TypeScript · Vite 8 · Tailwind 4 · TanStack Query · TanStack Table · Recharts · Node 22 · Express 5 · SQLite (better-sqlite3) · Zod · Pino · Vitest · Playwright · Tauri 2 (escritorio)
 
 ---
 

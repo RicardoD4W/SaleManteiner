@@ -37,7 +37,7 @@ Lo que **no** depende del workspace (modelo de datos, reglas del repo, convencio
 | Capa             | Tecnología                                               | Notas                                                                                                                          |
 | ---------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Frontend         | React 19 + TypeScript + Vite 8 + Tailwind 4              | Tailwind 4 usa config en CSS (`@theme` en `web/src/index.css`), no `tailwind.config.js`. Dark mode con `@custom-variant dark`. |
-| Backend          | Node 20 LTS + Express 5 + TypeScript + better-sqlite3 13 | WAL + foreign keys activados en `openDb`.                                                                                      |
+| Backend          | Node 22 LTS + Express 5 + TypeScript + better-sqlite3 13 | WAL + foreign keys activados en `openDb`.                                                                                      |
 | Validación       | Zod 4                                                    | Schemas en el backend; el web replica las reglas (defensa en profundidad).                                                     |
 | Logging          | Pino 10 + pino-http 11                                   | `server/src/logger.ts`.                                                                                                        |
 | Tests            | Vitest 5 (server + web) + Playwright (e2e)               | El web usa `pool: 'vmThreads'` y `maxWorkers: 5` (`web/vitest.config.ts`).                                                     |
