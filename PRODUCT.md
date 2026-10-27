@@ -1,7 +1,7 @@
 # Producto — SaleManteiner
 
 > Qué es la app, qué decisiones de producto están tomadas y qué queda fuera de alcance.
-> Referencia técnica: [ARCHITECTURE.md](ARCHITECTURE.md) · Estado y pendientes: [STATUS.md](STATUS.md).
+> Referencia técnica: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Qué es
 

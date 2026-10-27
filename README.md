@@ -145,7 +145,6 @@ npm run dev
 | [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones         |
 | [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, skills                                 |
 | [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
-| [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
 | [CHANGELOG.md](CHANGELOG.md)       | Qué cambió en cada versión                                                |
 
 ---

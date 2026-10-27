@@ -19,7 +19,6 @@
 | [DESKTOP.md](DESKTOP.md)           | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente |
 | [PRODUCT.md](PRODUCT.md)           | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión     |
 | [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, skills, flujo ODD, trampas del repo                                    | Empezás a trabajar o vas a commitear       |
-| [STATUS.md](STATUS.md)             | Estado actual, pendientes, decisiones abiertas, historial                                         | Necesitás saber qué falta                  |
 | [README.md](README.md)             | Instalación y uso para una persona (no un agente)                                                 | El cliente o un humano nuevo lee el repo   |
 
 ## 2. Stack

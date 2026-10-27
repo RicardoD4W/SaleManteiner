@@ -14,7 +14,6 @@ SaleManteiner/
 ├── PRODUCT.md                ← qué es la app, decisiones de producto, roadmap
 ├── WORKFLOW.md               ← gates, skills, ODD
 ├── DESKTOP.md                ← la app de escritorio (Tauri 2)
-├── STATUS.md                 ← estado actual, pendientes, historial
 ├── odd/                      ← docs del ODD (local, gitignored: no van al repo)
 ├── scripts/write-versions.mjs← genera web/.env + server/version.json
 ├── server/                   ← backend Node + Express
