@@ -4,3 +4,4 @@
 /gen/schemas
 /binaries/
 /resources/
+.env

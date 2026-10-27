@@ -14,6 +14,12 @@ import {
   readLocalVersion,
 } from './release.mjs';
 
+try {
+  process.loadEnvFile(new URL('../.env', import.meta.url));
+} catch {}
+
+const TOKEN_KEY = 'GH_TOKEN';
+
 function log(msg) {
   console.log(`[publish] ${msg}`);
 }
@@ -105,13 +111,15 @@ async function main() {
     );
   }
 
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const token = process.env[TOKEN_KEY]?.trim();
   if (!token) {
     fail(
-      'falta GITHUB_TOKEN (o GH_TOKEN): hace falta un token de GitHub con permiso "contents:write" ' +
+      `falta el token de GitHub: ponelo en desktop/.env como ${TOKEN_KEY}=... ` +
+        `(o exportá ${TOKEN_KEY}). Hace falta un token con permiso "contents:write" ` +
         'para crear la release y subir los archivos',
     );
   }
+  log(`token de GitHub: ${TOKEN_KEY}`);
 
   if (git('status', '--porcelain')) {
     fail(

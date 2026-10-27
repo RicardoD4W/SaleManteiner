@@ -51,12 +51,20 @@ npm run build:desktop     # = desktop/ → build:app
 - **Para firmar el build**: `TAURI_SIGNING_PRIVATE_KEY_PATH` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en el entorno (la forma "path" solo sirve para `tauri signer sign`).
 - **El endpoint** apunta a las GitHub Releases (`releases/latest/download/latest.json`): cada release publica el instalador, su `.sig` y el `latest.json`. El repo es público → el updater del cliente lo lee sin credenciales.
 - **El flujo**: `npm run build:app` (con las variables de firma) → `node desktop/scripts/release.mjs` (arma el `latest.json`) → se publica la release en GitHub con los 3 archivos. El cliente abre la app → el shell hace `check_update()` → si hay versión nueva, un **diálogo nativo** pregunta → si acepta, descarga, **verifica la firma minisign** (si no calza, no instala) y reinicia la app. **Los datos no se tocan**: la BD vive en `%APPDATA%\SaleManteiner`, fuera de la carpeta que reemplaza el instalador.
-- **Publicar una versión nueva**: `npm run publish:new-version` (desde la raíz o desde `desktop/`). El script mira **qué versión está distribuida** (lee el `latest.json` del endpoint) y publica solo si la local es distinta, con comparación **semver**: si es igual → no hace nada; si es **menor** → se niega (un downgrade no sirve de nada). Exige: instalador **firmado**, un `GITHUB_TOKEN` con `contents:write`, el árbol de trabajo limpio y el commit **pusheado**. Después crea la release (tag `vX.Y.Z` sobre el commit actual) y sube los 3 archivos.
+- **Publicar una versión nueva**: `npm run publish:new-version` (desde la raíz o desde `desktop/`). El script mira **qué versión está distribuida** (lee el `latest.json` del endpoint) y publica solo si la local es distinta, con comparación **semver**: si es igual → no hace nada; si es **menor** → se niega (un downgrade no sirve de nada). Exige: instalador **firmado**, el token de GitHub (ver abajo), el árbol de trabajo limpio y el commit **pusheado**. Después crea la release (tag `vX.Y.Z` sobre el commit actual) y sube los 3 archivos.
 - **Si no hay red o no hay release**, el check **falla en silencio** (solo un log): la app nunca se bloquea por no poder actualizarse.
 
-### El `GITHUB_TOKEN`
+### El token de GitHub
 
-GitHub → **Settings (perfil) → Developer settings → Personal access tokens** → _Fine-grained_ → resource `SaleManteiner` → _Repository permissions: **Contents: Read and write**_ (o el token clásico con el scope `public_repo`). Se pasa por entorno como `GITHUB_TOKEN` o `GH_TOKEN`. Alternativa: `gh auth login` → el token queda en el credential manager y se expone como `GH_TOKEN`.
+GitHub → **Settings (perfil) → Developer settings → Personal access tokens** → _Fine-grained_ → resource `SaleManteiner` → _Repository permissions: **Contents: Read and write**_ (o el token clásico con el scope `public_repo`).
+
+El token se llama **`GH_TOKEN`** y el script lo lee de **`desktop/.env`** (con `process.loadEnvFile` de Node) o, si no está, del entorno:
+
+```text
+GH_TOKEN=github_pat_...
+```
+
+O sea: **basta con dejar el token en `desktop/.env`** y correr `npm run publish:new-version` sin exportar nada. `desktop/.env` está **gitignorado** (el `.gitignore` de la raíz ya cubre cualquier `.env`). Como `loadEnvFile` no pisa lo que ya está en el entorno, un `GH_TOKEN` exportado tiene prioridad sobre el del archivo. El script loguea **qué clave** usó, nunca el token. Alternativa: `gh auth login` → el token queda en el credential manager y se expone como `GH_TOKEN`.
 
 ### Qué hay en la release
 
@@ -112,4 +120,4 @@ El server expone `GET /api/version` → `{ app, front, back }` (la del back sale
 2. ~~**Probar el auto-update de punta a punta**~~ → hecho: la app instalada detecta la 0.1.1, pregunta, descarga, verifica la firma y se actualiza.
 3. **Firma de Windows (Authenticode)**: **no comprar por ahora** (decisión del 2026-10-26): con el ZIP el cliente no ve el aviso de SmartScreen y, si lo ve, la vía suave es instalar en la máquina del cliente. El soporte en el build ya estádocumentado en §5.
 4. ~~**Traducir el instalador al español**~~ → hecho (`bundle.windows.nsis.languages = ["Spanish"]`).
-5. **Falta probarlo en una máquina sin Node** (el smoke en frío de verdad, en la máquina del cliente).
+5. ~~**Falta probarlo en una máquina sin Node**~~ → hecho (2026-10-27): el `.zip` instalado en una máquina sin Node abre, guarda datos y funciona bien.
