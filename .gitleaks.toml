@@ -15,5 +15,10 @@ paths = [
 [[allowlists]]
 description = "La clave pública del updater (minisign) es pública por diseño: viaja dentro de la app para que el cliente verifique el instalador firmado. La privada nunca se commitea (vive en ~/.salemanteiner/desktop-updater/)."
 paths = [
-  '''^desktop[\\/]tauri\.conf\.json$''',
+  '''desktop[\\/]tauri\.conf\.json$''',
+]
+regexes = [
+  # El comentario de minisign de una clave PÚBLICA, en base64. El de la privada
+  # es distinto ("...IHNlY3JldCBrZXk6"), así que este patrón no la tapa.
+  '''dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6[A-Za-z0-9+/=]+''',
 ]

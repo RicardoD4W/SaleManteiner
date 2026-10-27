@@ -9,16 +9,9 @@
 > `scripts/write-versions.mjs` las lee y las publica en `web/.env` y
 > `server/version.json` → la app las muestra en el pie y `GET /api/version` las
 > devuelve.
-
-## [Sin publicar]
-
-### Cambiado
-
-- **El concepto del producto se amplía**: SaleManteiner deja de ser "el tracker de Wallapop para revendedores" y pasa a ser el **gestor de compras, ventas y clientes** para cualquier tipo de usuario (README, PRODUCT, AGENTS, metadatos y copy de la app). El nombre, el modelo de datos y el comportamiento no cambian.
-
-### Corregido
-
-- **El auto-update fallaba a mitad de la instalación**: el updater de Windows cierra la app pero dejaba vivo el **sidecar** (el proceso Node), que tenía abierto el addon nativo de `better-sqlite3`. El instalador no podía escribirlo ("Error abriendo archivo para escritura") y la actualización se caía. Ahora el sidecar se cierra **después de descargar y antes de instalar** (`desktop/src/lib.rs`). Verificado de punta a punta: la app instalada 0.1.0 detectó la 0.1.1, preguntó con el diálogo nativo, descargó, instaló y se reinició en 0.1.1.
+>
+> **Solo lo publicado**: las entradas de una versión se agregan cuando esa
+> versión se publica. No hay sección de cambios pendientes.
 
 ## [0.1.1]
 
@@ -55,6 +48,5 @@
 - **Búsqueda que entiende**: texto, precios, cantidades (`x3`), fechas (`12/03/2025`) y pérdidas (`-30`), combinables.
 - **100% local**: sin cuentas, sin nube, sin telemetría y sin peticiones a terceros.
 
-[Sin publicar]: https://github.com/RicardoD4W/SaleManteiner/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.0
