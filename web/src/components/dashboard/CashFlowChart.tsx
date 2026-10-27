@@ -127,7 +127,12 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
           <XAxis dataKey="month" tickFormatter={monthLabel} tickMargin={8} />
           <YAxis tickFormatter={formatEurosShort} domain={[yMin, yMax]} width={56} tickMargin={4} />
           <Tooltip content={<CashFlowTooltip />} />
-          <Legend verticalAlign="top" align="left" height={36} />
+          <Legend
+            verticalAlign="top"
+            align="left"
+            height={48}
+            wrapperStyle={{ fontSize: 12, lineHeight: '18px' }}
+          />
 
           <Line
             type="linear"

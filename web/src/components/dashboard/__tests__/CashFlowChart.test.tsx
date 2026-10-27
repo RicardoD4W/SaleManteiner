@@ -41,6 +41,21 @@ describe('CashFlowChart (recharts)', () => {
     expect(screen.getByText('Resultado del mes')).toBeInTheDocument();
   });
 
+  it('reserva en la leyenda el alto de dos líneas: en móvil no puede pisar el eje Y', () => {
+    const { container } = render(<CashFlowChart data={DATA} />);
+
+    const legend = container.querySelector<HTMLElement>('.recharts-legend-wrapper');
+    expect(legend).not.toBeNull();
+
+    const height = Number.parseFloat(legend?.style.height ?? '0');
+    const fontSize = Number.parseFloat(legend?.style.fontSize ?? '0');
+    const lineHeight = Number.parseFloat(legend?.style.lineHeight ?? '0');
+
+    expect(fontSize).toBeGreaterThan(0);
+    expect(lineHeight).toBeGreaterThan(0);
+    expect(height).toBeGreaterThanOrEqual(2 * lineHeight);
+  });
+
   it('la serie de resultado del mes se dibuja con el naranja de marca', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
