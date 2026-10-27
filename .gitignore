@@ -49,8 +49,7 @@ test-results/
 # Agent / AI tooling (metadata local de gentle-pi, no es código del proyecto)
 **/skills-lock.json
 
-# Real Wallapop session / tokens (never commit)
-wallapop-session.json
+# Archivos de sesión / tokens de terceros (never commit)
 *.cookie
 *.token
 # Capturas de la verificación visual (artefactos locales, nunca se commitean)

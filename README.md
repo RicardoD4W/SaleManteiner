@@ -1,6 +1,6 @@
 # SaleManteiner
 
-**El gestor de compras, ventas y clientes para revendedores de Wallapop.** Lleva el control de stock, las cifras del negocio y el beneficio real de cada venta, en tu propio computer.
+**El gestor de compras, ventas y clientes.** Lleva el control de stock, las cifras del negocio y el beneficio real de cada venta, en tu propio computer.
 
 > **100% privado.** Todo vive en tu máquina: ni cuentas, ni nube, ni telemetría, ni un solo byte fuera de tu disco. Funciona igual en la versión web y en la app de escritorio.
 
@@ -10,14 +10,14 @@
 
 ## Qué es
 
-Resellers de Wallapop compran productos, los revenden y (a veces) pierden dinero sin enterarse. SaleManteiner es el cuaderno digital de ese negocio:
+Comprás, vendés y querés saber cómo van tus números. SaleManteiner es el cuaderno digital de tus compras, ventas y clientes:
 
 - Cargas **cada compra** con su coste, cantidad y gastos de envío.
 - Cargas **cada venta** con su precio, gastos, comprador y qué productos se vendieron.
 - La app **calcula el beneficio real** de cada venta (precio − gastos − lo que te costó el producto) y te dice cuánto dinero dejaste de ganar o de perder.
 - El **stock se descuenta solo**: no podés vender lo que no compraste, y la app te avisa si no reaches a cubrir una venta.
 
-Nada de scraping, nada de captura automática, nada de subir tus datos a ningún lado: vos cargás los datos a mano y la app solo te ayuda a no equivocarte.
+Nada de scraping, nada de captura automática, nada de conectar cuentas de terceros, nada de subir tus datos a ningún lado: vos cargás los datos a mano y la app solo te ayuda a no equivocarte.
 
 ## Qué podés hacer
 

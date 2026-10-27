@@ -2,7 +2,7 @@
   "name": "salemanteiner",
   "version": "0.1.0",
   "private": true,
-  "description": "App web local para registrar y mantener un histórico de ventas de Wallapop",
+  "description": "App local para llevar el control de compras, ventas y clientes",
   "type": "module",
   "workspaces": [
     "web",
