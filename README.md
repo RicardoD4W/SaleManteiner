@@ -143,7 +143,7 @@ npm run dev
 | [WEB.md](WEB.md)                   | Detalle técnico del frontend (React, estado, componentes, estilos, tests) |
 | [SERVER.md](SERVER.md)             | Detalle técnico del backend (Express, rutas, repos, migraciones, errores) |
 | [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones         |
-| [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, verificación visual, skills            |
+| [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, skills                                 |
 | [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
 | [STATUS.md](STATUS.md)             | Estado actual y pendientes                                                |
 | [CHANGELOG.md](CHANGELOG.md)       | Qué cambió en cada versión                                                |
@@ -168,7 +168,7 @@ npm run test:e2e       # Playwright
 npm run build:desktop  # instalador de escritorio (front + back + sidecar)
 ```
 
-Las reglas del repo, cómo se verifica la UI a ojo y dónde están las trampas: [WORKFLOW.md](WORKFLOW.md).
+Las reglas del repo y dónde están las trampas: [WORKFLOW.md](WORKFLOW.md).
 
 ## Limitaciones conocidas
 

@@ -1,14 +1,13 @@
 # SaleManteiner — Contexto para agentes
 
 > App **local** (React + Node, con shell de escritorio Tauri) para llevar el control de **compras, ventas y clientes**: un gestor de números para cualquier tipo de usuario.
-> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-10-26.
+> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-10-27.
 
 ## 0. Reglas no negociables
 
-1. **Verificación visual antes de cerrar cualquier feature que afecte a la UI.** Un test verde **no** es "se ve bien": hay que levantar la app, capturar las pantallas y **mirar las capturas**. El informe de cierre incluye las capturas revisadas. Si no se pudo mirar, el feature **no está cerrado** y se reporta como bloqueado — sin excepciones por "es un cambio chico" o "los tests pasan". Alcance y cómo se arma el arnés: [WORKFLOW.md §4](WORKFLOW.md#4-verificación-visual-no-negociable-para-cambios-con-ui).
-2. **La BD del usuario no se toca.** Toda verificación (e2e, visual, scripts) corre contra una BD **temporal** (`SALEMANTEINER_DIR`), nunca `~/.salemanteiner`. Los datos que el usuario carga a mano son sacredos.
-3. **Los gates antes de commitear**: `typecheck`, `lint`, `format:check` y los tests (unit + e2e) tienen que estar verdes. Si un gate no se puede correr, se dice; no se commitea a ciegas.
-4. **Push, PR y merge son decisiones del usuario**, no del agente (salvo los work-unit commits de una implementación autorizada).
+1. **La BD del usuario no se toca.** Toda verificación (e2e, scripts) corre contra una BD **temporal** (`SALEMANTEINER_DIR`), nunca `~/.salemanteiner`. Los datos que el usuario carga a mano son sacredos.
+2. **Los gates antes de commitear**: `typecheck`, `lint`, `format:check` y los tests (unit + e2e) tienen que estar verdes. Si un gate no se puede correr, se dice; no se commitea a ciegas.
+3. **Push, PR y merge son decisiones del usuario**, no del agente (salvo los work-unit commits de una implementación autorizada).
 
 ## 1. Mapa de documentos
 
@@ -19,7 +18,7 @@
 | [SERVER.md](SERVER.md)             | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocás `server/**`                          |
 | [DESKTOP.md](DESKTOP.md)           | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente |
 | [PRODUCT.md](PRODUCT.md)           | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión     |
-| [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, verificación visual, skills, flujo ODD, trampas del repo               | Empezás a trabajar o vas a commitear       |
+| [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, skills, flujo ODD, trampas del repo                                    | Empezás a trabajar o vas a commitear       |
 | [STATUS.md](STATUS.md)             | Estado actual, pendientes, decisiones abiertas, historial                                         | Necesitás saber qué falta                  |
 | [README.md](README.md)             | Instalación y uso para una persona (no un agente)                                                 | El cliente o un humano nuevo lee el repo   |
 
@@ -49,7 +48,6 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 - `format:check` **es** gate (el repo está normalizado con Prettier desde 2026-10-19).
 - `npm run test:e2e` también es gate cuando el cambio toca flujos de la UI.
-- **Verificación visual**: obligatoria para cambios con UI → [WORKFLOW.md §4](WORKFLOW.md#4-verificación-visual-no-negociable-para-cambios-con-ui) (incluye el guion de humo del usuario) y las capturas se miran con la herramienta `read`.
 
 ## 4. Reglas del repo (no negociables)
 

@@ -1,6 +1,6 @@
 # Workflow — SaleManteiner
 
-> Cómo se trabaja en este repo: arranque, gates, verificación visual, skills y el flujo de ODD.
+> Cómo se trabaja en este repo: arranque, gates, skills y el flujo de ODD.
 > Reglas del repo (código): [ARCHITECTURE.md](ARCHITECTURE.md) · Estado: [STATUS.md](STATUS.md).
 
 ## 1. Arranque
@@ -48,36 +48,7 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 - El e2e (`npm run test:e2e`) también es gate cuando el cambio toca flujos de la UI.
 - Si un gate no se puede correr, **se dice**: no se commitea a ciegas.
 
-## 4. Verificación visual (NO NEGOCIABLE para cambios con UI)
-
-> Un test verde **no** es "se ve bien". Un texto partido o una columna cortada son bugs igual que un test rojo.
-
-**Alcance**: aplica a los cambios que tocan la UI (textos, layout, estilos, componentes). Una spec **solo de código** (refactor, renombre, limpieza) que no cambia ni la funcionalidad ni el aspecto **no** la requiere: la verifican los gates.
-
-**El guion de humo** está en `odd/happy-path.md` (local, no versionado): es el checklist de todo lo que puede hacer un usuario (crear un cliente, modificarlo, hacer una compra, venderla, borrarla, filtrar, ordenar, cascadas, dark, móvil). Hay que recorrerlo **mirando la web** para comprobar que un refactor no rompió nada.
-
-**El arnés no vive en el repo**: se arma en el momento de resolver la spec que lo necesita (y se puede borrar después). Las capturas que produce quedan fuera de git (`web/visual/shots/`).
-
-### Cómo se arma (si hay que reconstruirlo) — fuera del repo, en el directorio temporal
-
-- Un script que levante su propio backend (p. ej. `PORT=4310 SALEMANTEINER_DIR=<tmp>`) y su propio Vite (`--port 5310`, con `API_TARGET` apuntando a ese backend), con una BD **temporal** (nunca toca `~/.salemanteiner`).
-- Siembra datos realistas por la API: acentos (`Lucía Fernández`), un pack de 2 productos, una venta con poco margen y otra con beneficio **negativo**.
-- Captura con el Chromium del repo (`@playwright/test`): dashboard, compras, ventas, clientes, los modales, la página de edición, **dark mode** y **móvil** (390px). Registra los errores de consola: un error de runtime no se ve en una captura, pero sí lo detecta ese paso.
-- Para congelar una transición en el aire: CDP (`Animation.setPlaybackRate` con `playbackRate: 0.05`) y capturar en pleno vuelo.
-- Las capturas se **miran** con la herramienta `read` (renderiza el PNG como imagen).
-
-### Qué mira cada captura (checklist en `web/.agents/skills/visual-verification/SKILL.md`)
-
-- La pantalla que cambió, la misma en **dark mode**, la misma en **móvil** (390px) y los modales que abre.
-- Lo que ningún test ve: columna cortada, texto partido, chart en su fallback de carga, modal que tapa el contenido, color sin contraparte `dark:`.
-
-### Reglas
-
-1. El cierre de un feature con UI incluye **las capturas revisadas** en el informe (qué se vio y si algo quedó mal).
-2. Si no se pudo mirar, se dice explícitamente: el feature **no está cerrado** → resultado "bloqueado por falta de verificación visual", no "cerrado con un pendiente".
-3. Para flujos interactivos puntuales (clics, teclado, consola, red) está el MCP de Playwright; el repo ya tiene Chromium instalado (`npx playwright install chromium`).
-
-## 5. Skills
+## 4. Skills
 
 Las skills de cada workspace viven en `<workspace>/.agents/skills/<nombre>/SKILL.md` y están **versionadas**.
 
@@ -122,7 +93,6 @@ En **cada** pedido del usuario hay que evaluar **explícitamente** si el cambio 
 | `tailwind-css-patterns`     | utilities, responsive, dark mode, `@theme`, accesibilidad visual |
 | `accessibility`             | WCAG 2.2, ARIA, foco, contraste, target size, labels, errores    |
 | `frontend-design`           | jerarquía visual, spacing, tipografía, layout, atomic design     |
-| `visual-verification`       | el checklist de verificación visual (§4)                         |
 | `seo`                       | meta tags, OG, JSON-LD → **no aplica** a esta SPA (sin SSR)      |
 
 **`desktop/.agents/skills/`** (antes de tocar `desktop/**`):
@@ -140,7 +110,7 @@ En **cada** pedido del usuario hay que evaluar **explícitamente** si el cambio 
 - Búsqueda global de strings en el repo (`grep`/`find`), salvo que el resultado requiera editar archivos del workspace.
 - Skills que el propio SKILL.md declara fuera de alcance (ej. `seo`).
 
-## 6. Flujo de trabajo (ODD) y features
+## 5. Flujo de trabajo (ODD) y features
 
 El detalle de cada unidad de trabajo vive en `odd/tasks/<feature>.md`:
 
@@ -151,7 +121,7 @@ El detalle de cada unidad de trabajo vive en `odd/tasks/<feature>.md`:
 
 Al retomar una sesión: `odd/HANDOFF.md` + `mem_context` de Engram + el Log del feature + el estado de git.
 
-## 7. Trampas del repo (aprendidas a golpes)
+## 6. Trampas del repo (aprendidas a golpes)
 
 | Trampa                                                                                     | Qué hacer                                                                      |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |

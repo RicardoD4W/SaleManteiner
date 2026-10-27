@@ -12,7 +12,7 @@ SaleManteiner/
 ├── WEB.md                    ← detalle técnico del frontend
 ├── SERVER.md                 ← detalle técnico del backend
 ├── PRODUCT.md                ← qué es la app, decisiones de producto, roadmap
-├── WORKFLOW.md               ← gates, verificación visual, skills, ODD
+├── WORKFLOW.md               ← gates, skills, ODD
 ├── DESKTOP.md                ← la app de escritorio (Tauri 2)
 ├── STATUS.md                 ← estado actual, pendientes, historial
 ├── odd/                      ← docs del ODD (local, gitignored: no van al repo)
@@ -121,7 +121,7 @@ El "¿tiene datos?" lo responde un probe **readonly** (`server/src/db/probe.ts`)
 
 En Windows la canónica **nunca** cae en `%LOCALAPPDATA%\SaleManteiner` (la carpeta que borra el desinstalador de NSIS); sin `APPDATA` se usa el roaming del home.
 
-**Los overrides explícitos mandan siempre** → el e2e y el arnés visual siguen aislados del dato real del usuario.
+**Los overrides explícitos mandan siempre** → el e2e sigue aislado del dato real del usuario.
 
 ## 5. Reglas del repo (no negociables)
 
