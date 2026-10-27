@@ -12,11 +12,17 @@
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **El concepto del producto se amplía**: SaleManteiner deja de ser "el tracker de Wallapop para revendedores" y pasa a ser el **gestor de compras, ventas y clientes** para cualquier tipo de usuario (README, PRODUCT, AGENTS, metadatos y copy de la app). El nombre, el modelo de datos y el comportamiento no cambian.
+
 ### Corregido
 
 - **El auto-update fallaba a mitad de la instalación**: el updater de Windows cierra la app pero dejaba vivo el **sidecar** (el proceso Node), que tenía abierto el addon nativo de `better-sqlite3`. El instalador no podía escribirlo ("Error abriendo archivo para escritura") y la actualización se caía. Ahora el sidecar se cierra **después de descargar y antes de instalar** (`desktop/src/lib.rs`). Verificado de punta a punta: la app instalada 0.1.0 detectó la 0.1.1, preguntó con el diálogo nativo, descargó, instaló y se reinició en 0.1.1.
 
-## [0.1.1] - 2026-10-26
+## [0.1.1]
+
+**Publicada el 2026-10-26**
 
 ### Añadido
 
@@ -30,7 +36,9 @@
 - `release.mjs` y `write-versions.mjs` leen sus JSON dentro de un `try/catch`: un archivo faltante o malformado ahora dice qué falló y dónde, en vez de reventar con un stack.
 - La ruta de la **base de datos** la decide el server (canónica por plataforma y fallback a la legacy si la nueva está vacía) y el shell de Tauri dejó de pasar `SALEMANTEINER_DIR`: la app instalada y el dev ven los mismos datos.
 
-## [0.1.0] - 2026-10-25
+## [0.1.0]
+
+**Publicada el 2026-10-25**
 
 ### Añadido
 

@@ -4,7 +4,7 @@
 
 > **100% privado.** Todo vive en tu máquina: ni cuentas, ni nube, ni telemetría, ni un solo byte fuera de tu disco. Funciona igual en la versión web y en la app de escritorio.
 
-![Estado](https://img.shields.io/badge/estado-operativo-2ea44f) ![Licencia](https://img.shields.io/badge/licencia-privada-gray) ![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-informational)
+![Estado](https://img.shields.io/badge/estado-operativo-2ea44f) ![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-informational)
 
 ---
 
@@ -176,7 +176,3 @@ Las reglas del repo y dónde están las trampas: [WORKFLOW.md](WORKFLOW.md).
 - El **borrado en cascada no se puede deshacer** (deja rastro en el log del servidor).
 - La versión de escritorio se distribuye **a mano** (no está en la Microsoft Store ni en el Homebrew de forma automática).
 - La **firma de Windows** (Authenticode) está pendiente: sin ella aparece el aviso del editor desconocido.
-
-## Licencia
-
-Proyecto privado: el código es del autor y todavía no hay una licencia pública publicada.
