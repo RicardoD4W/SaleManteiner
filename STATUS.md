@@ -5,7 +5,7 @@
 
 ## 1. Estado actual
 
-- **Rama de trabajo**: `master` (todo pusheado a `origin`). Quedan dos ramas de feature sin mergear: `feature/concepto-generico` y `feature/limpieza-arnes-y-docs`.
+- **Rama de trabajo**: `master` (todo pusheado a `origin`). **No queda ninguna rama pendiente**: `feature/concepto-generico` y `feature/limpieza-arnes-y-docs` ya están dentro de `master` (0 commits sin mergear) → se pueden borrar.
 - **Modelo de datos activo**: `buys + solds + sale_items + customers` (migración 003; las vistas 004/005 encima).
 - **App**: cuatro vistas (Dashboard · Compras · Ventas · Clientes), borrado desde las tablas con doble confirmación cuando hay ventas asociadas.
 - **Escritorio**: Tauri 2 + sidecar, instalador NSIS firmado, auto-update con minisign implementado y probado de punta a punta (0.1.1). El `.zip` ya se probó en una máquina sin Node.
