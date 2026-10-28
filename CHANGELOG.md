@@ -9,9 +9,6 @@
 > `scripts/write-versions.mjs` las lee y las publica en `web/.env` y
 > `server/version.json` → la app las muestra en el pie y `GET /api/version` las
 > devuelve.
->
-> **Solo lo publicado**: las entradas de una versión se agregan cuando esa
-> versión se publica. No hay sección de cambios pendientes.
 
 ## [0.1.1]
 
@@ -41,7 +38,7 @@
 - `npm run build:app`: compila el front, compila el back, re-empaqueta el sidecar y genera el instalador, en un comando.
 - `npm run publish:new-version`: mira qué versión está distribuida y publica **solo si la local difiere** (comparación semver: la misma no hace nada y un downgrade se niega).
 
-### Base del producto (ya en `master` desde antes)
+## 0.0.0
 
 - El gestor de **compras, ventas y clientes** con packs multi-producto, stock por unidad y validación transaccional (422 con el detalle de qué falta).
 - El **dashboard**: 4 KPIs, flujo de caja de los últimos 12 meses, top 5 de productos y de compradores, en 4 pestañas ordenables.

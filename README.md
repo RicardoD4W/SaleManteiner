@@ -2,7 +2,8 @@
 
 **El gestor de compras, ventas y clientes.** Lleva el control de stock, las cifras del negocio y el beneficio real de cada venta, en tu propio computer.
 
-> **100% privado.** Todo vive en tu máquina: ni cuentas, ni nube, ni telemetría, ni un solo byte fuera de tu disco. Funciona igual en la versión web y en la app de escritorio.
+## **100% privado.**
+Todo vive en tu máquina: ni cuentas, ni nube, ni telemetría, ni un solo byte fuera de tu disco. Funciona igual en la versión web y en la app de escritorio.
 
 ![Estado](https://img.shields.io/badge/estado-operativo-2ea44f) ![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-informational)
 
@@ -10,16 +11,13 @@
 
 ## Qué es
 
-Comprás, vendés y querés saber cómo van tus números. SaleManteiner es el cuaderno digital de tus compras, ventas y clientes:
+Compras, vendes y quieress saber cómo van tus números. SaleManteiner es el cuaderno digital de tus compras, ventas y clientes:
 
 - Cargas **cada compra** con su coste, cantidad y gastos de envío.
 - Cargas **cada venta** con su precio, gastos, comprador y qué productos se vendieron.
 - La app **calcula el beneficio real** de cada venta (precio − gastos − lo que te costó el producto) y te dice cuánto dinero dejaste de ganar o de perder.
-- El **stock se descuenta solo**: no podés vender lo que no compraste, y la app te avisa si no reaches a cubrir una venta.
 
-Nada de scraping, nada de captura automática, nada de conectar cuentas de terceros, nada de subir tus datos a ningún lado: vos cargás los datos a mano y la app solo te ayuda a no equivocarte.
-
-## Qué podés hacer
+## Qué puedes hacer
 
 ### 🛒 Compras — tu stock, con su coste real
 
@@ -31,7 +29,7 @@ Nada de scraping, nada de captura automática, nada de conectar cuentas de terce
 | Asociados       | gastos de envío, embalaje, comisiones (totales del lote) |
 | Fecha de compra | editable (por defecto, hoy)                              |
 
-La tabla te muestra, además, **cuántas unidades te quedan disponibles** de cada compra. Editás y borrás desde la propia tabla.
+La tabla te muestra, además, **cuántas unidades te quedan disponibles** de cada compra. Editas y borras desde la propia tabla.
 
 ### 🧾 Ventas — packs, compradores y beneficio
 
@@ -48,7 +46,7 @@ Una venta puede ser un **pack de varios productos** (cada uno de una compra dist
 
 ### 👥 Clientes — quién te compra y cuánto deja
 
-Alta, edición y borrado de clientes, con el **número de ventas** y el **total gastado** de cada uno. Si borrás un cliente con ventas, la app te pide confirmación y te dice a qué ventas afecta.
+Alta, edición y borrado de clientes, con el **número de ventas** y el **total gastado** de cada uno. Si borras un cliente con ventas, la app te pide confirmación y te dice a qué ventas afecta.
 
 ### 📊 Dashboard — las cifras que importan
 
@@ -61,7 +59,7 @@ Alta, edición y borrado de clientes, con el **número de ventas** y el **total 
 
 Un solo campo de búsqueda en las tablas de compras y ventas, y no es una búsqueda tonta:
 
-| Escribís                    | Te busca                            |
+| Escribes                    | Te busca                            |
 | --------------------------- | ----------------------------------- |
 | `ipad`                      | por nombre de producto o de cliente |
 | `25`                        | por precio, coste o cantidad        |
@@ -100,7 +98,7 @@ Dónde vive la base de datos:
 | macOS   | `~/Library/Application Support/SaleManteiner/data.db` |
 | Linux   | `$XDG_DATA_HOME/SaleManteiner/data.db`                |
 
-Si esa carpeta está vacía pero tenés una base vieja en `~/.salemanteiner/data.db`, la app la usa: **nadie pierde datos**.
+Si esa carpeta está vacía pero tienes una base vieja en `~/.salemanteiner/data.db`, la app la usa: **nadie pierde datos**.
 
 **Copia de seguridad**: es un archivo. Copialo cuando quieras (con la app cerrada, o con `sqlite3 data.db ".backup copia.db"`).
 
@@ -112,16 +110,16 @@ Si esa carpeta está vacía pero tenés una base vieja en `~/.salemanteiner/data
 
 Instalador para Windows, macOS y Linux. **No necesitás instalar Node ni abrir una terminal**: doble clic en el ícono y la app arranca.
 
-1. Bajá el **`.zip`** de la [release](https://github.com/RicardoD4W/SaleManteiner/releases) y descomprimilo.
-2. Dentro está el instalador: doble clic y seguí los pasos (todo en español).
-3. Abrí la app desde el ícono: **no necesitás instalar Node ni abrir una terminal**.
-4. Listo: la app **se actualiza sola** (no tenés que saber qué versión tenés).
+1. Bajá el **`.zip`** de la [release](https://github.com/RicardoD4W/SaleManteiner/releases) y descomprímelo.
+2. Dentro está el instalador: doble clic y sigue los pasos (todo en español).
+3. Abre la app desde el ícono: **no necesitas instalar Node ni abrir una terminal**.
+4. Listo: la app **se actualiza sola** (no tienes que saber qué versión tienes).
 
 > **Por qué el `.zip` y no el `.exe`**: Windows marca los archivos descargados y eso dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un zip no lleva esa marca → el cliente descomprime y ejecuta, sin avisos. Si aun así lo viera, es **Más información → Ejecutar** (o, mejor, que le pases el archivo a mano y lo instales en su máquina).
 
 ### Versión web (para desarrollo)
 
-Necesitás **Node.js 22 LTS** (recomendado: [fnm](https://github.com/Schniz/fnm)).
+Necesitas **Node.js 22 LTS** (recomendado: [fnm](https://github.com/Schniz/fnm)).
 
 ```bash
 git clone https://github.com/RicardoD4W/SaleManteiner.git
@@ -130,9 +128,6 @@ npm install
 npm run dev
 ```
 
-- App → <http://localhost:5173>
-- API → <http://localhost:4000/api/health>
-
 ---
 
 ## Documentación
@@ -140,8 +135,8 @@ npm run dev
 | Doc                                | Qué hay                                                                   |
 | ---------------------------------- | ------------------------------------------------------------------------- |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitectura general: stack, modelo de datos, reglas de código, API       |
-| [WEB.md](WEB.md)                   | Detalle técnico del frontend (React, estado, componentes, estilos, tests) |
-| [SERVER.md](SERVER.md)             | Detalle técnico del backend (Express, rutas, repos, migraciones, errores) |
+| [WEB.md](WEB.md)                   | Detalle técnico del frontend |
+| [SERVER.md](SERVER.md)             | Detalle técnico del backend |
 | [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones         |
 | [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, skills                                 |
 | [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
@@ -149,11 +144,6 @@ npm run dev
 
 ---
 
-## Tecnología
-
-React 19 · TypeScript · Vite 8 · Tailwind 4 · TanStack Query · TanStack Table · Recharts · Node 22 · Express 5 · SQLite (better-sqlite3) · Zod · Pino · Vitest · Playwright · Tauri 2 (escritorio)
-
----
 
 ## Desarrollo
 
@@ -166,8 +156,6 @@ npm run test           # Vitest: server + web
 npm run test:e2e       # Playwright
 npm run build:desktop  # instalador de escritorio (front + back + sidecar)
 ```
-
-Las reglas del repo y dónde están las trampas: [WORKFLOW.md](WORKFLOW.md).
 
 ## Limitaciones conocidas
 

@@ -167,22 +167,3 @@ El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El b
 - **app**: la de `desktop/tauri.conf.json`, forzable con `SALE_MANTEINER_APP_VERSION`.
 
 `GET /api/version` las devuelve; el web las muestra en el footer.
-
-## 8. Tests
-
-13 archivos / 238 tests, con BD en `:memory:`:
-
-- `buys.test.ts`, `solds.test.ts`, `customers.test.ts`, `stock.test.ts` → repos y stock.
-- `buys-routes.test.ts`, `customers-routes.test.ts` → el contrato HTTP real (app Express + `fetch`): 204/400/404/409 con el cuerpo literal.
-- `stats-dashboard.test.ts` → KPIs, `totals12m`, el mes y el gráfico.
-- `vistas-cifras.test.ts` → las vistas SQL (incluido el caso de 1 céntimo de diferencia entre `ROUND` de SQLite y `round2` de JS).
-- `db-path.test.ts` → la resolución de la ruta de la BD y el probe.
-- `schemas.test.ts`, `planner.test.ts`, `version-routes.test.ts`, `web-estatico.test.ts`.
-
-## 9. Trampas
-
-- Express 5: `:id` matchea `[^/]+` → **nunca** matchea paths de 2 segmentos. El orden de las rutas importa (`/stock` antes de `/:id`).
-- `better-sqlite3` **no cachea** el SQL preparado: prepará las statements una vez y reutilizalas.
-- El `probe` de datos es **readonly**, pero puede crear los sidecars `-shm`/`-wal` (no toca `data.db`).
-- `npm --workspace X` no funciona desde dentro de un workspace → `npm --prefix ..`.
-- El build copia las migraciones al `dist` (`scripts/copy-assets.mjs`): sin eso, el runtime empaquetado no encuentra las migraciones.

@@ -14,11 +14,11 @@
 | Doc                                | Qué contiene                                                                                      | Leelo cuando…                              |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Estructura del repo, stack, modelo de datos, ruta de la BD, reglas de código y convenciones de UI | Vas a tocar código o a cambiar el modelo   |
-| [WEB.md](WEB.md)                   | Detalle técnico del frontend: rutas, TanStack Query, componentes, búsqueda, estilos, tests        | Tocás `web/**`                             |
-| [SERVER.md](SERVER.md)             | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocás `server/**`                          |
-| [DESKTOP.md](DESKTOP.md)           | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocás `desktop/**` o la entrega al cliente |
-| [PRODUCT.md](PRODUCT.md)           | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitás el "por qué" de una decisión     |
-| [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, skills, flujo ODD, trampas del repo                                    | Empezás a trabajar o vas a commitear       |
+| [WEB.md](WEB.md)                   | Detalle técnico del frontend: rutas, TanStack Query, componentes, búsqueda, estilos, tests        | Tocas `web/**`                             |
+| [SERVER.md](SERVER.md)             | Detalle técnico del backend: rutas, repos, migraciones, vistas SQL, errores, tests                | Tocas `server/**`                          |
+| [DESKTOP.md](DESKTOP.md)           | La app de escritorio (Tauri 2): sidecar, instalador, auto-update, versiones                       | Tocas `desktop/**` o la entrega al cliente |
+| [PRODUCT.md](PRODUCT.md)           | Qué es la app, decisiones de producto, roadmap, alcance, índice de features                       | Necesitas el "por qué" de una decisión     |
+| [WORKFLOW.md](WORKFLOW.md)         | Arranque, comandos, gates, skills, flujo ODD                                    | Empezás a trabajar o vas a commitear       |
 | [README.md](README.md)             | Instalación y uso para una persona (no un agente)                                                 | El cliente o un humano nuevo lee el repo   |
 
 ## 2. Stack
@@ -34,8 +34,6 @@
 | Escritorio       | Tauri 2 + Rust (shell), el server Node como sidecar      |
 | Gestor Node      | fnm (`scripts/with-fnm.ps1`)                             |
 | Paquetes         | npm workspaces: `web/`, `server/`, `desktop/`            |
-
-Detalle y notas por capa: [ARCHITECTURE.md §2](ARCHITECTURE.md#2-stack).
 
 Arranque: `npm install` → `npm run dev` (web :5173, API :4000) · escritorio: `npm run dev:desktop` → [WORKFLOW.md §1](WORKFLOW.md#1-arranque).
 

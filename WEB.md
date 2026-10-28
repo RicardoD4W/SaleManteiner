@@ -154,25 +154,3 @@ Los tokens se combinan con AND: varias palabras = todas las condiciones.
 ## 9. Versiones
 
 `scripts/write-versions.mjs` (raíz del repo) genera `web/.env` con `VITE_APP_VERSION`, `VITE_FRONT_VERSION` y `VITE_BACK_VERSION`, que Vite hornea en el bundle. `AppVersion` las muestra en el footer y cae a `"dev"` cuando no están inyectadas. El script está enganchado a `dev:web` y `build:web`: nadie tiene que acordarse.
-
-## 10. Tests
-
-**Unitarios** (Vitest, 36 archivos / 277 tests): schemas, formatters, cliente HTTP, hooks de mutación, componentes de UI, tablas, KPIs, footer de versiones.
-
-- `vitest.config.ts`: `pool: 'vmThreads'` + `maxWorkers: 5` → el jsdom se crea **una vez por worker** (la suite pasó de 25,86 s a 8,62 s). `isolate: false` está **descartado**: filtra los `vi.mock` entre archivos.
-- El warm-up del chart lazy tiene su propio `hookTimeout` de 60 s (transformar `recharts` con la caché de Vite fría tarda más que 10 s).
-
-**E2E** (Playwright, `web/e2e/`): flujos de compras/ventas, clientes, validación de formularios, búsqueda y filtros, cabeceras ordenables, view transitions.
-
-`playwright.config.ts` levanta **su propio backend y su propio Vite** con puertos y BD temporales:
-
-- API en `:4100` con `SALEMANTEINER_DIR`/`SALEMANTEINER_DB` → `%TEMP%\salemanteiner-e2e` (nunca toca `~/.salemanteiner`).
-- Web en `:5174` con `API_TARGET` apuntando a esa API.
-- `fullyParallel: false` y `workers: 1` (la BD es un archivo compartido).
-
-## 11. Trampas
-
-- `web/vitest.config.ts` **no está en el typecheck** (`tsconfig.json` incluye solo `src`; `tsconfig.node.json` solo `vite.config.ts`).
-- Tailwind 4 **no** pone `cursor: pointer` en los `<button>` → ponelo explícito.
-- El proxy de Vite usa `API_TARGET` (por defecto `http://localhost:4000`).
-- `npm --workspace X` no funciona desde dentro de un workspace → `npm --prefix ..`.

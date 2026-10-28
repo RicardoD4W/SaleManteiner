@@ -52,17 +52,6 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 Las skills de cada workspace viven en `<workspace>/.agents/skills/<nombre>/SKILL.md` y están **versionadas**.
 
-### Regla de evaluación por prompt (OBLIGATORIA, en cada pedido)
-
-En **cada** pedido del usuario hay que evaluar **explícitamente** si el cambio toca algo que una skill cubre, **antes** de la primera lectura o edición del workspace:
-
-1. Listar las skills candidatas del workspace que se va a tocar.
-2. Decidir skill por skill: **cargar** o **no cargar**, dejando el motivo.
-3. **En caso de duda → cargar.** Una skill de más cuesta una lectura; una de menos cuesta un error que la skill habría prevenido.
-4. Cargar el `SKILL.md` **antes** de la primera lectura o edición del workspace, y también sus `references/*.md` si la regla general aplica.
-5. La evaluación es **por pedido**, no por sesión: si el pedido cambia de área, se re-evalúa.
-6. Dejar en el informe del turno qué skills se cargaron y cuáles se descartaron, con el motivo.
-
 ### Reglas duras
 
 1. **SIEMPRE** cargar las skills relevantes **antes** de la primera lectura o edición de un archivo del workspace.
@@ -120,27 +109,4 @@ El detalle de cada unidad de trabajo vive en `odd/tasks/<feature>.md`:
 - El **push**, el PR y el merge son decisiones del usuario, no del agente.
 
 Al retomar una sesión: `odd/HANDOFF.md` + `mem_context` de Engram + el Log del feature + el estado de git.
-
-## 6. Trampas del repo (aprendidas a golpes)
-
-| Trampa                                                                                     | Qué hacer                                                                                                        |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `npm --workspace X` no funciona desde dentro de un workspace                               | usar `npm --prefix ..`                                                                                           |
-| Un `tauri build` a secas empaqueta el **sidecar viejo**                                    | siempre `npm run build:app` (o `build:desktop` de la raíz)                                                       |
-| El plugin de log de Tauri no arranca con `USERPROFILE`/`APPDATA` falseados                 | para sandboxear la app, dejar las carpetas reales del sistema                                                    |
-| `os.homedir()` (Node) sí respeta `USERPROFILE` en Windows; las "known folders" de Tauri no | —                                                                                                                |
-| El binario de `gentle-ai` del PATH **no** cuenta para la revisión nativa                   | hace falta el package-local (`<gentle-pi>/.gentle-ai/v4.2.0/gentle-ai.exe`)                                      |
-| Express 5: `:id` matchea `[^/]+` → nunca matchea paths de 2 segmentos                      | el orden de las rutas importa (`/stock` antes de `/:id`)                                                         |
-| Tailwind 4 **no** pone `cursor: pointer` en los `<button>`                                 | ponerlo explícito (los links "Editar" mostraban la flecha)                                                       |
-| `<input type="number">` con la validación nativa bloquea el envío                          | los forms llevan `noValidate`: la validación es la de Zod                                                        |
-| `web/vitest.config.ts` no está en el typecheck                                             | `tsconfig.json` incluye solo `src`; `tsconfig.node.json` solo `vite.config.ts`                                   |
-| La suite del web usa `pool: 'vmThreads'` + `maxWorkers: 5` (3× más rápida)                 | `isolate: false` queda descartado: filtra los `vi.mock` entre archivos y rompe `src/lib/__tests__/toast.test.ts` |
-| `npm run test` no corre `desktop/`                                                         | ese workspace no tiene runner de tests: los scripts se verifican con corridas en sandbox                         |
-
-## 7. La revisión nativa (RDD)
-
-- **Estado**: desactivada en este clone (`gentle-ai review mode disable --scope clone` → `clone-local: off`; el switch global sigue en `on`).
-- **El binario**: la fachada busca el **package-local** (`<gentle-pi>/.gentle-ai/v4.2.0/gentle-ai.exe`); el `gentle-ai` del PATH **no** cuenta. Se instala con `node scripts/install-gentle-ai.mjs` dentro del paquete, o registrando el build propio en `~/.pi/gentle-ai/dev-binary.json` (`{"schema":"gentle-pi.dev-binary/v1","path":"<ruta absoluta>"}`).
-- **Defecto conocido de la fachada**: la captura **autorizada** (`reviewerRunAcknowledged: true`) rechaza los bindings canónicos del provider (_"collectBindings must be the complete distinct current reviewer group in exact provider order"_ / _"collectBinding is missing or stale for current STATUS"_) aunque el input canónico sea byte a byte el del provider.
-- **Nota**: un `assess` sin cambios pendientes responde _"the review assess candidate has no pending changes"_ → hay que pasarle `baseRef` (el padre del commit) con `committedOnly: true`.
-- **Cobertura mientras tanto**: **gates + verificador independiente** (solo lectura) sobre las unidades de riesgo.
+                |
