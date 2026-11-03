@@ -1,6 +1,6 @@
 {
   "name": "@salemanteiner/desktop",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Shell de escritorio (Tauri) de SaleManteiner: ventana + sidecar con el server",
   "type": "module",

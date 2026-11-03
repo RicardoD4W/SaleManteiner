@@ -10,6 +10,28 @@
 > `server/version.json` → la app las muestra en el pie y `GET /api/version` las
 > devuelve.
 
+## [0.2.0]
+
+**Sin publicar**
+
+### Añadido
+
+- **Gastos generales**: una vista nueva **Gastos** (`/gastos`, la quinta del header) con alta, edición, borrado, filtro por categoría y total de la lista. Los gastos son los que no son ni compras ni ventas (alquiler, suministros, papelería): viven en su propia tabla, no generan stock y no entran en el beneficio de ventas.
+- **Categorías de gasto gestionadas por el usuario**: se crean, renombran y borran desde la propia vista. No hay catálogo sembrado → la base de datos del usuario no se toca con datos inventados. Borrar una categoría que tiene gastos devuelve 409.
+- **KPI "Gastos" y KPI "Beneficio neto"** en el dashboard. El KPI de beneficio **no cambia de significado**: el beneficio neto es el beneficio de ventas menos los gastos generales del periodo.
+- **La serie de gastos en el flujo de caja** de los últimos 12 meses: el resultado del mes descuenta los gastos.
+- **Ficha de cliente completa**: teléfono, dirección y notas. Teléfono y dirección son opcionales; el teléfono se guarda en crudo y se formatea al mostrarlo (`xxx xx xx xx`). En `/customers` aparecen las columnas nuevas (Teléfono, Dirección, Deuda) y las notas son la última columna de datos.
+- **Deuda por cliente**: cada venta lleva el **importe cobrado**; la deuda del cliente es lo que falta por cobrar. El cobro es caja, no ganancia: no altera el beneficio de la venta. No se puede cobrar más de lo vendido.
+- **Campo "Cobrado"** en el alta y la edición de venta.
+- **Notas en compras, ventas y clientes** con icono: si no hay notas no aparece nada y al pasar el ratón por encima se lee la nota entera en un popover. Las compras, que no tenían campo de notas, lo reciben.
+
+### Migraciones
+
+- `006`: tabla `expenses`, tabla `expense_categories`, `customers.phone/address/notes` y `solds.paid_amount`.
+- `007`: `buys.notes`.
+
+Las dos son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente.
+
 ## [0.1.1]
 
 **Publicada el 2026-10-26**
@@ -45,5 +67,6 @@
 - **Búsqueda que entiende**: texto, precios, cantidades (`x3`), fechas (`12/03/2025`) y pérdidas (`-30`), combinables.
 - **100% local**: sin cuentas, sin nube, sin telemetría y sin peticiones a terceros.
 
+[0.2.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.2.0
 [0.1.1]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.0
