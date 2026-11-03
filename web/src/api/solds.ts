@@ -4,6 +4,7 @@ import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 
 export interface SoldWithProfit extends Sold {
   profit: number;
+  paid_amount: number;
   items: SaleItemOutput[];
 }
 
@@ -26,6 +27,8 @@ export interface DashboardStats {
     compras_total_eur: number;
     ventas_total_eur: number;
     beneficio_total_eur: number;
+    gastos_total_eur: number;
+    beneficio_neto_eur: number;
     stock_pendiente_count: number;
   };
 
@@ -33,6 +36,7 @@ export interface DashboardStats {
     month: string;
     ingresos: number;
     compras: number;
+    gastos: number;
     beneficio: number;
     resultado: number;
   }>;
