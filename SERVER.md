@@ -79,13 +79,17 @@ db.pragma('busy_timeout = 5000');
 
 `db/migrate.ts` lee los `.sql` de `db/migrations/` (`NN_nombre.sql`), lleva la tabla `_migrations` (version, name, applied_at) y aplica **cada migración en su propia transacción**. Solo se aplican las que faltan.
 
-| Migración                                  | Qué hace                                                                      |
-| ------------------------------------------ | ----------------------------------------------------------------------------- |
-| `001_initial.sql`                          | modelo legacy `sales` (ya no se usa)                                          |
-| `002_purchase_date_and_manual_sold_at.sql` | fechas en el modelo legacy                                                    |
-| `003_buys_and_solds.sql`                   | **el modelo actual**: `buys`, `solds`, `sale_items`, `customers`              |
-| `004_vistas_cifras.sql`                    | vistas `v_item_costs` y `v_sold_costs` (la fuente de la verdad de las cifras) |
-| `005_indices_de_fecha.sql`                 | índices de fecha para las consultas de rango                                  |
+| Migración                                  | Qué hace                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `001_initial.sql`                          | modelo legacy `sales` (ya no se usa)                                                                        |
+| `002_purchase_date_and_manual_sold_at.sql` | fechas en el modelo legacy                                                                                  |
+| `003_buys_and_solds.sql`                   | **el modelo actual**: `buys`, `solds`, `sale_items`, `customers`                                            |
+| `004_vistas_cifras.sql`                    | vistas `v_item_costs` y `v_sold_costs` (la fuente de la verdad de las cifras)                               |
+| `005_indices_de_fecha.sql`                 | índices de fecha para las consultas de rango                                                                |
+| `006_gastos_y_ficha_cliente.sql`           | **aditiva**: `customers.phone/address/notes`, `solds.paid_amount`, tablas `expenses` y `expense_categories` |
+| `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
+
+El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
 El modelo de datos completo está en [ARCHITECTURE.md §3](ARCHITECTURE.md#3-modelo-de-datos).
 
@@ -118,33 +122,43 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | `DateRangeQuery`       | `from` / `to` opcionales en `YYYY-MM-DD`            |
 | `SalesListQuery`       | rango de fechas + `customerId`                      |
 | `CustomersSearchQuery` | `{ name }` opcional, `.strict()`                    |
+| `ExpensesListQuery`    | `{ category_id }` opcional, `.strict()`             |
 | `asyncHandler`         | envuelve un handler async y pasa el error al `next` |
 | `respondBadRequest`    | 400 con `{ error, issues }`                         |
 
 ## 6. Rutas
 
-| Método + ruta                  | Qué hace                                                    | Errores             |
-| ------------------------------ | ----------------------------------------------------------- | ------------------- |
-| `GET /api/health`              | estado + versión del server                                 | —                   |
-| `GET /api/version`             | `{ app, front, back }`                                      | —                   |
-| `GET /api/buys`                | lista de compras con `disponibles`                          | —                   |
-| `GET /api/buys/stock`          | stock por compra                                            | —                   |
-| `GET /api/buys/:id`            | una compra                                                  | 404                 |
-| `POST /api/buys`               | alta                                                        | 400                 |
-| `PATCH /api/buys/:id`          | edición (los `undefined` no pisan lo que no se manda)       | 400/404             |
-| `DELETE /api/buys/:id`         | borra la compra                                             | 409 si tiene ventas |
-| `DELETE /api/buys/:id/cascade` | borra la compra y limpia las ventas, en transacción         | 404                 |
-| `GET /api/solds`               | lista de ventas con beneficio + items                       | —                   |
-| `GET /api/solds/:id`           | una venta con sus items                                     | 404                 |
-| `POST /api/solds`              | alta con items (valida stock)                               | 400/**422**         |
-| `PATCH /api/solds/:id`         | edición                                                     | 400/404             |
-| `DELETE /api/solds/:id`        | borra la venta                                              | 404                 |
-| `GET /api/customers`           | clientes con nº de ventas y total gastado                   | —                   |
-| `GET /api/customers/:id`       | un cliente                                                  | 404                 |
-| `POST /api/customers`          | alta                                                        | 400                 |
-| `PATCH /api/customers/:id`     | edición                                                     | 400/404             |
-| `DELETE /api/customers/:id`    | borra el cliente                                            | 409 si tiene ventas |
-| `GET /api/stats/dashboard`     | KPIs, flujo de caja por mes, top productos, top compradores | —                   |
+| Método + ruta                        | Qué hace                                                    | Errores             |
+| ------------------------------------ | ----------------------------------------------------------- | ------------------- |
+| `GET /api/health`                    | estado + versión del server                                 | —                   |
+| `GET /api/version`                   | `{ app, front, back }`                                      | —                   |
+| `GET /api/buys`                      | lista de compras con `disponibles`                          | —                   |
+| `GET /api/buys/stock`                | stock por compra                                            | —                   |
+| `GET /api/buys/:id`                  | una compra                                                  | 404                 |
+| `POST /api/buys`                     | alta                                                        | 400                 |
+| `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)       | 400/404             |
+| `DELETE /api/buys/:id`               | borra la compra                                             | 409 si tiene ventas |
+| `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción         | 404                 |
+| `GET /api/solds`                     | lista de ventas con beneficio + items                       | —                   |
+| `GET /api/solds/:id`                 | una venta con sus items                                     | 404                 |
+| `POST /api/solds`                    | alta con items (valida stock)                               | 400/**422**         |
+| `PATCH /api/solds/:id`               | edición                                                     | 400/404             |
+| `DELETE /api/solds/:id`              | borra la venta                                              | 404                 |
+| `GET /api/customers`                 | clientes con nº de ventas, total gastado y deuda            | —                   |
+| `GET /api/customers/:id`             | un cliente                                                  | 404                 |
+| `POST /api/customers`                | alta                                                        | 400                 |
+| `PATCH /api/customers/:id`           | edición                                                     | 400/404             |
+| `DELETE /api/customers/:id`          | borra el cliente                                            | 409 si tiene ventas |
+| `GET /api/expenses`                  | lista de gastos (filtro opcional por `category_id`)         | —                   |
+| `GET /api/expenses/:id`              | un gasto                                                    | 404                 |
+| `POST /api/expenses`                 | alta (exige `category_id`)                                  | 400                 |
+| `PATCH /api/expenses/:id`            | edición                                                     | 400/404             |
+| `DELETE /api/expenses/:id`           | borra el gasto                                              | 404                 |
+| `GET /api/expense-categories`        | categorías con nº de gastos e importe total                 | —                   |
+| `POST /api/expense-categories`       | alta (nombre único)                                         | 400/409             |
+| `PATCH /api/expense-categories/:id`  | edición del nombre                                          | 400/404             |
+| `DELETE /api/expense-categories/:id` | borra la categoría                                          | 409 si tiene gastos |
+| `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores | —                   |
 
 ### Códigos de error
 
@@ -153,8 +167,11 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | 400    | la validación de Zod falla            | `{ error, issues }` (flatten)                                                                 |
 | 404    | el registro no existe                 | `{ error }`                                                                                   |
 | 409    | el borrado dejaría ventas huérfanas   | `{ error, associated_sales }`                                                                 |
+| 409    | borrar una categoría de gasto en uso  | `{ error }`                                                                                   |
 | 422    | stock insuficiente al crear una venta | `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }` |
-| 500    | error no previsto                     | `{ error: 'Internal Server Error' }`                                                          |
+
+Los KPIs del dashboard (`GET /api/stats/dashboard`) son: `compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur` (beneficio de ventas, **no cambia de significado**), `gastos_total_eur`, `beneficio_neto_eur` (`beneficio_total_eur - gastos_total_eur`), `stock_pendiente_count`. La serie `cashFlowByMonth` incluye `gastos` por mes y los descuenta del `resultado`.
+| 500 | error no previsto | `{ error: 'Internal Server Error' }` |
 
 El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El borrado en cascada deja **audit trail** en el log (Pino, nivel `warn`): qué se borró y qué ventas se tocaron.
 

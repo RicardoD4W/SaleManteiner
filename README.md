@@ -16,6 +16,7 @@ Compras, vendes y quieress saber cómo van tus números. SaleManteiner es el cua
 
 - Cargas **cada compra** con su coste, cantidad y gastos de envío.
 - Cargas **cada venta** con su precio, gastos, comprador y qué productos se vendieron.
+- Cargas **cada gasto general** (alquiler, suministros, papelería…) con su categoría.
 - La app **calcula el beneficio real** de cada venta (precio − gastos − lo que te costó el producto) y te dice cuánto dinero dejaste de ganar o de perder.
 
 ## Qué puedes hacer
@@ -29,30 +30,42 @@ Compras, vendes y quieress saber cómo van tus números. SaleManteiner es el cua
 | Cantidad        | cuántas unidades compraste                               |
 | Asociados       | gastos de envío, embalaje, comisiones (totales del lote) |
 | Fecha de compra | editable (por defecto, hoy)                              |
+| Notas           | texto libre (se ve con un icono en la tabla)             |
 
 La tabla te muestra, además, **cuántas unidades te quedan disponibles** de cada compra. Editas y borras desde la propia tabla.
 
 ### 🧾 Ventas — packs, compradores y beneficio
 
-| Campo           | Qué es                                                  |
-| --------------- | ------------------------------------------------------- |
-| Cliente         | obligatorio, con creación en línea si no existe         |
-| Precio de venta | el total cobrado por la venta                           |
-| Asociados       | gastos de envío o comisión de esa venta                 |
-| Fecha de venta  | editable (por defecto, hoy)                             |
-| Notas           | texto libre                                             |
-| Productos       | qué compras se vendieron y cuántas unidades de cada una |
+| Campo           | Qué es                                                      |
+| --------------- | ----------------------------------------------------------- |
+| Cliente         | obligatorio, con creación en línea si no existe             |
+| Precio de venta | el total cobrado por la venta                               |
+| Asociados       | gastos de envío o comisión de esa venta                     |
+| Fecha de venta  | editable (por defecto, hoy)                                 |
+| Cobrado         | lo que te han pagado de esta venta (lo que queda, es deuda) |
+| Notas           | texto libre                                                 |
+| Productos       | qué compras se vendieron y cuántas unidades de cada una     |
 
 Una venta puede ser un **pack de varios productos** (cada uno de una compra distinta). Al guardar, la app comprueba que haya stock: si no alcanza, te dice exactamente **qué producto falta y cuánto**.
 
 ### 👥 Clientes — quién te compra y cuánto deja
 
-Alta, edición y borrado de clientes, con el **número de ventas** y el **total gastado** de cada uno. Si borras un cliente con ventas, la app te pide confirmación y te dice a qué ventas afecta.
+Ficha completa: **nombre, teléfono, dirección y notas** (el teléfono y la dirección son opcionales). En la tabla ves el teléfono formateado (`612 345 678`), la dirección, el **número de ventas**, el **total gastado** y la **deuda** (lo que te queda por cobrar). Las notas van en la última columna.
+
+Alta, edición y borrado de clientes. Si borras un cliente con ventas, la app te pide confirmación y te dice a qué ventas afecta.
+
+### 🧾 Gastos — lo que se va de casa
+
+Vista propia (la quinta del header) para los gastos que **no** son compras ni ventas: alquiler, suministros, papelería, luz…
+
+- Alta, edición y borrado, con **filtro por categoría** y el **total** de lo que hay en la lista.
+- Las **categorías las creas tú**: no hay un catálogo cerrado, y la primera categoría se puede crear en línea desde el propio alta del gasto.
+- En el dashboard restan del beneficio: verás los KPIs **Gastos** y **Beneficio neto** (sin cambiar lo que ya significaba el KPI de beneficio).
 
 ### 📊 Dashboard — las cifras que importan
 
-- **4 KPIs**: compras totales, ventas totales, **beneficio** (verde si ganaste, rojo si perdiste) y stock pendiente.
-- **Gráfico de flujo de caja** de los últimos 12 meses: beneficio, compras y resultado del mes.
+- **6 KPIs**: compras totales, ventas totales, **beneficio** (verde si ganaste, rojo si perdiste), **gastos**, **beneficio neto** y stock pendiente.
+- **Gráfico de flujo de caja** de los últimos 12 meses: beneficio, compras, gastos y resultado del mes.
 - **Top 5 productos** y **Top 5 compradores**, con lo que generó cada uno.
 - Cuatro pestañas: **Resumen**, **Ingresos**, **Productos** y **Compradores**, cada una ordenable.
 
@@ -73,6 +86,7 @@ Se pueden **combinar** (varias palabras = todas las condiciones). Y **todas las 
 ### 🧩 Detalles que se notan
 
 - **Modo oscuro** (sol/luna) que recuerda tu preferencia, sin parpadeo al cargar.
+- **Notas con icono**: en compras, ventas y clientes, las notas se ven como un icono; al pasar el ratón por encima se lee la nota entera en un popover.
 - **Responsive**: se usa bien en el móvil (390px), con tablas virtualizadas para que no se trabe.
 - **Atajos de teclado** y foco bien gestionado en los modales (se cierran con `Escape`).
 - **Avisos claros** cuando algo no cuadra (validación, stock insuficiente, borrado en cascada).
