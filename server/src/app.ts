@@ -12,9 +12,13 @@ import { buysRouter } from './routes/buys.js';
 import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { expensesRouter } from './routes/expenses.js';
+import { expenseCategoriesRouter } from './routes/expense-categories.js';
 import type { BuysRepo } from './repo/buys-repo.js';
 import type { SoldsRepo } from './repo/solds-repo.js';
 import type { CustomersRepo } from './repo/customers-repo.js';
+import { createExpenseCategoriesRepo, createExpensesRepo } from './repo/expenses-repo.js';
+import type { ExpenseCategoriesRepo, ExpensesRepo } from './repo/expenses-repo.js';
 
 const SERVICE = 'salemanteiner-server';
 const { version: VERSION } = createRequire(import.meta.url)('../package.json') as {
@@ -25,11 +29,17 @@ export interface CreateAppDeps {
   buysRepo: BuysRepo;
   soldsRepo: SoldsRepo;
   customersRepo: CustomersRepo;
+  expensesRepo?: ExpensesRepo;
+  expenseCategoriesRepo?: ExpenseCategoriesRepo;
   webDir?: string | null;
 }
 
 export function createApp(deps: CreateAppDeps): Express {
   const app = express();
+
+  const expensesRepo = deps.expensesRepo ?? createExpensesRepo(deps.customersRepo.db);
+  const expenseCategoriesRepo =
+    deps.expenseCategoriesRepo ?? createExpenseCategoriesRepo(deps.customersRepo.db);
 
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
@@ -40,6 +50,8 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use('/api/buys', buysRouter({ repo: deps.buysRepo }));
   app.use('/api/solds', soldsRouter({ repo: deps.soldsRepo }));
   app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
+  app.use('/api/expenses', expensesRouter({ repo: expensesRepo }));
+  app.use('/api/expense-categories', expenseCategoriesRouter({ repo: expenseCategoriesRepo }));
   app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
 
   const webDir = deps.webDir === undefined ? WEB_DIR : deps.webDir;
