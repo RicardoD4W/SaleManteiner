@@ -10,6 +10,7 @@ import { BuyEditPage } from './pages/buys/BuyEditPage';
 import { SoldsListPage } from './pages/solds/SoldsListPage';
 import { SoldEditPage } from './pages/solds/SoldEditPage';
 import { CustomersListPage } from './pages/customers/CustomersListPage';
+import { ExpensesListPage } from './pages/expenses/ExpensesListPage';
 
 const dashboardChildren: RouteObject[] = [
   { index: true, element: <OverviewTab /> },
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { path: 'solds', element: <SoldsListPage /> },
       { path: 'solds/:id', element: <SoldEditPage /> },
       { path: 'customers', element: <CustomersListPage /> },
+      { path: 'gastos', element: <ExpensesListPage /> },
     ],
   },
 ]);

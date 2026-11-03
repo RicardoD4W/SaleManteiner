@@ -12,6 +12,7 @@ function renderLayout(route: string) {
         <Route path="products" element={<div>Productos</div>} />
         <Route path="buyers" element={<div>Compradores</div>} />
         <Route path="buys" element={<div>Compras</div>} />
+        <Route path="gastos" element={<div>Gastos</div>} />
       </Route>
     </Routes>,
     { route: route },
@@ -39,5 +40,19 @@ describe('Layout', () => {
   it('el link "Dashboard" del header NO está iluminado en otras páginas', () => {
     renderLayout('/buys');
     expect(linkDashboard().className).not.toMatch(/bg-brand-100/);
+  });
+
+  it('el header tiene el enlace "Gastos" como quinta vista', () => {
+    renderLayout('/');
+
+    const links = screen.getAllByRole('link').map((link) => link.textContent?.trim());
+    expect(links).toEqual(['Dashboard', 'Compras', 'Ventas', 'Clientes', 'Gastos']);
+  });
+
+  it('el enlace "Gastos" apunta a /gastos', () => {
+    renderLayout('/');
+
+    const gastos = screen.getByRole('link', { name: 'Gastos' });
+    expect(gastos).toHaveAttribute('href', '/gastos');
   });
 });
