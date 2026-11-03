@@ -17,9 +17,22 @@ function log(msg) {
   console.log(`[versions] ${msg}`);
 }
 
+function fail(msg) {
+  console.error(`[versions] ERROR: ${msg}`);
+  process.exit(1);
+}
+
 const app = readJson(path.join(REPO, 'desktop', 'tauri.conf.json')).version;
 const front = readJson(path.join(REPO, 'web', 'package.json')).version;
 const back = readJson(path.join(REPO, 'server', 'package.json')).version;
+
+const desktopWorkspace = readJson(path.join(REPO, 'desktop', 'package.json'));
+if (desktopWorkspace.version !== app) {
+  fail(
+    `desktop/package.json está en ${desktopWorkspace.version} y la app en ${app}: ` +
+      'alinealos (el workspace del shell tiene que llevar la versión de la app)',
+  );
+}
 
 const envPath = path.join(REPO, 'web', '.env');
 const envContent = [
