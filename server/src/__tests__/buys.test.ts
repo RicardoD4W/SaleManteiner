@@ -155,6 +155,26 @@ describe('buys repo', () => {
       const updated = repo.update(created.id, validUpdate({ purchase_date: null }));
       expect(updated!.purchase_date).toBeNull();
     });
+
+    it('guarda las notas de la compra', () => {
+      const created = repo.create(validCreate({ product_name: 'X', notes: 'pedido urgente' }));
+      expect(created.notes).toBe('pedido urgente');
+      expect(repo.getById(created.id)?.notes).toBe('pedido urgente');
+    });
+
+    it('sin notas, la compra se crea con notes a null', () => {
+      const created = repo.create(validCreate({ product_name: 'X' }));
+      expect(created.notes).toBeNull();
+    });
+
+    it('update de notes lo persiste y null las borra', () => {
+      const created = repo.create(validCreate({ product_name: 'X', notes: 'nota' }));
+      const updated = repo.update(created.id, validUpdate({ notes: 'otra nota' }));
+      expect(updated!.notes).toBe('otra nota');
+
+      const cleared = repo.update(created.id, validUpdate({ notes: null }));
+      expect(cleared!.notes).toBeNull();
+    });
   });
 
   describe('remove', () => {

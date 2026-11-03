@@ -1,0 +1,1 @@
+ALTER TABLE buys ADD COLUMN notes TEXT;
