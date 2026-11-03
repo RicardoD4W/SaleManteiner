@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Database } from 'better-sqlite3';
+import type { AddressInfo } from 'node:net';
 import { openDb } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { createBuysRepo } from '../repo/buys-repo.js';
-import { createSoldsRepo } from '../repo/solds-repo.js';
+import { createSoldsRepo, PaidAmountExceedsPriceError } from '../repo/solds-repo.js';
 import { createCustomersRepo } from '../repo/customers-repo.js';
 import { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 import { CreateBuyInput } from '../schemas/buys.js';
@@ -464,5 +465,335 @@ describe('schemas solds (Zod)', () => {
   it('update con sale_price negativo → rechaza', () => {
     const r = UpdateSoldSchema.safeParse({ sale_price: -10 });
     expect(r.success).toBe(false);
+  });
+});
+
+describe('ventas: importe cobrado (paid_amount)', () => {
+  let db: Database;
+  let buysRepo: ReturnType<typeof createBuysRepo>;
+  let soldsRepo: ReturnType<typeof createSoldsRepo>;
+  let customersRepo: ReturnType<typeof createCustomersRepo>;
+
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    buysRepo = createBuysRepo(db);
+    soldsRepo = createSoldsRepo(db);
+    customersRepo = createCustomersRepo(db);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('guarda el importe cobrado en la venta', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 40 }),
+    );
+
+    expect(sold.paid_amount).toBe(40);
+    expect(soldsRepo.getById(sold.id)?.paid_amount).toBe(40);
+  });
+
+  it('sin importe cobrado explícito, la venta empieza con 0 cobrado', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100 }),
+    );
+
+    expect(sold.paid_amount).toBe(0);
+  });
+
+  it('no permite cobrar más de lo vendido', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    expect(() =>
+      soldsRepo.createManyWithStockCheck({
+        customer_id: customer.id,
+        sale_price: 100,
+        associated_costs: 0,
+        paid_amount: 100.01,
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    ).toThrow(PaidAmountExceedsPriceError);
+  });
+
+  it('cobra exactamente el precio de venta', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 100 }),
+    );
+
+    expect(sold.paid_amount).toBe(100);
+  });
+
+  it('actualiza el importe cobrado', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100 }),
+    );
+
+    const updated = soldsRepo.update(created.id, validUpdate({ paid_amount: 60 }));
+
+    expect(updated?.paid_amount).toBe(60);
+    expect(updated?.sale_price).toBe(100);
+  });
+
+  it('rechaza cobrar más que el precio almacenado si no viene sale_price', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100 }),
+    );
+
+    expect(() => soldsRepo.update(created.id, validUpdate({ paid_amount: 150 }))).toThrow(
+      PaidAmountExceedsPriceError,
+    );
+    expect(soldsRepo.getById(created.id)?.paid_amount).toBe(0);
+  });
+
+  it('rechaza bajar el precio de venta por debajo de lo ya cobrado', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 80 }),
+    );
+
+    expect(() => soldsRepo.update(created.id, validUpdate({ sale_price: 50 }))).toThrow(
+      PaidAmountExceedsPriceError,
+    );
+    expect(soldsRepo.getById(created.id)?.sale_price).toBe(100);
+  });
+
+  it('el importe cobrado no cambia el beneficio de la venta', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo, { product_name: 'Funda', purchase_cost: 50, quantity: 1 });
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 100 }),
+    );
+
+    const [row] = soldsRepo.listWithProfit();
+    expect(row?.profit).toBe(50);
+    expect(row?.paid_amount).toBe(100);
+    expect(sold.paid_amount).toBe(100);
+  });
+});
+
+describe('schemas solds: paid_amount', () => {
+  it('create con paid_amount mayor que sale_price → rechaza', () => {
+    const r = CreateSoldSchema.safeParse({
+      customer_id: 1,
+      sale_price: 100,
+      paid_amount: 101,
+      items: [{ buy_id: 1, quantity: 1 }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('create sin paid_amount → 0 por defecto', () => {
+    const r = CreateSoldSchema.safeParse({
+      customer_id: 1,
+      sale_price: 100,
+      items: [{ buy_id: 1, quantity: 1 }],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.paid_amount).toBe(0);
+  });
+
+  it('create con paid_amount negativo → rechaza', () => {
+    const r = CreateSoldSchema.safeParse({
+      customer_id: 1,
+      sale_price: 100,
+      paid_amount: -1,
+      items: [{ buy_id: 1, quantity: 1 }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('update con paid_amount y sale_price → rechaza si el cobrado supera el precio', () => {
+    const r = UpdateSoldSchema.safeParse({ sale_price: 100, paid_amount: 101 });
+    expect(r.success).toBe(false);
+  });
+
+  it('update solo con paid_amount → ok (el precio se valida contra el valor almacenado)', () => {
+    const r = UpdateSoldSchema.safeParse({ paid_amount: 101 });
+    expect(r.success).toBe(true);
+  });
+});
+
+process.env.LOG_LEVEL = 'silent';
+process.env.NODE_ENV = 'production';
+
+const { createApp } = await import('../app.js');
+const { once } = await import('node:events');
+
+describe('contrato HTTP del importe cobrado', () => {
+  let db: Database;
+  let server: import('node:http').Server;
+  let baseUrl: string;
+  let soldsRepo: ReturnType<typeof createSoldsRepo>;
+  let customersRepo: ReturnType<typeof createCustomersRepo>;
+  let buysRepo: ReturnType<typeof createBuysRepo>;
+
+  beforeEach(async () => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    buysRepo = createBuysRepo(db);
+    soldsRepo = createSoldsRepo(db);
+    customersRepo = createCustomersRepo(db);
+    const app = createApp({ buysRepo, soldsRepo, customersRepo });
+    server = app.listen(0);
+    await once(server, 'listening');
+    const address = server.address() as AddressInfo;
+    baseUrl = `http://127.0.0.1:${address.port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+    db.close();
+  });
+
+  async function api(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<{ status: number; body: Record<string, unknown> | null }> {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    return {
+      status: res.status,
+      body: text ? (JSON.parse(text) as Record<string, unknown>) : null,
+    };
+  }
+
+  function seedCustomer() {
+    return customersRepo.create({ name: 'Ana' });
+  }
+
+  function seedBuy() {
+    return buysRepo.create({
+      product_name: 'Camiseta',
+      purchase_cost: 20,
+      quantity: 5,
+      associated_costs: 0,
+    });
+  }
+
+  it('POST /api/solds acepta el importe cobrado', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+
+    const res = await api('POST', '/api/solds', {
+      customer_id: customer.id,
+      sale_price: 100,
+      paid_amount: 40,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    expect(res.status).toBe(201);
+    expect((res.body?.data as { paid_amount: number }).paid_amount).toBe(40);
+  });
+
+  it('POST /api/solds con importe cobrado mayor que el precio devuelve 400', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+
+    const res = await api('POST', '/api/solds', {
+      customer_id: customer.id,
+      sale_price: 100,
+      paid_amount: 150,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toBe('El importe cobrado no puede superar el precio de venta');
+  });
+
+  it('POST /api/solds sin importe cobrado guarda 0', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+
+    const res = await api('POST', '/api/solds', {
+      customer_id: customer.id,
+      sale_price: 100,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    expect(res.status).toBe(201);
+    expect((res.body?.data as { paid_amount: number }).paid_amount).toBe(0);
+  });
+
+  it('PATCH /api/solds/:id actualiza el importe cobrado', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+    const sold = soldsRepo.createManyWithStockCheck({
+      customer_id: customer.id,
+      sale_price: 100,
+      associated_costs: 0,
+      paid_amount: 0,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    const res = await api('PATCH', `/api/solds/${sold.id}`, { paid_amount: 60 });
+
+    expect(res.status).toBe(200);
+    expect((res.body?.data as { paid_amount: number }).paid_amount).toBe(60);
+  });
+
+  it('PATCH /api/solds/:id con importe cobrado mayor que el precio almacenado devuelve 400', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+    const sold = soldsRepo.createManyWithStockCheck({
+      customer_id: customer.id,
+      sale_price: 100,
+      associated_costs: 0,
+      paid_amount: 0,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    const res = await api('PATCH', `/api/solds/${sold.id}`, { paid_amount: 150 });
+
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toBe('El importe cobrado no puede superar el precio de venta');
+    expect(soldsRepo.getById(sold.id)?.paid_amount).toBe(0);
+  });
+
+  it('PATCH /api/solds/:id con importe cobrado mayor que el nuevo precio devuelve 400', async () => {
+    const customer = seedCustomer();
+    const buy = seedBuy();
+    const sold = soldsRepo.createManyWithStockCheck({
+      customer_id: customer.id,
+      sale_price: 100,
+      associated_costs: 0,
+      paid_amount: 0,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    const res = await api('PATCH', `/api/solds/${sold.id}`, { sale_price: 50, paid_amount: 80 });
+
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toBe('El importe cobrado no puede superar el precio de venta');
   });
 });

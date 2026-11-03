@@ -84,6 +84,7 @@ describe('contrato HTTP del borrado de clientes', () => {
       customer_id,
       sale_price,
       associated_costs: 0,
+      paid_amount: 0,
       sold_at: '2026-10-20',
       items,
     });
@@ -419,5 +420,146 @@ describe('contrato HTTP del borrado de clientes', () => {
       expect(res.status).toBe(400);
       expect(res.body?.error).toBe('Parámetros inválidos');
     });
+  });
+});
+
+describe('contrato HTTP de la ficha de cliente', () => {
+  let db: Database;
+  let server: Server;
+  let baseUrl: string;
+  let repos: Repos;
+
+  beforeEach(async () => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    repos = {
+      buys: createBuysRepo(db),
+      solds: createSoldsRepo(db),
+      customers: createCustomersRepo(db),
+    };
+    const app = createApp({
+      buysRepo: repos.buys,
+      soldsRepo: repos.solds,
+      customersRepo: repos.customers,
+    });
+    server = app.listen(0);
+    await once(server, 'listening');
+    const { port } = server.address() as AddressInfo;
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+    vi.restoreAllMocks();
+    db.close();
+  });
+
+  async function api(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<{ status: number; body: Record<string, unknown> | null }> {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    return {
+      status: res.status,
+      body: text ? (JSON.parse(text) as Record<string, unknown>) : null,
+    };
+  }
+
+  it('POST /api/customers acepta teléfono, dirección y notas', async () => {
+    const res = await api('POST', '/api/customers', {
+      name: 'Ana',
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Paga a fin de mes',
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body?.data).toMatchObject({
+      name: 'Ana',
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Paga a fin de mes',
+    });
+  });
+
+  it('POST /api/customers sin los campos opcionales los deja a null', async () => {
+    const res = await api('POST', '/api/customers', { name: 'Ana' });
+
+    expect(res.status).toBe(201);
+    expect(res.body?.data).toMatchObject({ phone: null, address: null, notes: null });
+  });
+
+  it('POST /api/customers con un campo desconocido devuelve 400', async () => {
+    const res = await api('POST', '/api/customers', { name: 'Ana', deuda: 10 });
+
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toBe('Datos inválidos');
+  });
+
+  it('PATCH /api/customers/:id actualiza teléfono, dirección y notas', async () => {
+    const customer = repos.customers.create({ name: 'Ana' });
+
+    const res = await api('PATCH', `/api/customers/${customer.id}`, {
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Cliente VIP',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body?.data).toMatchObject({
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Cliente VIP',
+    });
+  });
+
+  it('PATCH /api/customers/:id con null borra los campos opcionales', async () => {
+    const customer = repos.customers.create({
+      name: 'Ana',
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Nota',
+    });
+
+    const res = await api('PATCH', `/api/customers/${customer.id}`, {
+      phone: null,
+      address: null,
+      notes: null,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body?.data).toMatchObject({ phone: null, address: null, notes: null });
+  });
+
+  it('GET /api/customers incluye la deuda de cada cliente', async () => {
+    const customer = repos.customers.create({ name: 'Ana' });
+    const buy = repos.buys.create({
+      product_name: 'Camiseta',
+      purchase_cost: 20,
+      quantity: 5,
+      associated_costs: 0,
+    });
+    repos.solds.createManyWithStockCheck({
+      customer_id: customer.id,
+      sale_price: 100,
+      associated_costs: 0,
+      paid_amount: 40,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+
+    const res = await api('GET', '/api/customers');
+
+    expect(res.status).toBe(200);
+    const data = res.body?.data as Array<{ id: number; deuda: number }>;
+    expect(data[0]?.deuda).toBe(60);
   });
 });
