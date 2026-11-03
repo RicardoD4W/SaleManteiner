@@ -19,6 +19,9 @@ import { renderWithProviders } from '@/test-utils/render';
 const customerFixture = {
   id: 7,
   name: 'Juan Pérez',
+  phone: '612345678',
+  address: 'Calle Mayor 1',
+  notes: 'Paga al contado',
   created_at: '2026-10-01T10:00:00.000Z',
 };
 
@@ -164,6 +167,88 @@ describe('CustomerFormModal', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('No se pudo guardar');
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('renderiza los campos opcionales de teléfono, dirección y notas', () => {
+    renderWithProviders(<CustomerFormModal mode="create" onClose={vi.fn()} />);
+
+    expect(screen.getByLabelText('Teléfono')).toBeInTheDocument();
+    expect(screen.getByLabelText('Dirección')).toBeInTheDocument();
+    expect(screen.getByLabelText('Notas')).toBeInTheDocument();
+  });
+
+  it('en modo edición muestra el teléfono, la dirección y las notas actuales', () => {
+    renderWithProviders(
+      <CustomerFormModal mode="edit" customer={customerFixture} onClose={vi.fn()} />,
+    );
+
+    expect(screen.getByLabelText('Teléfono')).toHaveValue('612345678');
+    expect(screen.getByLabelText('Dirección')).toHaveValue('Calle Mayor 1');
+    expect(screen.getByLabelText('Notas')).toHaveValue('Paga al contado');
+  });
+
+  it('guarda el teléfono, la dirección y las notas al crear el cliente', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(customerFixture),
+    });
+    vi.mocked(useCreateCustomer).mockReturnValue(create as never);
+
+    renderWithProviders(<CustomerFormModal mode="create" onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Nombre *'), 'Ana García');
+    await user.type(screen.getByLabelText('Teléfono'), '612345678');
+    await user.type(screen.getByLabelText('Dirección'), 'Calle Mayor 1');
+    await user.type(screen.getByLabelText('Notas'), 'Paga al contado');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith({
+        name: 'Ana García',
+        phone: '612345678',
+        address: 'Calle Mayor 1',
+        notes: 'Paga al contado',
+      });
+    });
+  });
+
+  it('el teléfono y la dirección son opcionales: sin ellos solo se manda el nombre', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(customerFixture),
+    });
+    vi.mocked(useCreateCustomer).mockReturnValue(create as never);
+
+    renderWithProviders(<CustomerFormModal mode="create" onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Nombre *'), 'Ana García');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith({ name: 'Ana García' });
+    });
+  });
+
+  it('al editar, un teléfono vacío se manda como null para borrarlo', async () => {
+    const user = userEvent.setup();
+    const update = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(customerFixture),
+    });
+    vi.mocked(useUpdateCustomer).mockReturnValue(update as never);
+
+    renderWithProviders(
+      <CustomerFormModal mode="edit" customer={customerFixture} onClose={vi.fn()} />,
+    );
+
+    await user.clear(screen.getByLabelText('Teléfono'));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => {
+      expect(update.mutateAsync).toHaveBeenCalledWith({
+        id: customerFixture.id,
+        input: { name: 'Juan Pérez', phone: null },
+      });
+    });
   });
 
   it('Escape cierra el modal', async () => {

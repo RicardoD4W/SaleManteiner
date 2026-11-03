@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useCustomers', () => ({
@@ -34,16 +34,24 @@ const customersFixture = [
   {
     id: 1,
     name: 'Juan Pérez',
+    phone: '612345678',
+    address: 'Calle Mayor 1',
+    notes: 'Paga al contado',
     created_at: '2026-09-01T10:00:00.000Z',
     ventas: 2,
     total_gastado: 100,
+    deuda: 25,
   },
   {
     id: 2,
     name: 'Ana García',
+    phone: null,
+    address: null,
+    notes: null,
     created_at: '2026-09-02T10:00:00.000Z',
     ventas: 1,
     total_gastado: 25.5,
+    deuda: 0,
   },
 ];
 
@@ -92,6 +100,79 @@ describe('CustomersListPage', () => {
     const anaRow = screen.getByText('Ana García').closest('tr');
     expect(anaRow).toHaveTextContent('1');
     expect(anaRow).toHaveTextContent('25,50 €');
+  });
+
+  it('muestra el teléfono formateado en grupos de tres', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const juanRow = screen.getByText('Juan Pérez').closest('tr');
+    expect(juanRow).toHaveTextContent('612 345 678');
+  });
+
+  it('muestra la dirección de cada cliente', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const juanRow = screen.getByText('Juan Pérez').closest('tr');
+    expect(juanRow).toHaveTextContent('Calle Mayor 1');
+  });
+
+  it('muestra el icono de notas solo en los clientes que tienen notas', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const juanRow = screen.getByText('Juan Pérez').closest('tr');
+    expect(within(juanRow as HTMLElement).getByRole('img', { name: /Notas/ })).toBeInTheDocument();
+
+    const anaRow = screen.getByText('Ana García').closest('tr');
+    expect(within(anaRow as HTMLElement).queryByRole('img', { name: /Notas/ })).toBeNull();
+  });
+
+  it('al pasar el ratón por encima del icono se ve la nota entera en un popover', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomersListPage />);
+
+    const juanRow = screen.getByText('Juan Pérez').closest('tr') as HTMLElement;
+    const icon = within(juanRow).getByRole('img', { name: /Notas/ });
+
+    await user.hover(icon);
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Paga al contado');
+  });
+
+  it('muestra la deuda en euros', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const juanRow = screen.getByText('Juan Pérez').closest('tr');
+    expect(juanRow).toHaveTextContent('25,00 €');
+
+    const anaRow = screen.getByText('Ana García').closest('tr');
+    expect(anaRow).toHaveTextContent('0,00 €');
+  });
+
+  it('las notas son la última columna de datos, antes de la de acciones', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((th) => th.textContent?.trim().replace(/[▲▼]/g, '') ?? '');
+
+    expect(headers).toEqual([
+      'Cliente',
+      'Teléfono',
+      'Dirección',
+      'Ventas',
+      'Total gastado',
+      'Deuda',
+      'Notas',
+      '',
+    ]);
+  });
+
+  it('la tabla se puede desplazar en horizontal en móvil', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const scroller = screen.getByRole('table').parentElement;
+    expect(scroller?.className).toMatch(/overflow-x-auto/);
   });
 
   it('muestra el estado de carga', () => {

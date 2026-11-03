@@ -9,6 +9,7 @@ import {
   type CustomerFormOutput,
 } from '../../schemas/forms';
 import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
@@ -33,25 +34,37 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
     setError,
   } = useForm<CustomerFormInput, unknown, CustomerFormOutput>({
     resolver: zodResolver(CustomerFormSchema),
     defaultValues: {
       name: props.mode === 'edit' ? props.customer.name : '',
+      phone: props.mode === 'edit' ? (props.customer.phone ?? '') : '',
+      address: props.mode === 'edit' ? (props.customer.address ?? '') : '',
+      notes: props.mode === 'edit' ? (props.customer.notes ?? '') : '',
     },
   });
 
   const onSubmit = async (values: CustomerFormOutput) => {
     const name = values.name.trim();
+    const phone = values.phone?.trim() ?? '';
+    const address = values.address?.trim() ?? '';
+    const notes = values.notes?.trim() ?? '';
     try {
       if (props.mode === 'create') {
-        await create.mutateAsync({ name } satisfies CreateCustomerInput);
+        await create.mutateAsync({
+          name,
+          ...(phone ? { phone } : {}),
+          ...(address ? { address } : {}),
+          ...(notes ? { notes } : {}),
+        } satisfies CreateCustomerInput);
       } else {
-        await update.mutateAsync({
-          id: props.customer.id,
-          input: { name } satisfies UpdateCustomerInput,
-        });
+        const input: UpdateCustomerInput = { name };
+        if (dirtyFields.phone) input.phone = phone || null;
+        if (dirtyFields.address) input.address = address || null;
+        if (dirtyFields.notes) input.notes = notes || null;
+        await update.mutateAsync({ id: props.customer.id, input });
       }
       onClose();
     } catch (err) {
@@ -79,6 +92,27 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
             {errors.name.message}
           </p>
         ) : null}
+
+        <Input
+          {...register('phone')}
+          label="Teléfono"
+          placeholder="612 345 678 (opcional)"
+          aria-invalid={errors.phone ? true : undefined}
+        />
+
+        <Input
+          {...register('address')}
+          label="Dirección"
+          placeholder="Calle, número, ciudad (opcional)"
+          aria-invalid={errors.address ? true : undefined}
+        />
+
+        <Textarea
+          {...register('notes')}
+          label="Notas"
+          placeholder="Cómo paga, cuándo vuelve, lo que quieras recordar (opcional)"
+          error={errors.notes?.message}
+        />
 
         {errors.root ? (
           <p className={cn(errorAlertClass, 'px-3 py-2')} role="alert">
