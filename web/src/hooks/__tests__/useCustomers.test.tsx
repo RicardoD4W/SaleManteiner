@@ -30,8 +30,28 @@ function makeWrapper() {
 }
 
 const customersFixture = [
-  { id: 1, name: 'Juan Pérez', created_at: '2026-10-01T10:00:00.000Z' },
-  { id: 2, name: 'Ana García', created_at: '2026-10-02T10:00:00.000Z' },
+  {
+    id: 1,
+    name: 'Juan Pérez',
+    phone: '612345678',
+    address: 'Calle Mayor 1',
+    notes: null,
+    created_at: '2026-10-01T10:00:00.000Z',
+    ventas: 2,
+    total_gastado: 100,
+    deuda: 25,
+  },
+  {
+    id: 2,
+    name: 'Ana García',
+    phone: null,
+    address: null,
+    notes: null,
+    created_at: '2026-10-02T10:00:00.000Z',
+    ventas: 1,
+    total_gastado: 25.5,
+    deuda: 0,
+  },
 ];
 
 describe('useCustomers', () => {
@@ -50,6 +70,19 @@ describe('useCustomers', () => {
 
     expect(customersApi.list).toHaveBeenCalledTimes(1);
     expect(result.current.data).toEqual(customersFixture);
+  });
+
+  it('expone la deuda que devuelve el servidor', async () => {
+    vi.mocked(customersApi.list).mockResolvedValueOnce(customersFixture as never);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useCustomers(), { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.[0]?.deuda).toBe(25);
+    expect(result.current.data?.[0]?.phone).toBe('612345678');
   });
 
   it('devuelve error si customersApi.list rechaza', async () => {

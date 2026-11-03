@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { formatDate, formatEuro, todayLocalDate } from '../format.js';
+import { formatDate, formatEuro, formatPhone, todayLocalDate } from '../format.js';
 
 describe('formatEuro', () => {
   it('formatea 0 como "0,00 €"', () => {
@@ -42,6 +42,44 @@ describe('formatDate', () => {
 
   it('devuelve un guion largo cuando la fecha es una cadena vacía', () => {
     expect(formatDate('')).toBe('—');
+  });
+});
+
+describe('formatPhone', () => {
+  it('devuelve una cadena vacía cuando no hay teléfono', () => {
+    expect(formatPhone('')).toBe('');
+  });
+
+  it('devuelve una cadena vacía cuando el teléfono es null', () => {
+    expect(formatPhone(null)).toBe('');
+  });
+
+  it('devuelve una cadena vacía cuando el teléfono es undefined', () => {
+    expect(formatPhone(undefined)).toBe('');
+  });
+
+  it('agrupa 9 dígitos de tres en tres', () => {
+    expect(formatPhone('612345678')).toBe('612 345 678');
+  });
+
+  it('mete los dígitos sobrantes en el último grupo', () => {
+    expect(formatPhone('6123456789')).toBe('612 345 6789');
+  });
+
+  it('agrupa 12 dígitos en cuatro grupos de tres', () => {
+    expect(formatPhone('612345678901')).toBe('612 345 678 901');
+  });
+
+  it('ignora espacios y guiones de la entrada', () => {
+    expect(formatPhone('612 34 56-78')).toBe('612 345 678');
+  });
+
+  it('ignora letras y símbolos', () => {
+    expect(formatPhone('+34 612 34 56 78')).toBe('346 123 45678');
+  });
+
+  it('devuelve una cadena vacía si la entrada no tiene dígitos', () => {
+    expect(formatPhone('---')).toBe('');
   });
 });
 
