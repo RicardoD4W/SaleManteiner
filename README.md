@@ -3,6 +3,7 @@
 **El gestor de compras, ventas y clientes.** Lleva el control de stock, las cifras del negocio y el beneficio real de cada venta, en tu propio computer.
 
 ## **100% privado.**
+
 Todo vive en tu máquina: ni cuentas, ni nube, ni telemetría, ni un solo byte fuera de tu disco. Funciona igual en la versión web y en la app de escritorio.
 
 ![Estado](https://img.shields.io/badge/estado-operativo-2ea44f) ![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-informational)
@@ -132,18 +133,17 @@ npm run dev
 
 ## Documentación
 
-| Doc                                | Qué hay                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitectura general: stack, modelo de datos, reglas de código, API       |
-| [WEB.md](WEB.md)                   | Detalle técnico del frontend |
-| [SERVER.md](SERVER.md)             | Detalle técnico del backend |
-| [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones         |
-| [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, skills                                 |
-| [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                          |
-| [CHANGELOG.md](CHANGELOG.md)       | Qué cambió en cada versión                                                |
+| Doc                                | Qué hay                                                             |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitectura general: stack, modelo de datos, reglas de código, API |
+| [WEB.md](WEB.md)                   | Detalle técnico del frontend                                        |
+| [SERVER.md](SERVER.md)             | Detalle técnico del backend                                         |
+| [DESKTOP.md](DESKTOP.md)           | La app de escritorio: sidecar, instalador, auto-update, versiones   |
+| [WORKFLOW.md](WORKFLOW.md)         | Cómo se trabaja en el repo: gates, skills                           |
+| [PRODUCT.md](PRODUCT.md)           | Decisiones de producto y roadmap                                    |
+| [CHANGELOG.md](CHANGELOG.md)       | Qué cambió en cada versión                                          |
 
 ---
-
 
 ## Desarrollo
 
@@ -162,4 +162,4 @@ npm run build:desktop  # instalador de escritorio (front + back + sidecar)
 - Gestión **manual**: no hay captura automática ni importación/exportación CSV.
 - El **borrado en cascada no se puede deshacer** (deja rastro en el log del servidor).
 - La versión de escritorio se distribuye **a mano** (no está en la Microsoft Store ni en el Homebrew de forma automática).
-- La **firma de Windows** (Authenticode) está pendiente: sin ella aparece el aviso del editor desconocido.
+- La **firma de Windows** (Authenticode) no está: la app se entrega como `.zip` y el cliente descomprime y ejecuta sin avisos de SmartScreen. Si algún día se ve el aviso, la vía suave es instalar en la máquina del cliente.

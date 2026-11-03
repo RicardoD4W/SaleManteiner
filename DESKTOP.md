@@ -56,13 +56,11 @@ npm run build:desktop     # = desktop/ → build:app
 
 ### El token de GitHub
 
-
 El token se llama **`GH_TOKEN`** y el script lo lee de **`desktop/.env`** (con `process.loadEnvFile` de Node) o, si no está, del entorno:
 
 ```text
 GH_TOKEN=github_pat_...
 ```
-
 
 ### Qué hay en la release
 
@@ -72,6 +70,8 @@ GH_TOKEN=github_pat_...
 | `SaleManteiner_<v>_x64-setup.zip`     | **el instalador comprimido**: es lo que se le pasa al cliente |
 | `SaleManteiner_<v>_x64-setup.exe.sig` | la firma minisign (la verifica el updater)                    |
 | `latest.json`                         | el manifiesto que el updater consulta (versión, URL y firma)  |
+
+**Por qué el ZIP**: Windows marca los archivos descargados con el _Mark of the Web_, y esa marca es la que dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un ZIP no la lleva → el cliente descomprime y ejecuta, sin avisos y **sin necesidad de un certificado de firma de Windows** (que cuesta plata). El updater sigue usando el `.exe` directamente, así que las actualizaciones tampoco pasan por ese aviso.
 
 ### El instalador, en español
 
@@ -86,6 +86,9 @@ Son **dos firmas distintas**:
 | **minisign** (la del updater)    | que la app verifique que la descarga es auténtica antes de instalarla | gratis, ya hecha                      |
 | **Authenticode** (la de Windows) | que Windows muestre el nombre del editor y no el aviso de SmartScreen | certificado de pago (OV ~129 USD/año) |
 
+**Decisión: no comprar el certificado ahora.** Con el ZIP el cliente no ve el aviso de SmartScreen; si aun así lo ve, el camino es "Más información → Ejecutar" o, mejor, **instalar en la máquina del cliente** (se le pasa el archivo a mano y no hay descarga). Además, desde 2026 los certificados EV tampoco dan reputación inmediata en SmartScreen: el aviso puede aparecer igual.
+
+Si algún día se decide comprarlo, el soporte ya está en el build de Tauri (`bundle.windows.certificateThumbprint` para el almacén de certificados de Windows, o `bundle.windows.signCommand` para `signtool` con un `.pfx`) y `bundle.windows.timestampUrl` para el sellado de tiempo. No hay nada que escribir en el repo hasta que exista el certificado.
 
 ## 6. Versiones (una fuente por artifact)
 
@@ -94,6 +97,8 @@ Son **dos firmas distintas**:
 | app      | `desktop/tauri.conf.json` |
 | front    | `web/package.json`        |
 | back     | `server/package.json`     |
+
+`desktop/package.json` (el workspace del shell) lleva la **misma** versión que la app: `scripts/write-versions.mjs` lo comprueba y falla si se desalinean, así que no puede quedar un `0.1.0` fantasma mientras la app va por `0.1.1`.
 
 `scripts/write-versions.mjs` (raíz) lee las tres y escribe `web/.env` (`VITE_APP_VERSION`, `VITE_FRONT_VERSION`, `VITE_BACK_VERSION` → horneadas por Vite) y `server/version.json` (el manifiesto que el server lee en runtime). **Ambos están gitignorados**: son artefactos, no fuente. El script está enganchado a `dev:web` y `build:web` → nadie tiene que acordarse de correrlo.
 

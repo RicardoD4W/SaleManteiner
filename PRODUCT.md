@@ -23,10 +23,9 @@ Está pensada para **cualquier tipo de usuario**: un particular que compra y ven
 | D3  | **Importes en euros decimales** (SQLite REAL) con helper `round2()`                                       | Evita el error IEEE 754 al prorratear.                                       |
 | D4  | **UI solo español**, fechas `dd/MM/yyyy`                                                                  | Sin i18n: una sola locale.                                                   |
 | D5  | **Nombre del proyecto: SaleManteiner**                                                                    | —                                                                            |
-| D6  | **Volumen esperado ~50 ventas/mes** → SQLite local basta              | Es lo que hace escalar de verdad (ver el spec de paginación).                |
+| D6  | **Volumen esperado ~50 ventas/mes** → SQLite local basta                                                  | Es lo que hace escalar de verdad (ver el spec de paginación).                |
 | D7  | **Entrega manual del instalador**, sin Microsoft Store                                                    | El cliente es no técnico; se le pasa el instalador a mano.                   |
 | D8  | **La app se actualiza sola** (updater firmado con minisign); el cliente **no maneja git**                 | El destinatario no usa la terminal.                                          |
 | D9  | **La ruta de la BD la decide el server**, con fallback a la legacy si la ruta nueva está vacía            | App instalada y dev ven los mismos datos; nadie pierde lo que cargó.         |
 | D10 | **Borrado en cascada sin undo** (audit trail en el log + aviso en la UI)                                  | Riesgo asumido explícitamente por el usuario: decisión de producto.          |
 | D11 | **Una fuente de verdad por artifact de versión** (tauri.conf.json, web/package.json, server/package.json) | El versionado se genera, no se escribe a mano.                               |
-

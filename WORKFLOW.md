@@ -108,5 +108,4 @@ El detalle de cada unidad de trabajo vive en `odd/tasks/<feature>.md`:
 - Los commits son **work units** revisables (~400 líneas cambiadas), con tests y docs al lado del comportamiento, y mensaje **Conventional Commits en inglés**.
 - El **push**, el PR y el merge son decisiones del usuario, no del agente.
 
-Al retomar una sesión: `odd/HANDOFF.md` + `mem_context` de Engram + el Log del feature + el estado de git.
-                |
+Al retomar una sesión: `mem_context` de Engram + el Log del feature (`odd/tasks/<feature>.md`) + el estado de git.
