@@ -5,6 +5,7 @@ import { runMigrations } from '../db/migrate.js';
 import { createBuysRepo } from '../repo/buys-repo.js';
 import { createSoldsRepo } from '../repo/solds-repo.js';
 import { createCustomersRepo } from '../repo/customers-repo.js';
+import { createExpenseCategoriesRepo, createExpensesRepo } from '../repo/expenses-repo.js';
 import { CreateBuyInput } from '../schemas/buys.js';
 import { CreateSoldInput } from '../schemas/solds.js';
 import { CreateCustomerInput } from '../schemas/customers.js';
@@ -524,5 +525,120 @@ describe('statsDashboard (nuevo modelo)', () => {
         resultado: 0,
       });
     }
+  });
+});
+
+describe('statsDashboard con gastos generales', () => {
+  let db: Database;
+  let buysRepo: ReturnType<typeof createBuysRepo>;
+  let soldsRepo: ReturnType<typeof createSoldsRepo>;
+  let customersRepo: ReturnType<typeof createCustomersRepo>;
+  let expensesRepo: ReturnType<typeof createExpensesRepo>;
+  let categoriesRepo: ReturnType<typeof createExpenseCategoriesRepo>;
+
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    buysRepo = createBuysRepo(db);
+    soldsRepo = createSoldsRepo(db);
+    customersRepo = createCustomersRepo(db);
+    expensesRepo = createExpensesRepo(db);
+    categoriesRepo = createExpenseCategoriesRepo(db);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  function seedExpense(concept: string, amount: number, expense_date: string) {
+    const category = categoriesRepo.create({ name: `Cat-${concept}` });
+    return expensesRepo.create({
+      concept,
+      amount,
+      category_id: category.id,
+      expense_date,
+    });
+  }
+
+  it('sin gastos: gastos_total_eur y beneficio_neto_eur valen 0', () => {
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.kpis.gastos_total_eur).toBe(0);
+    expect(stats.kpis.beneficio_neto_eur).toBe(0);
+  });
+
+  it('gastos_total_eur suma los importes de todos los gastos', () => {
+    seedExpense('Alquiler', 400, todayLocalDate());
+    seedExpense('Cajas', 12.5, todayLocalDate());
+
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.kpis.gastos_total_eur).toBe(412.5);
+  });
+
+  it('beneficio_neto_eur es el beneficio de ventas menos los gastos', () => {
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+    const buy = buysRepo.create(validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 1 }));
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 8,
+        associated_costs: 1,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+    seedExpense('Alquiler', 2.5, todayLocalDate());
+
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.kpis.beneficio_total_eur).toBe(2);
+    expect(stats.kpis.gastos_total_eur).toBe(2.5);
+    expect(stats.kpis.beneficio_neto_eur).toBe(-0.5);
+  });
+
+  it('el KPI de beneficio total no cambia de significado con gastos', () => {
+    const customer = customersRepo.create(validCustomer({ name: 'C' }));
+    const buy = buysRepo.create(validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 1 }));
+    soldsRepo.createManyWithStockCheck(
+      validSold({
+        customer_id: customer.id,
+        sale_price: 8,
+        associated_costs: 1,
+        sold_at: todayLocalDate(),
+        items: [{ buy_id: buy.id, quantity: 1 }],
+      }),
+    );
+    seedExpense('Alquiler', 100, todayLocalDate());
+
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.kpis.beneficio_total_eur).toBe(2);
+  });
+
+  it('la serie mensual incluye los gastos del mes y los descuenta del resultado', () => {
+    seedExpense('Alquiler', 30, todayLocalDate());
+
+    const stats = soldsRepo.statsDashboard();
+    const currentMonth = stats.cashFlowByMonth[11]!;
+    expect(currentMonth.gastos).toBe(30);
+    expect(currentMonth.resultado).toBe(-30);
+  });
+
+  it('los gastos de un mes no afectan a los otros meses', () => {
+    seedExpense('Alquiler', 30, dateMonthsAgo(3));
+
+    const stats = soldsRepo.statsDashboard();
+    const withExpenses = stats.cashFlowByMonth.find((m) => m.gastos > 0);
+    expect(withExpenses?.gastos).toBe(30);
+    const others = stats.cashFlowByMonth.filter((m) => m.gastos === 0);
+    expect(others).toHaveLength(11);
+    others.forEach((m) => {
+      expect(m.resultado).toBe(0);
+    });
+  });
+
+  it('la serie mensual sigue teniendo 12 puntos con el campo gastos', () => {
+    const stats = soldsRepo.statsDashboard();
+    expect(stats.cashFlowByMonth).toHaveLength(12);
+    stats.cashFlowByMonth.forEach((m) => {
+      expect(m.gastos).toBe(0);
+    });
   });
 });
