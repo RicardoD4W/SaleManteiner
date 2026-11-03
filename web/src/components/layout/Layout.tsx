@@ -16,7 +16,7 @@ export function Layout() {
           <div className="flex items-baseline gap-3">
             <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400">SaleManteiner</h1>
             <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">
-              compras, ventas y clientes
+              Tu gestor personal para llevar tus cuentas al día.
             </span>
           </div>
           <div className="flex min-w-0 items-center gap-2">
