@@ -1,13 +1,14 @@
 # SaleManteiner — Contexto para agentes
 
 > App **local** (React + Node, con shell de escritorio Tauri) para llevar el control de **compras, ventas y clientes**: un gestor de números para cualquier tipo de usuario.
-> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-10-27.
+> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-11-04.
 
 ## 0. Reglas no negociables
 
 1. **La BD del usuario no se toca.** Toda verificación (e2e, scripts) corre contra una BD **temporal** (`SALEMANTEINER_DIR`), nunca `~/.salemanteiner`. Los datos que el usuario carga a mano son sacredos.
 2. **Los gates antes de commitear**: `typecheck`, `lint`, `format:check` y los tests (unit + e2e) tienen que estar verdes. Si un gate no se puede correr, se dice; no se commitea a ciegas.
 3. **Push, PR y merge son decisiones del usuario**, no del agente (salvo los work-unit commits de una implementación autorizada).
+4. **No se construye la app de escritorio** (`npm run build:desktop`, `npm run build:app`, `tauri build`) **a menos que el usuario lo pida expresamente**: empaqueta el sidecar, tarda minutos, necesita la clave de firma y deja artefactos que se confunden con los de una release. Para verificar el código alcanza con los gates (`typecheck`, `lint`, `format:check`, `test`, `test:e2e`) y `npm run build` (front + back).
 
 ## 1. Mapa de documentos
 
@@ -45,6 +46,7 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 - `format:check` **es** gate (el repo está normalizado con Prettier desde 2026-10-19).
 - `npm run test:e2e` también es gate cuando el cambio toca flujos de la UI.
+- El **build de la app de escritorio no es un gate**: solo corre si el usuario lo pide (regla 0.4).
 
 ## 4. Reglas del repo (no negociables)
 
