@@ -20,6 +20,12 @@ export const SalesListQuery = DateRangeQuery.extend({
 
 export const CustomersSearchQuery = z.object({ name: z.string().min(1).optional() }).strict();
 
+export const ExpensesListQuery = z
+  .object({
+    category_id: z.coerce.number().int().positive().optional(),
+  })
+  .strict();
+
 export function asyncHandler(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
 ) {

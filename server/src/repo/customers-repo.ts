@@ -1,28 +1,37 @@
 import type { Database } from 'better-sqlite3';
 import { definedOnly } from '../lib/defined-only.js';
+import { round2 } from '../lib/round.js';
 import type { AssociatedSale, CascadeResult } from './types.js';
 import type { CreateCustomerInput, Customer, UpdateCustomerInput } from '../schemas/customers.js';
 
 interface CustomerRow {
   id: number;
   name: string;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
   created_at: string;
 }
 
 interface CustomerWithMetricsRow extends CustomerRow {
   ventas: number;
   total_gastado: number;
+  deuda: number;
 }
 
-interface CustomerWithMetrics extends Customer {
+export interface CustomerWithMetrics extends Customer {
   ventas: number;
   total_gastado: number;
+  deuda: number;
 }
 
 function rowToCustomer(row: CustomerRow): Customer {
   return {
     id: row.id,
     name: row.name,
+    phone: row.phone,
+    address: row.address,
+    notes: row.notes,
     created_at: row.created_at,
   };
 }
@@ -32,6 +41,7 @@ function rowToCustomerWithMetrics(row: CustomerWithMetricsRow): CustomerWithMetr
     ...rowToCustomer(row),
     ventas: row.ventas,
     total_gastado: row.total_gastado,
+    deuda: round2(row.deuda),
   };
 }
 
@@ -45,6 +55,7 @@ export type RemoveCustomerResult =
   | { ok: false; code: 'HAS_ASSOCIATED_SALES'; sales: AssociatedSale[] };
 
 export interface CustomersRepo {
+  readonly db: Database;
   create(input: CreateCustomerInput): Customer;
   getById(id: number): Customer | null;
   search(name: string): CustomerWithMetrics[];
@@ -57,13 +68,14 @@ export interface CustomersRepo {
 
 export function createCustomersRepo(db: Database): CustomersRepo {
   const insertStmt = db.prepare(`
-    INSERT INTO customers (name, created_at) VALUES (?, ?)
+    INSERT INTO customers (name, phone, address, notes, created_at) VALUES (?, ?, ?, ?, ?)
   `);
   const getStmt = db.prepare('SELECT * FROM customers WHERE id = ?');
   const searchStmt = db.prepare(`
-    SELECT c.id, c.name, c.created_at,
+    SELECT c.id, c.name, c.phone, c.address, c.notes, c.created_at,
            COUNT(s.id) AS ventas,
-           COALESCE(SUM(s.sale_price), 0) AS total_gastado
+           COALESCE(SUM(s.sale_price), 0) AS total_gastado,
+           COALESCE(SUM(s.sale_price - s.paid_amount), 0) AS deuda
     FROM customers c
     LEFT JOIN solds s ON s.customer_id = c.id
     WHERE c.name LIKE ? ESCAPE '!'
@@ -72,9 +84,10 @@ export function createCustomersRepo(db: Database): CustomersRepo {
     LIMIT 20
   `);
   const listStmt = db.prepare(`
-    SELECT c.id, c.name, c.created_at,
+    SELECT c.id, c.name, c.phone, c.address, c.notes, c.created_at,
            COUNT(s.id) AS ventas,
-           COALESCE(SUM(s.sale_price), 0) AS total_gastado
+           COALESCE(SUM(s.sale_price), 0) AS total_gastado,
+           COALESCE(SUM(s.sale_price - s.paid_amount), 0) AS deuda
     FROM customers c
     LEFT JOIN solds s ON s.customer_id = c.id
     GROUP BY c.id
@@ -82,7 +95,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   `);
   const deleteStmt = db.prepare('DELETE FROM customers WHERE id = ?');
   const updateStmt = db.prepare(`
-    UPDATE customers SET name = ? WHERE id = ?
+    UPDATE customers SET name = ?, phone = ?, address = ?, notes = ? WHERE id = ?
   `);
   const listAssociatedSalesStmt = db.prepare(`
     SELECT s.id, c.name AS customer_name, s.sold_at,
@@ -96,7 +109,13 @@ export function createCustomersRepo(db: Database): CustomersRepo {
 
   function create(input: CreateCustomerInput): Customer {
     const now = new Date().toISOString();
-    const result = insertStmt.run(input.name, now);
+    const result = insertStmt.run(
+      input.name,
+      input.phone ?? null,
+      input.address ?? null,
+      input.notes ?? null,
+      now,
+    );
     const id = Number(result.lastInsertRowid);
     return rowToCustomer(getStmt.get(id) as CustomerRow);
   }
@@ -125,7 +144,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
     if (Object.keys(definedPatch).length === 0) return existing;
 
     const next = { ...existing, ...definedPatch };
-    updateStmt.run(next.name, id);
+    updateStmt.run(next.name, next.phone ?? null, next.address ?? null, next.notes ?? null, id);
     return getById(id);
   }
 
@@ -155,6 +174,7 @@ export function createCustomersRepo(db: Database): CustomersRepo {
   }
 
   return {
+    db,
     create,
     getById,
     search,

@@ -2,6 +2,7 @@ import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
 import { definedOnly } from '../lib/defined-only.js';
 import type { DateRange } from './types.js';
+import { PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE } from '../schemas/solds.js';
 import type { Sold } from '../schemas/solds.js';
 import type {
   CreateSoldInput,
@@ -15,6 +16,7 @@ interface SoldRow {
   customer_id: number;
   sale_price: number;
   associated_costs: number;
+  paid_amount: number;
   sold_at: string | null;
   notes: string | null;
   created_at: string;
@@ -34,6 +36,7 @@ function rowToSold(row: SoldRow): Sold {
     customer_id: row.customer_id,
     sale_price: row.sale_price,
     associated_costs: row.associated_costs,
+    paid_amount: row.paid_amount,
     sold_at: row.sold_at,
     notes: row.notes,
     created_at: row.created_at,
@@ -50,6 +53,15 @@ export interface StockInsufficientItem {
   product_name: string;
   disponibles: number;
   solicitado: number;
+}
+
+export class PaidAmountExceedsPriceError extends Error {
+  readonly error = PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE;
+
+  constructor() {
+    super(PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE);
+    this.name = 'PaidAmountExceedsPriceError';
+  }
 }
 
 export class StockInsufficientError extends Error {
@@ -84,6 +96,8 @@ export interface DashboardStats {
     compras_total_eur: number;
     ventas_total_eur: number;
     beneficio_total_eur: number;
+    gastos_total_eur: number;
+    beneficio_neto_eur: number;
     stock_pendiente_count: number;
   };
   cashFlowByMonth: Array<{
@@ -91,6 +105,7 @@ export interface DashboardStats {
     ingresos: number;
     compras: number;
     beneficio: number;
+    gastos: number;
     resultado: number;
   }>;
   totals12m: {
@@ -126,8 +141,8 @@ function lastNMonths(n: number): string[] {
 
 export function createSoldsRepo(db: Database): SoldsRepo {
   const insertSoldStmt = db.prepare(`
-    INSERT INTO solds (customer_id, sale_price, associated_costs, sold_at, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO solds (customer_id, sale_price, associated_costs, paid_amount, sold_at, notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
   const insertItemStmt = db.prepare(`
     INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)
@@ -139,6 +154,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       customer_id = ?,
       sale_price = ?,
       associated_costs = ?,
+      paid_amount = ?,
       sold_at = ?,
       notes = ?
     WHERE id = ?
@@ -204,6 +220,13 @@ export function createSoldsRepo(db: Database): SoldsRepo {
      WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0`,
   );
   const profitTotalStmt = db.prepare(`SELECT COALESCE(SUM(profit), 0) AS total FROM v_sold_costs`);
+  const expensesTotalStmt = db.prepare(`SELECT COALESCE(SUM(amount), 0) AS total FROM expenses`);
+  const expensesByMonthStmt = db.prepare(
+    `SELECT strftime('%Y-%m', expense_date) AS month,
+            COALESCE(SUM(amount), 0) AS gastos
+     FROM expenses
+     GROUP BY month`,
+  );
   const purchasesByMonthStmt = db.prepare(
     `SELECT month,
             COALESCE(SUM(compras_de_buys), 0) AS compras_de_buys,
@@ -301,10 +324,17 @@ export function createSoldsRepo(db: Database): SoldsRepo {
         throw new StockInsufficientError(stockErrors);
       }
 
+      const salePrice = round2(input.sale_price);
+      const paidAmount = round2(input.paid_amount);
+      if (paidAmount > salePrice) {
+        throw new PaidAmountExceedsPriceError();
+      }
+
       const soldResult = insertSoldStmt.run(
         input.customer_id,
-        round2(input.sale_price),
+        salePrice,
         round2(input.associated_costs),
+        paidAmount,
         input.sold_at ?? null,
         input.notes ?? null,
         now,
@@ -414,14 +444,20 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       ...definedPatch,
       sale_price: round2(definedPatch.sale_price ?? existing.sale_price),
       associated_costs: round2(definedPatch.associated_costs ?? existing.associated_costs),
+      paid_amount: round2(definedPatch.paid_amount ?? existing.paid_amount),
       id: existing.id,
       created_at: existing.created_at,
     };
+
+    if (next.paid_amount > next.sale_price) {
+      throw new PaidAmountExceedsPriceError();
+    }
 
     updateStmt.run(
       next.customer_id,
       next.sale_price,
       next.associated_costs,
+      next.paid_amount,
       next.sold_at ?? null,
       next.notes ?? null,
       id,
@@ -453,12 +489,19 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
     const profitRow = profitTotalStmt.get() as { total: number };
 
+    const expensesRow = expensesTotalStmt.get() as { total: number };
+
+    const beneficioTotal = round2(profitRow.total);
+    const gastosTotal = round2(expensesRow.total);
+
     const kpis = {
       compras_total_eur: round2(
         buysRow.compras_total + buysRow.gastos_asociados_total + sellsRow.gastos_asociados_total,
       ),
       ventas_total_eur: round2(sellsRow.ventas_total),
-      beneficio_total_eur: round2(profitRow.total),
+      beneficio_total_eur: beneficioTotal,
+      gastos_total_eur: gastosTotal,
+      beneficio_neto_eur: round2(beneficioTotal - gastosTotal),
       stock_pendiente_count: stockRow.cnt,
     };
 
@@ -476,21 +519,26 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
     const purchasesMap = new Map(purchasesRows.map((r) => [r.month, r]));
     const salesMap = new Map(salesRows.map((r) => [r.month, r]));
+    const expensesRows = expensesByMonthStmt.all() as Array<{ month: string; gastos: number }>;
+    const expensesMap = new Map(expensesRows.map((r) => [r.month, r]));
     const months = lastNMonths(12);
     const cashFlowByMonth = months.map((month) => {
       const purchase = purchasesMap.get(month);
       const sale = salesMap.get(month);
+      const expense = expensesMap.get(month);
       const compras = round2(
         (purchase?.compras_de_buys ?? 0) + (purchase?.asociados_de_solds ?? 0),
       );
       const ingresos = round2(sale?.ingresos ?? 0);
       const beneficio = round2(sale?.beneficio ?? 0);
-      const resultado = round2(beneficio - (purchase?.compras_de_buys ?? 0));
+      const gastos = round2(expense?.gastos ?? 0);
+      const resultado = round2(beneficio - (purchase?.compras_de_buys ?? 0) - gastos);
       return {
         month,
         ingresos,
         compras,
         beneficio,
+        gastos,
         resultado,
       };
     });
