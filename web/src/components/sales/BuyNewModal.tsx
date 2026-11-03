@@ -1,6 +1,7 @@
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
@@ -30,6 +31,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
       quantity: 1,
       associated_costs: 0,
       purchase_date: todayLocalDate(),
+      notes: '',
     },
   });
 
@@ -40,6 +42,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
       quantity: values.quantity,
       associated_costs: values.associated_costs,
       purchase_date: values.purchase_date?.trim() || undefined,
+      notes: values.notes?.trim() || undefined,
     };
 
     try {
@@ -98,6 +101,13 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
           {...register('purchase_date')}
           error={errors.purchase_date?.message}
           hint="Día que compraste (opcional, default hoy)"
+        />
+
+        <Textarea
+          label="Notas"
+          placeholder="Lo que quieras apuntar de esta compra (opcional)"
+          {...register('notes')}
+          error={errors.notes?.message}
         />
 
         {errors.root ? (

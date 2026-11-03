@@ -21,6 +21,7 @@ import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Button } from '../../components/ui/Button';
+import { NotesPopover } from '../../components/ui/NotesPopover';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
 
@@ -32,6 +33,7 @@ function toBuyDetail(buy: BuyWithStock): Buy {
     quantity: buy.quantity,
     associated_costs: buy.associated_costs,
     purchase_date: buy.purchase_date,
+    notes: buy.notes,
     created_at: buy.created_at,
   };
 }
@@ -140,6 +142,11 @@ export function BuysListPage() {
             </span>
           );
         },
+      }),
+      columnHelper.accessor('notes', {
+        header: 'Notas',
+        size: 56,
+        cell: (info) => <NotesPopover notes={info.getValue()} />,
       }),
       columnHelper.display({
         id: 'actions',
