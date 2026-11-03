@@ -94,6 +94,7 @@ describe('contrato HTTP del borrado de compras', () => {
       customer_id,
       sale_price,
       associated_costs: 0,
+      paid_amount: 0,
       sold_at: '2026-10-19',
       items,
     });

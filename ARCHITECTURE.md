@@ -48,6 +48,8 @@ Lo que **no** depende del workspace (modelo de datos, reglas del repo, convencio
 
 4 tablas (`server/src/db/migrations/003_buys_and_solds.sql`). Origen: feature `buys-and-solds` (`odd/tasks/feature-buys-and-solds.md`, S1).
 
+Las migraciones `006` (gastos + ficha de cliente) y `007` (notas en compras) son **aditivas**: solo añaden columnas con valor por defecto y tablas nuevas; no reescriben ni borran datos de la BD del usuario.
+
 ### `buys` (compras de producto)
 
 | Campo              | Tipo             | Notas                                                                                 |
@@ -58,33 +60,60 @@ Lo que **no** depende del workspace (modelo de datos, reglas del repo, convencio
 | `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                                     |
 | `associated_costs` | REAL             | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)           |
 | `purchase_date`    | TEXT             | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                        |
+| `notes`            | TEXT NULL        | notas libres (migración 007)                                                          |
 | `created_at`       | TEXT NOT NULL    | ISO 8601, automático (set en INSERT)                                                  |
 
 Índice: `idx_buys_purchase_date`.
 
 ### `customers` (clientes)
 
-| Campo        | Tipo          | Notas                |
-| ------------ | ------------- | -------------------- |
-| `id`         | INTEGER PK    | autoincrement        |
-| `name`       | TEXT NOT NULL | nombre del cliente   |
-| `created_at` | TEXT NOT NULL | ISO 8601, automático |
+| Campo        | Tipo          | Notas                                           |
+| ------------ | ------------- | ----------------------------------------------- |
+| `id`         | INTEGER PK    | autoincrement                                   |
+| `name`       | TEXT NOT NULL | nombre del cliente                              |
+| `phone`      | TEXT NULL     | teléfono en crudo (se formatea solo al mostrar) |
+| `address`    | TEXT NULL     | dirección en texto libre                        |
+| `notes`      | TEXT NULL     | notas libres                                    |
+| `created_at` | TEXT NOT NULL | ISO 8601, automático                            |
 
 Índice: `idx_customers_name`.
 
 ### `solds` (ventas)
 
-| Campo              | Tipo                                                | Notas                                               |
+| Campo              | Tipo                                                | Notes                                               |
 | ------------------ | --------------------------------------------------- | --------------------------------------------------- |
 | `id`               | INTEGER PK                                          | autoincrement                                       |
 | `customer_id`      | INTEGER NOT NULL FK→customers.id ON DELETE RESTRICT | el cliente no se puede borrar si tiene ventas       |
 | `sale_price`       | REAL                                                | precio TOTAL de la venta (no se prorratea por item) |
 | `associated_costs` | REAL                                                | gastos envío/comisión TOTALES de la venta           |
+| `paid_amount`      | REAL NOT NULL DEFAULT 0                             | importe cobrado de la venta (0 = nada cobrado)      |
 | `sold_at`          | TEXT                                                | `YYYY-MM-DD`, día local. Default hoy. Nullable.     |
-| `notes`            | TEXT NULL                                           | notas libres (solo en venta)                        |
+| `notes`            | TEXT NULL                                           | notas libres                                        |
 | `created_at`       | TEXT NOT NULL                                       | ISO 8601, automático                                |
 
 Índices: `idx_solds_sold_at`, `idx_solds_customer`.
+
+**Deuda del cliente**: `Σ(sale_price - paid_amount)` de sus ventas. El cobro es caja, **no** ganancia: `paid_amount` no toca el beneficio de la venta (que sale de `v_sold_costs`).
+
+### `expense_categories` (categorías de gasto) y `expenses` (gastos)
+
+Migración `006`. Las categorías las **crea el usuario** (no hay catálogo sembrado: la BD del usuario no se toca con datos inventados).
+
+| Tabla                | Campo          | Tipo                                               | Notas                                                     |
+| -------------------- | -------------- | -------------------------------------------------- | --------------------------------------------------------- |
+| `expense_categories` | `id`           | INTEGER PK                                         | autoincrement                                             |
+|                      | `name`         | TEXT NOT NULL COLLATE NOCASE UNIQUE                | nombre único (sin distinguir mayúsculas)                  |
+|                      | `created_at`   | TEXT NOT NULL                                      | ISO 8601, automático                                      |
+| `expenses`           | `id`           | INTEGER PK                                         | autoincrement                                             |
+|                      | `concept`      | TEXT NOT NULL                                      | qué fue el gasto                                          |
+|                      | `amount`       | REAL NOT NULL DEFAULT 0                            | importe en euros decimales                                |
+|                      | `category_id`  | INTEGER NOT NULL FK→expense_categories.id RESTRICT | **toda** gasto tiene categoría (409 al borrar una en uso) |
+|                      | `expense_date` | TEXT NOT NULL                                      | `YYYY-MM-DD`, día local                                   |
+|                      | `created_at`   | TEXT NOT NULL                                      | ISO 8601, automático                                      |
+
+Índices: `idx_expenses_date`, `idx_expenses_category`.
+
+**Un gasto general no es una compra ni una venta**: no genera stock y no entra en el beneficio de ventas. El dashboard lo resta aparte (KPI `beneficio_neto_eur`).
 
 ### `sale_items` (items de pack en una venta)
 

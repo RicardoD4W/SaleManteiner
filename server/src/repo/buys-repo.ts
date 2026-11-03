@@ -12,6 +12,7 @@ interface BuyRow {
   quantity: number;
   associated_costs: number;
   purchase_date: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -23,6 +24,7 @@ function rowToBuy(row: BuyRow): Buy {
     quantity: row.quantity,
     associated_costs: row.associated_costs,
     purchase_date: row.purchase_date,
+    notes: row.notes,
     created_at: row.created_at,
   };
 }
@@ -53,8 +55,8 @@ export interface BuysRepo {
 
 export function createBuysRepo(db: Database): BuysRepo {
   const insertStmt = db.prepare(`
-    INSERT INTO buys (product_name, purchase_cost, quantity, associated_costs, purchase_date, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO buys (product_name, purchase_cost, quantity, associated_costs, purchase_date, notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
   const getStmt = db.prepare('SELECT * FROM buys WHERE id = ?');
   const deleteStmt = db.prepare('DELETE FROM buys WHERE id = ?');
@@ -64,7 +66,8 @@ export function createBuysRepo(db: Database): BuysRepo {
       purchase_cost = ?,
       quantity = ?,
       associated_costs = ?,
-      purchase_date = ?
+      purchase_date = ?,
+      notes = ?
     WHERE id = ?
   `);
   const listWithStockStmt = db.prepare(`
@@ -107,6 +110,7 @@ export function createBuysRepo(db: Database): BuysRepo {
       input.quantity,
       round2(input.associated_costs),
       input.purchase_date ?? null,
+      input.notes ?? null,
       now,
     );
     const id = Number(result.lastInsertRowid);
@@ -152,6 +156,7 @@ export function createBuysRepo(db: Database): BuysRepo {
       next.quantity,
       next.associated_costs,
       next.purchase_date ?? null,
+      next.notes ?? null,
       id,
     );
 

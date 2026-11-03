@@ -19,6 +19,8 @@ export interface CashFlowChartProps {
 
     compras: number;
 
+    gastos?: number;
+
     beneficio: number;
 
     resultado: number;
@@ -27,9 +29,14 @@ export interface CashFlowChartProps {
 
 const SERIES_COLOR_CLASS: Record<string, string> = {
   compras: 'bg-chart-purchases',
+  gastos: 'bg-[var(--chart-expenses)]',
   beneficio: 'bg-chart-sales',
   resultado: 'bg-chart-profit',
 };
+
+const LEGEND_LINE_HEIGHT = 18;
+const LEGEND_LINES = 3;
+const LEGEND_HEIGHT = LEGEND_LINE_HEIGHT * LEGEND_LINES;
 
 const MONTH_LABELS = [
   'ene',
@@ -99,13 +106,15 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
   const yMin = Math.min(0, ...data.flatMap((d) => [d.beneficio, d.resultado]));
   const yMax = Math.max(
     1,
-    ...data.flatMap((d) => [d.compras, d.ingresos, d.beneficio, d.resultado]),
+    ...data.flatMap((d) => [d.compras, d.ingresos, d.gastos ?? 0, d.beneficio, d.resultado]),
   );
 
   return (
     <div
       className={[
         'h-64 w-full',
+        '[--chart-expenses:#7c3aed]',
+        'dark:[--chart-expenses:#a78bfa]',
         '[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-200',
         'dark:[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-800',
         '[&_.recharts-cartesian-axis-line]:stroke-gray-300',
@@ -119,7 +128,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
       ].join(' ')}
       data-testid="cashflow-chart"
       role="img"
-      aria-label="Flujo de caja por mes (compras, beneficio y resultado del mes)"
+      aria-label="Flujo de caja por mes (compras, gastos, beneficio y resultado del mes)"
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
@@ -130,7 +139,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
           <Legend
             verticalAlign="top"
             align="left"
-            height={48}
+            height={LEGEND_HEIGHT}
             wrapperStyle={{ fontSize: 12, lineHeight: '18px' }}
           />
 
@@ -140,6 +149,17 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             name="Compras"
             stroke="var(--color-chart-purchases)"
             strokeWidth={2.5}
+            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
+            activeDot={{ r: 4 }}
+            isAnimationActive={true}
+          />
+          <Line
+            type="linear"
+            dataKey="gastos"
+            name="Gastos"
+            stroke="var(--chart-expenses)"
+            strokeWidth={2.5}
+            strokeDasharray="2 3"
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
             isAnimationActive={true}

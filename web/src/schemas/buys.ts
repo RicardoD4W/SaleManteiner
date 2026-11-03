@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EuroMoney, LocalDate, RowId } from './common.js';
+import { EuroMoney, LocalDate, LongText, RowId } from './common.js';
 import { ProductNameField, QuantityField } from './fields.js';
 
 export const CreateBuyInput = z
@@ -9,6 +9,7 @@ export const CreateBuyInput = z
     quantity: QuantityField.optional().default(1),
     associated_costs: EuroMoney.optional().default(0),
     purchase_date: LocalDate.optional(),
+    notes: LongText.nullable().optional(),
   })
   .strict();
 
@@ -19,6 +20,7 @@ export const UpdateBuyInput = z
     quantity: QuantityField.optional(),
     associated_costs: EuroMoney.optional(),
     purchase_date: LocalDate.nullable().optional(),
+    notes: LongText.nullable().optional(),
   })
   .strict();
 
@@ -29,6 +31,7 @@ export const Buy = z.object({
   quantity: QuantityField,
   associated_costs: EuroMoney,
   purchase_date: LocalDate.nullable(),
+  notes: LongText.nullable(),
   created_at: z.string(),
 });
 

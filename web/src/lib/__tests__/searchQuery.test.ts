@@ -19,6 +19,7 @@ const buyA: BuyWithStock = {
   quantity: 10,
   associated_costs: 5,
   purchase_date: '2026-09-28',
+  notes: null,
   created_at: '2026-10-01T10:00:00.000Z',
   disponibles: 8,
 };
@@ -30,6 +31,7 @@ const buyB: BuyWithStock = {
   quantity: 3,
   associated_costs: 0,
   purchase_date: '2026-10-05',
+  notes: null,
   created_at: '2026-10-05T09:00:00.000Z',
   disponibles: 3,
 };
@@ -40,6 +42,7 @@ const soldA: SoldWithCustomer = {
   customerName: 'José Pérez',
   sale_price: 1234.56,
   associated_costs: 12.5,
+  paid_amount: 0,
   sold_at: '2026-10-05',
   notes: null,
   created_at: '2026-10-06T09:30:00.000Z',
@@ -56,6 +59,7 @@ const soldB: SoldWithCustomer = {
   customerName: 'Ana Ruiz',
   sale_price: 40,
   associated_costs: 0,
+  paid_amount: 0,
   sold_at: null,
   notes: null,
   created_at: '2026-10-07T18:00:00.000Z',

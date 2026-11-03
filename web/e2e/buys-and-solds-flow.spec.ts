@@ -569,7 +569,7 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   await expect(page.getByTestId('cashflow-chart')).toBeVisible();
 
   const series = page.locator('[data-testid="cashflow-chart"] .recharts-line-curve');
-  await expect(series).toHaveCount(3);
+  await expect(series).toHaveCount(4);
 
   const negativeTick = page
     .locator('[data-testid="cashflow-chart"] .recharts-yAxis-tick-labels text')

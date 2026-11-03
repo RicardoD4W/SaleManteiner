@@ -27,6 +27,17 @@ const mockBuysWithStock = [
   { id: 2, product_name: 'Cargador USB-C', quantity: 5, disponibles: 3 },
 ];
 
+const mockCustomers = [
+  {
+    id: 1,
+    name: 'Juan Pérez',
+    phone: null,
+    address: null,
+    notes: null,
+    created_at: '2026-10-01T10:00:00.000Z',
+  },
+];
+
 function mockHooks() {
   vi.mocked(useBuysStock).mockReturnValue({
     data: mockBuysWithStock as never,
@@ -36,7 +47,7 @@ function mockHooks() {
     refetch: vi.fn(),
   } as never);
   vi.mocked(useCustomers).mockReturnValue({
-    data: [] as never,
+    data: mockCustomers as never,
     isLoading: false,
     isError: false,
     error: null,
@@ -184,6 +195,69 @@ describe('SaleNewModal', () => {
     });
     expect(screen.getByText('Productos (1)')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('el campo Cobrado empieza en 0', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    await user.click(screen.getByRole('button', { name: /Confirmar/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Cobrado (€)')).toHaveValue(0);
+  });
+
+  it('envía el importe cobrado en el payload de la venta', async () => {
+    const user = userEvent.setup();
+    const create = { mutateAsync: vi.fn().mockResolvedValue({ id: 1 }) };
+    vi.mocked(useCreateSold).mockReturnValue({
+      ...create,
+      isPending: false,
+      isError: false,
+      error: null,
+      data: null,
+      reset: vi.fn(),
+      mutate: vi.fn(),
+      isSuccess: false,
+      isIdle: true,
+      status: 'idle',
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: 0,
+      context: undefined,
+      variables: undefined,
+    } as never);
+
+    renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    await user.click(screen.getByRole('button', { name: /Confirmar/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nueva venta')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByRole('combobox'), 'Juan');
+    await user.click(await screen.findByRole('option', { name: 'Juan Pérez' }));
+
+    await user.type(screen.getByLabelText('Precio total de venta (€) *'), '100');
+    await user.type(screen.getByLabelText('Cobrado (€)'), '40');
+    await user.click(screen.getByRole('button', { name: 'Crear venta' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ customer_id: 1, sale_price: 100, paid_amount: 40 }),
+      );
+    });
   });
 
   it('el foco inicial de la venta cae en el precio', async () => {

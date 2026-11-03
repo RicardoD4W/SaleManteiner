@@ -3,6 +3,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
+import { Textarea } from '../../components/ui/Textarea';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -44,6 +45,7 @@ export function BuyEditPage() {
         quantity: buy.quantity,
         associated_costs: buy.associated_costs,
         purchase_date: buy.purchase_date ?? '',
+        notes: buy.notes ?? '',
       });
     }
   }, [buy, reset]);
@@ -55,6 +57,7 @@ export function BuyEditPage() {
       quantity: values.quantity,
       associated_costs: values.associated_costs,
       purchase_date: values.purchase_date?.trim() || undefined,
+      notes: values.notes?.trim() || undefined,
     };
 
     try {
@@ -192,6 +195,13 @@ export function BuyEditPage() {
               error={errors.purchase_date?.message}
               className="vt-box"
               style={{ viewTransitionName: transitionName('date') }}
+            />
+
+            <Textarea
+              label="Notas"
+              placeholder="Lo que quieras apuntar de esta compra (opcional)"
+              {...register('notes')}
+              error={errors.notes?.message}
             />
 
             {errors.root ? (

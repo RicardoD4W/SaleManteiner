@@ -1,11 +1,17 @@
 import { Router } from 'express';
+import type { z } from 'zod';
 import type { SoldsRepo } from '../repo/solds-repo.js';
-import { StockInsufficientError } from '../repo/solds-repo.js';
+import { PaidAmountExceedsPriceError, StockInsufficientError } from '../repo/solds-repo.js';
+import { PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE } from '../schemas/solds.js';
 import { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 import { IdParam, SalesListQuery, asyncHandler, respondBadRequest } from './_shared.js';
 
 export interface SoldsRouterDeps {
   repo: SoldsRepo;
+}
+
+function hasPaidAmountIssue(error: z.ZodError): boolean {
+  return error.issues.some((issue) => issue.path[0] === 'paid_amount');
 }
 
 export function soldsRouter(deps: SoldsRouterDeps): Router {
@@ -50,6 +56,12 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
     asyncHandler(async (req, res) => {
       const parsed = CreateSoldInput.safeParse(req.body);
       if (!parsed.success) {
+        if (hasPaidAmountIssue(parsed.error)) {
+          return res.status(400).json({
+            error: PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE,
+            issues: parsed.error.flatten(),
+          });
+        }
         return respondBadRequest(res, 'Datos de venta inválidos', parsed.error.flatten());
       }
 
@@ -57,6 +69,9 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
         const data = repo.createManyWithStockCheck(parsed.data);
         res.status(201).json({ data });
       } catch (err) {
+        if (err instanceof PaidAmountExceedsPriceError) {
+          return res.status(400).json({ error: err.error });
+        }
         if (err instanceof StockInsufficientError) {
           return res.status(422).json({
             error: err.error,
@@ -77,13 +92,26 @@ export function soldsRouter(deps: SoldsRouterDeps): Router {
       }
       const body = UpdateSoldInput.safeParse(req.body);
       if (!body.success) {
+        if (hasPaidAmountIssue(body.error)) {
+          return res.status(400).json({
+            error: PAID_AMOUNT_EXCEEDS_PRICE_MESSAGE,
+            issues: body.error.flatten(),
+          });
+        }
         return respondBadRequest(res, 'Datos de actualización inválidos', body.error.flatten());
       }
-      const data = repo.update(params.data.id, body.data);
-      if (!data) {
-        return res.status(404).json({ error: 'Venta no encontrada', id: params.data.id });
+      try {
+        const data = repo.update(params.data.id, body.data);
+        if (!data) {
+          return res.status(404).json({ error: 'Venta no encontrada', id: params.data.id });
+        }
+        res.json({ data });
+      } catch (err) {
+        if (err instanceof PaidAmountExceedsPriceError) {
+          return res.status(400).json({ error: err.error });
+        }
+        throw err;
       }
-      res.json({ data });
     }),
   );
 

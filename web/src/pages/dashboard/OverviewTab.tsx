@@ -6,6 +6,10 @@ import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart'
 import { formatEuro } from '../../lib/format';
 import { ErrorState } from '../../components/ui/ErrorState';
 
+function netColorClass(value: number): string {
+  return value < 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-800 dark:text-emerald-300';
+}
+
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
@@ -34,10 +38,14 @@ export function OverviewTab() {
 
   const k = data.kpis;
   const netSign = k.beneficio_total_eur >= 0 ? '+' : '';
+  const netProfitSign = k.beneficio_neto_eur >= 0 ? '+' : '';
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="overview-kpis">
+      <div
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
+        data-testid="overview-kpis"
+      >
         <StatCard
           label="Compras totales"
           value={formatEuro(k.compras_total_eur)}
@@ -55,6 +63,18 @@ export function OverviewTab() {
           value={`${netSign}${formatEuro(k.beneficio_total_eur)}`}
           hint="Ingresos menos los costes de cada venta"
           valueClassName={profitColorClass(k.beneficio_total_eur)}
+        />
+        <StatCard
+          label="Gastos"
+          value={formatEuro(k.gastos_total_eur)}
+          hint="Gastos generales del periodo"
+          valueClassName="dark:text-amber-300 text-amber-700"
+        />
+        <StatCard
+          label="Beneficio neto"
+          value={`${netProfitSign}${formatEuro(k.beneficio_neto_eur)}`}
+          hint="Beneficio de ventas menos gastos"
+          valueClassName={netColorClass(k.beneficio_neto_eur)}
         />
         <StatCard
           label="Stock pendiente"

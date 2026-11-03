@@ -5,18 +5,23 @@ import { Spinner } from '../../components/ui/Spinner';
 import { errorAlertClass, tableHeadClass } from '../../components/ui/tableStyles';
 import { CustomerFormModal } from '../../components/sales/CustomerFormModal';
 import { DeleteCustomerDialogs } from '../../components/sales/DeleteCustomerDialogs';
-import { formatEuro } from '../../lib/format';
+import { formatEuro, formatPhone } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Customer } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
 import { SortableTableHead } from '../../components/ui/SortableTableHead';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { NotesPopover } from '../../components/ui/NotesPopover';
 
 interface CustomerRow {
   id: number;
   name: string;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
   ventas: number;
   total_gastado: number;
+  deuda: number;
 
   customer: Customer;
 }
@@ -35,8 +40,12 @@ export function CustomersListPage() {
       (customers ?? []).map((customer) => ({
         id: customer.id,
         name: customer.name,
+        phone: customer.phone ?? null,
+        address: customer.address ?? null,
+        notes: customer.notes ?? null,
         ventas: customer.ventas,
         total_gastado: round2(customer.total_gastado),
+        deuda: round2(customer.deuda),
         customer,
       })),
     [customers],
@@ -88,69 +97,99 @@ export function CustomersListPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-            <thead className="bg-gray-50 dark:bg-gray-950">
-              <tr>
-                <SortableTableHead<CustomerRow>
-                  label="Cliente"
-                  sortKey="name"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <SortableTableHead<CustomerRow>
-                  label="Ventas"
-                  sortKey="ventas"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <SortableTableHead<CustomerRow>
-                  label="Total gastado"
-                  sortKey="total_gastado"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <th scope="col" className={`${tableHeadClass} text-left`}></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {sortedItems.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
-                    {row.name}
-                  </td>
-                  <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
-                    {row.ventas}
-                  </td>
-                  <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
-                    {formatEuro(row.total_gastado)}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setEditing(row.customer)}
-                        aria-label={`Editar ${row.name}`}
-                        className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleting(row.customer)}
-                        aria-label={`Borrar ${row.name}`}
-                        className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
-                      >
-                        Borrar
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-950">
+                <tr>
+                  <SortableTableHead<CustomerRow>
+                    label="Cliente"
+                    sortKey="name"
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={onSort}
+                  />
+                  <th scope="col" className={`${tableHeadClass} text-left`}>
+                    Teléfono
+                  </th>
+                  <th scope="col" className={`${tableHeadClass} text-left`}>
+                    Dirección
+                  </th>
+                  <SortableTableHead<CustomerRow>
+                    label="Ventas"
+                    sortKey="ventas"
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={onSort}
+                  />
+                  <SortableTableHead<CustomerRow>
+                    label="Total gastado"
+                    sortKey="total_gastado"
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={onSort}
+                  />
+                  <SortableTableHead<CustomerRow>
+                    label="Deuda"
+                    sortKey="deuda"
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={onSort}
+                  />
+                  <th scope="col" className={`${tableHeadClass} text-left`}>
+                    Notas
+                  </th>
+                  <th scope="col" className={`${tableHeadClass} text-left`}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                {sortedItems.map((row) => (
+                  <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
+                      {row.name}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap tabular-nums text-gray-700 dark:text-gray-300">
+                      {formatPhone(row.phone) || '—'}
+                    </td>
+                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                      {row.address || '—'}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
+                      {row.ventas}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
+                      {formatEuro(row.total_gastado)}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
+                      {formatEuro(row.deuda)}
+                    </td>
+                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                      <NotesPopover notes={row.notes} />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(row.customer)}
+                          aria-label={`Editar ${row.name}`}
+                          className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(row.customer)}
+                          aria-label={`Borrar ${row.name}`}
+                          className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
+                        >
+                          Borrar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="border-t border-gray-200 px-4 py-2 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
             {sortedItems.length === 1 ? '1 cliente' : `${sortedItems.length} clientes`}
           </div>

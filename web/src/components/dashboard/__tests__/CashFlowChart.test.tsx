@@ -18,13 +18,13 @@ vi.mock('recharts', async (importOriginal) => {
 import { CashFlowChart } from '../CashFlowChart';
 
 const DATA = [
-  { month: '2026-01', ingresos: 80, compras: 100, beneficio: 50, resultado: -20 },
-  { month: '2026-02', ingresos: 180, compras: 200, beneficio: 150, resultado: -50 },
-  { month: '2026-03', ingresos: 220, compras: 150, beneficio: 180, resultado: 30 },
+  { month: '2026-01', ingresos: 80, compras: 100, gastos: 40, beneficio: 50, resultado: -20 },
+  { month: '2026-02', ingresos: 180, compras: 200, gastos: 60, beneficio: 150, resultado: -50 },
+  { month: '2026-03', ingresos: 220, compras: 150, gastos: 30, beneficio: 180, resultado: 30 },
 ];
 
 describe('CashFlowChart (recharts)', () => {
-  it('renderiza el chart con sus tres series y la leyenda', () => {
+  it('renderiza el chart con sus cuatro series y la leyenda', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const root = container.querySelector('[data-testid="cashflow-chart"]');
@@ -32,16 +32,17 @@ describe('CashFlowChart (recharts)', () => {
     expect(root).toHaveAttribute('role', 'img');
     expect(root).toHaveAttribute(
       'aria-label',
-      'Flujo de caja por mes (compras, beneficio y resultado del mes)',
+      'Flujo de caja por mes (compras, gastos, beneficio y resultado del mes)',
     );
 
-    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(4);
     expect(screen.getByText('Compras')).toBeInTheDocument();
+    expect(screen.getByText('Gastos')).toBeInTheDocument();
     expect(screen.getByText('Beneficio')).toBeInTheDocument();
     expect(screen.getByText('Resultado del mes')).toBeInTheDocument();
   });
 
-  it('reserva en la leyenda el alto de dos líneas: en móvil no puede pisar el eje Y', () => {
+  it('reserva en la leyenda el alto de tres líneas: en móvil no puede pisar el eje Y', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const legend = container.querySelector<HTMLElement>('.recharts-legend-wrapper');
@@ -53,7 +54,16 @@ describe('CashFlowChart (recharts)', () => {
 
     expect(fontSize).toBeGreaterThan(0);
     expect(lineHeight).toBeGreaterThan(0);
-    expect(height).toBeGreaterThanOrEqual(2 * lineHeight);
+    expect(height).toBeGreaterThanOrEqual(3 * lineHeight);
+  });
+
+  it('la serie de gastos se dibuja con su propio color', () => {
+    const { container } = render(<CashFlowChart data={DATA} />);
+
+    const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
+      el.getAttribute('stroke'),
+    );
+    expect(strokes).toContain('var(--chart-expenses)');
   });
 
   it('la serie de resultado del mes se dibuja con el naranja de marca', () => {
@@ -69,8 +79,8 @@ describe('CashFlowChart (recharts)', () => {
     const { container } = render(
       <CashFlowChart
         data={[
-          { month: '2026-01', ingresos: 0, compras: 0, beneficio: 0, resultado: -500 },
-          { month: '2026-02', ingresos: 0, compras: 0, beneficio: 0, resultado: -500 },
+          { month: '2026-01', ingresos: 0, compras: 0, gastos: 0, beneficio: 0, resultado: -500 },
+          { month: '2026-02', ingresos: 0, compras: 0, gastos: 0, beneficio: 0, resultado: -500 },
         ]}
       />,
     );
@@ -101,8 +111,22 @@ describe('CashFlowChart (recharts)', () => {
     const { container } = render(
       <CashFlowChart
         data={[
-          { month: '2026-01', ingresos: 0, compras: 100, beneficio: -10, resultado: -50 },
-          { month: '2026-02', ingresos: 180, compras: 200, beneficio: 150, resultado: -50 },
+          {
+            month: '2026-01',
+            ingresos: 0,
+            compras: 100,
+            gastos: 20,
+            beneficio: -10,
+            resultado: -50,
+          },
+          {
+            month: '2026-02',
+            ingresos: 180,
+            compras: 200,
+            gastos: 40,
+            beneficio: 150,
+            resultado: -50,
+          },
         ]}
       />,
     );

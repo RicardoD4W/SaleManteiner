@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useBuys', () => ({
@@ -32,6 +32,7 @@ const buysFixture = [
     quantity: 20,
     associated_costs: 3.2,
     purchase_date: '2026-10-02',
+    notes: null,
     created_at: '2026-10-02T10:00:00.000Z',
     disponibles: 17,
   },
@@ -95,5 +96,44 @@ describe('BuysListPage', () => {
     await user.keyboard('{Enter}');
 
     expect(cabecera).toHaveAttribute('aria-sort', 'ascending');
+  });
+
+  it('muestra el icono de notas solo en las compras que tienen notas', () => {
+    vi.mocked(useBuys).mockReturnValue({
+      data: [
+        { ...buysFixture[0], id: 1, notes: null },
+        { ...buysFixture[0], id: 2, product_name: 'Cargador', notes: 'Pedido a la marca' },
+      ] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    const conNotas = screen.getByText('Cargador').closest('tr') as HTMLElement;
+    const sinNotas = screen.getByText('Funda iPhone 15').closest('tr') as HTMLElement;
+
+    expect(within(conNotas).getByRole('img', { name: /Notas/ })).toBeInTheDocument();
+    expect(within(sinNotas).queryByRole('img', { name: /Notas/ })).toBeNull();
+  });
+
+  it('al pasar el ratón por encima del icono se ve la nota entera en un popover', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuys).mockReturnValue({
+      data: [{ ...buysFixture[0], notes: 'Pedido a la marca' }] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    const icon = screen.getByRole('img', { name: /Notas/ });
+    await user.hover(icon);
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Pedido a la marca');
   });
 });

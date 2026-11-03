@@ -55,6 +55,7 @@ describe('customers repo', () => {
       customer_id,
       sale_price: 100,
       associated_costs: 0,
+      paid_amount: 0,
       sold_at,
       items: [{ buy_id: buy.id, quantity }],
     });
@@ -422,6 +423,194 @@ describe('schemas customers (Zod)', () => {
 
   it('update con name → ok', () => {
     const r = UpdateSchema.safeParse({ name: 'Nuevo' });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe('customers repo: ficha de cliente y deuda', () => {
+  let db: Database;
+  let repo: ReturnType<typeof createCustomersRepo>;
+  let buysRepo: ReturnType<typeof createBuysRepo>;
+  let soldsRepo: ReturnType<typeof createSoldsRepo>;
+
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    repo = createCustomersRepo(db);
+    buysRepo = createBuysRepo(db);
+    soldsRepo = createSoldsRepo(db);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  function seedSale(customer_id: number, sale_price: number, paid_amount: number) {
+    const buy = buysRepo.create({
+      product_name: 'Producto',
+      purchase_cost: 50,
+      quantity: 5,
+      associated_costs: 0,
+    });
+    return soldsRepo.createManyWithStockCheck({
+      customer_id,
+      sale_price,
+      associated_costs: 0,
+      paid_amount,
+      sold_at: '2026-10-20',
+      items: [{ buy_id: buy.id, quantity: 1 }],
+    });
+  }
+
+  it('crea un cliente con teléfono, dirección y notas', () => {
+    const customer = repo.create(
+      validCreate({
+        name: 'Ana',
+        phone: '600123123',
+        address: 'Calle Mayor 1',
+        notes: 'Paga a fin de mes',
+      }),
+    );
+
+    expect(customer.phone).toBe('600123123');
+    expect(customer.address).toBe('Calle Mayor 1');
+    expect(customer.notes).toBe('Paga a fin de mes');
+  });
+
+  it('crea un cliente sin los campos opcionales: quedan a null', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+
+    expect(customer.phone).toBeNull();
+    expect(customer.address).toBeNull();
+    expect(customer.notes).toBeNull();
+  });
+
+  it('acepta teléfono, dirección y notas a null explícitos', () => {
+    const customer = repo.create(
+      validCreate({ name: 'Ana', phone: null, address: null, notes: null }),
+    );
+
+    expect(customer.phone).toBeNull();
+    expect(customer.address).toBeNull();
+    expect(customer.notes).toBeNull();
+  });
+
+  it('actualiza teléfono, dirección y notas', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+
+    const updated = repo.update(
+      customer.id,
+      validUpdate({ phone: '600123123', address: 'Calle Mayor 1', notes: 'Cliente VIP' }),
+    );
+
+    expect(updated!.phone).toBe('600123123');
+    expect(updated!.address).toBe('Calle Mayor 1');
+    expect(updated!.notes).toBe('Cliente VIP');
+  });
+
+  it('borrar los campos opcionales con null los deja a null', () => {
+    const customer = repo.create(
+      validCreate({ name: 'Ana', phone: '600123123', address: 'Calle Mayor 1', notes: 'Nota' }),
+    );
+
+    const updated = repo.update(
+      customer.id,
+      validUpdate({ phone: null, address: null, notes: null }),
+    );
+
+    expect(updated!.phone).toBeNull();
+    expect(updated!.address).toBeNull();
+    expect(updated!.notes).toBeNull();
+  });
+
+  it('un cliente sin ventas no tiene deuda', () => {
+    repo.create(validCreate({ name: 'Ana' }));
+
+    const all = repo.list();
+    expect(all[0]?.deuda).toBe(0);
+  });
+
+  it('una venta totalmente cobrada no genera deuda', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+    seedSale(customer.id, 100, 100);
+
+    const all = repo.list();
+    expect(all[0]?.deuda).toBe(0);
+    expect(all[0]?.total_gastado).toBe(100);
+  });
+
+  it('una venta sin cobrar genera deuda por el precio de venta', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+    seedSale(customer.id, 100, 0);
+
+    const all = repo.list();
+    expect(all[0]?.deuda).toBe(100);
+  });
+
+  it('una venta a medias genera deuda por la parte pendiente', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+    seedSale(customer.id, 100, 40);
+
+    const all = repo.list();
+    expect(all[0]?.deuda).toBe(60);
+  });
+
+  it('la deuda suma todas las ventas del cliente', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+    seedSale(customer.id, 100, 40);
+    seedSale(customer.id, 50, 0);
+    seedSale(customer.id, 30, 30);
+
+    const all = repo.list();
+    expect(all[0]?.deuda).toBe(110);
+  });
+
+  it('la búsqueda también trae la deuda', () => {
+    const customer = repo.create(validCreate({ name: 'Ana' }));
+    seedSale(customer.id, 100, 25);
+
+    const results = repo.search('an');
+    expect(results[0]?.deuda).toBe(75);
+  });
+});
+
+describe('schemas customers: campos opcionales', () => {
+  it('create acepta los campos nuevos', () => {
+    const r = CreateSchema.safeParse({
+      name: 'Ana',
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Nota',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('create acepta los campos nuevos a null', () => {
+    const r = CreateSchema.safeParse({ name: 'Ana', phone: null, address: null, notes: null });
+    expect(r.success).toBe(true);
+  });
+
+  it('create con teléfono vacío → rechaza', () => {
+    const r = CreateSchema.safeParse({ name: 'Ana', phone: '' });
+    expect(r.success).toBe(false);
+  });
+
+  it('create con un campo desconocido → rechaza', () => {
+    const r = CreateSchema.safeParse({ name: 'Ana', debt: 10 });
+    expect(r.success).toBe(false);
+  });
+
+  it('update acepta los campos nuevos', () => {
+    const r = UpdateSchema.safeParse({
+      phone: '600123123',
+      address: 'Calle Mayor 1',
+      notes: 'Nota',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('update acepta los campos nuevos a null', () => {
+    const r = UpdateSchema.safeParse({ phone: null, address: null, notes: null });
     expect(r.success).toBe(true);
   });
 });

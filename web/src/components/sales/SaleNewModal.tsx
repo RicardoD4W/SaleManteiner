@@ -64,6 +64,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       items: [],
       sale_price: 0,
       associated_costs: 0,
+      paid_amount: 0,
       sold_at: todayLocalDate(),
       notes: '',
     },
@@ -111,6 +112,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       customer_id: selectedCustomer.id,
       sale_price: values.sale_price,
       associated_costs: values.associated_costs ?? 0,
+      paid_amount: values.paid_amount ?? 0,
       sold_at: values.sold_at || undefined,
       notes: values.notes || undefined,
       items: values.items.map((item) => ({
@@ -235,6 +237,16 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
             hint="Envío, comisión, etc. (opcional)"
           />
         </div>
+
+        <Input
+          label="Cobrado (€)"
+          type="number"
+          step="0.01"
+          min="0"
+          {...register('paid_amount', { valueAsNumber: true })}
+          error={(errors.paid_amount as { message?: string } | undefined)?.message}
+          hint="Lo que te ha pagado de esta venta (opcional)"
+        />
 
         <Input
           label="Fecha de venta"

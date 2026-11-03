@@ -44,14 +44,15 @@ web/
 
 `web/src/App.tsx` (React Router, `createBrowserRouter`):
 
-| Ruta         | Vista               | Qué hace                                                   |
-| ------------ | ------------------- | ---------------------------------------------------------- |
-| `/`          | `DashboardPage`     | 4 tabs anidadas: Resumen, Ingresos, Productos, Compradores |
-| `/buys`      | `BuysListPage`      | tabla de compras + alta + borrado                          |
-| `/buys/:id`  | `BuyEditPage`       | edición de una compra                                      |
-| `/solds`     | `SoldsListPage`     | tabla de ventas + alta + borrado                           |
-| `/solds/:id` | `SoldEditPage`      | edición de una venta                                       |
-| `/customers` | `CustomersListPage` | clientes: alta, edición y borrado                          |
+| Ruta         | Vista               | Qué hace                                                     |
+| ------------ | ------------------- | ------------------------------------------------------------ |
+| `/`          | `DashboardPage`     | 4 tabs anidadas: Resumen, Ingresos, Productos, Compradores   |
+| `/buys`      | `BuysListPage`      | tabla de compras + alta + borrado                            |
+| `/buys/:id`  | `BuyEditPage`       | edición de una compra                                        |
+| `/solds`     | `SoldsListPage`     | tabla de ventas + alta + borrado                             |
+| `/solds/:id` | `SoldEditPage`      | edición de una venta                                         |
+| `/customers` | `CustomersListPage` | clientes: alta, edición y borrado                            |
+| `/gastos`    | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
@@ -74,8 +75,8 @@ new QueryClient({
 
 Convenciones:
 
-- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useBuy`, `useSold`, `useBuysStock`.
-- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`.
+- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useBuy`, `useSold`, `useBuysStock`, `useExpenses`, `useExpenseCategories`.
+- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`, `useCreateExpense`, `useUpdateExpense`, `useDeleteExpense`, `useCreateExpenseCategory`, `useUpdateExpenseCategory`, `useDeleteExpenseCategory`.
 - Cada mutación invalida lo que dejó de ser cierto (p. ej. borrar una compra invalida `buys`, `solds` y `stats`).
 - Los hooks de cascada comparten máquina de estados: `useCascadeDeleteFlow`.
 
@@ -87,7 +88,7 @@ Convenciones:
 - `ApiError` lleva `status` y `body` (`{ error, issues? }`).
 - `apiErrorMessage(err, fallback)` → mensaje en español para pintar en la UI.
 
-Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
+Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
 
 ## 5. Schemas (Zod)
 
@@ -110,10 +111,15 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `ErrorState`                                                    | estado de error con "reintentar"                                   |
 | `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario) |
 | `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                 |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón      |
 
 ### `components/sales/` — el dominio
 
 `BuyNewModal`, `SaleNewModal`, `ProductPickerModal` (multi-select con stock), `CustomerAutocomplete` (buscador con creación en línea), `CustomerFormModal`, `DeleteBuyModal`, `DeleteCascadeModal`, `DeleteDialogs`, `DeleteCustomerModal`, `DeleteCustomerDialogs`.
+
+### `components/expenses/` — los gastos
+
+`ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
 
 ### `components/dashboard/`
 

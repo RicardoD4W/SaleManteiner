@@ -22,6 +22,7 @@ import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Button } from '../../components/ui/Button';
+import { NotesPopover } from '../../components/ui/NotesPopover';
 
 const columnHelper = createColumnHelper<SoldRow>();
 
@@ -85,7 +86,7 @@ export function SoldsListPage() {
     () => [
       columnHelper.accessor('sold_at', {
         header: 'Fecha',
-        size: 115,
+        size: 105,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -98,7 +99,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('customerName', {
         header: 'Cliente',
-        size: 140,
+        size: 125,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -112,7 +113,7 @@ export function SoldsListPage() {
       columnHelper.accessor('firstProduct', {
         id: 'firstProduct',
         header: 'Productos',
-        size: 210,
+        size: 190,
         cell: (info) => {
           const items = info.row.original.items as SaleItemOutput[];
           if (items.length === 0) {
@@ -152,7 +153,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
-        size: 140,
+        size: 130,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -165,7 +166,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('profit', {
         header: 'Beneficio',
-        size: 115,
+        size: 112,
         cell: (info) => {
           const profit = info.getValue() as number;
           const colorClass =
@@ -179,9 +180,14 @@ export function SoldsListPage() {
           );
         },
       }),
+      columnHelper.accessor('notes', {
+        header: 'Notas',
+        size: 56,
+        cell: (info) => <NotesPopover notes={info.getValue()} />,
+      }),
       columnHelper.accessor('created_at', {
         header: 'Registrado',
-        size: 120,
+        size: 115,
         cell: (info) => (
           <span className="whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
             {formatDate(info.getValue())}
