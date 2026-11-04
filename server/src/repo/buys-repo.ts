@@ -37,6 +37,11 @@ export interface BuyWithStock extends Buy {
   disponibles: number;
 }
 
+export interface ProductName {
+  name: string;
+  uses: number;
+}
+
 export type RemoveBuyResult =
   | { ok: true }
   | { ok: false; code: 'NOT_FOUND' }
@@ -47,6 +52,7 @@ export interface BuysRepo {
   getById(id: number): Buy | null;
   listWithStock(filters?: BuyListFilters): BuyWithStock[];
   getWithStock(): BuyWithStock[];
+  listProductNames(): ProductName[];
   update(id: number, input: UpdateBuyInput): Buy | null;
   remove(id: number): RemoveBuyResult;
   removeWithCascade(id: number): CascadeResult;
@@ -84,6 +90,12 @@ export function createBuysRepo(db: Database): BuysRepo {
     FROM buys b
     WHERE (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) > 0
     ORDER BY b.id DESC
+  `);
+  const listProductNamesStmt = db.prepare(`
+    SELECT b.product_name AS name, COUNT(*) AS uses, MAX(b.id) AS last_id
+    FROM buys b
+    GROUP BY b.product_name COLLATE NOCASE
+    ORDER BY uses DESC, last_id DESC
   `);
   const listAssociatedSalesStmt = db.prepare(`
     SELECT s.id, c.name AS customer_name, s.sold_at, si_agg.items_count
@@ -163,6 +175,11 @@ export function createBuysRepo(db: Database): BuysRepo {
     return getById(id);
   }
 
+  function listProductNames(): ProductName[] {
+    const rows = listProductNamesStmt.all() as Array<{ name: string; uses: number }>;
+    return rows.map((row) => ({ name: row.name, uses: row.uses }));
+  }
+
   function listAssociatedSales(id: number): AssociatedSale[] {
     return listAssociatedSalesStmt.all(id) as Array<{
       id: number;
@@ -203,6 +220,7 @@ export function createBuysRepo(db: Database): BuysRepo {
     getById,
     listWithStock,
     getWithStock,
+    listProductNames,
     update,
     remove,
     removeWithCascade,

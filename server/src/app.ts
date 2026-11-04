@@ -9,6 +9,7 @@ import { WEB_DIR } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { versionRouter } from './routes/version.js';
 import { buysRouter } from './routes/buys.js';
+import { productsRouter } from './routes/products.js';
 import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
 import { dashboardRouter } from './routes/dashboard.js';
@@ -56,6 +57,7 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use('/api/health', healthRouter({ service: SERVICE, version: VERSION }));
   app.use('/api/version', versionRouter());
   app.use('/api/buys', buysRouter({ repo: deps.buysRepo }));
+  app.use('/api/products', productsRouter({ repo: deps.buysRepo }));
   app.use('/api/solds', soldsRouter({ repo: deps.soldsRepo }));
   app.use('/api/customers', customersRouter({ repo: deps.customersRepo }));
   app.use('/api/expenses', expensesRouter({ repo: expensesRepo }));
