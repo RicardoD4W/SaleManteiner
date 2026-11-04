@@ -9,6 +9,11 @@ const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   year: 'numeric',
 });
 
+const decimalFormatter = new Intl.NumberFormat('es-ES', {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 0,
+});
+
 export function formatEuro(euros: number): string {
   return eurFormatter.format(euros);
 }
@@ -32,6 +37,26 @@ export function formatPhone(value: string | null | undefined): string {
 export function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return dateFormatter.format(new Date(iso));
+}
+
+export function formatPercent(value: number): string {
+  return `${decimalFormatter.format(value)} %`;
+}
+
+export function formatSignedPercent(value: number): string {
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${decimalFormatter.format(value)} %`;
+}
+
+export function formatSignedPoints(value: number): string {
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${decimalFormatter.format(value)} pts`;
+}
+
+export function formatMonth(month: string): string {
+  const [year, monthNumber] = month.split('-');
+  if (!year || !monthNumber) return month;
+  return `${monthNumber}/${year}`;
 }
 
 export function todayLocalDate(): string {
