@@ -80,6 +80,7 @@ describe('métricas del dashboard', () => {
       CreateSoldInput.parse({
         customer_id: ana.id,
         sale_price: 200,
+        paid_amount: 100,
         sold_at: dateInMonth(0),
         items: [{ buy_id: widget.id, quantity: 2 }],
       }),
@@ -130,7 +131,7 @@ describe('métricas del dashboard', () => {
     expect(stats.kpis.ventas_count).toBe(2);
     expect(stats.kpis.clientes_count).toBe(2);
     expect(stats.kpis.clientes_con_deuda).toBe(1);
-    expect(stats.kpis.deuda_total_eur).toBe(200);
+    expect(stats.kpis.deuda_total_eur).toBe(100);
     expect(stats.kpis.stock_pendiente_count).toBe(1);
     expect(stats.kpis.stock_coste_total_eur).toBe(30);
 
@@ -215,7 +216,7 @@ describe('métricas del dashboard', () => {
     });
 
     expect(stats.deudores).toHaveLength(1);
-    expect(stats.deudores[0]).toMatchObject({ customer_name: 'Ana', ventas: 1, deuda: 200 });
+    expect(stats.deudores[0]).toMatchObject({ customer_name: 'Ana', ventas: 1, deuda: 100 });
   });
 
   it('con la base vacía devuelve ceros y sin comparativa', () => {

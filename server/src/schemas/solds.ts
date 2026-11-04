@@ -16,14 +16,14 @@ export const CreateSoldInput = z
     customer_id: RowId,
     sale_price: EuroMoney.optional().default(0),
     associated_costs: EuroMoney.optional().default(0),
-    paid_amount: EuroMoney.optional().default(0),
+    paid_amount: EuroMoney.nullable().optional(),
     sold_at: LocalDate.optional(),
     notes: LongText.nullable().optional(),
     items: z.array(SaleItemInput).min(1),
   })
   .strict()
   .superRefine((data, ctx) => {
-    if (data.paid_amount > data.sale_price) {
+    if (data.paid_amount != null && data.paid_amount > data.sale_price) {
       ctx.addIssue({
         code: 'custom',
         path: ['paid_amount'],
@@ -37,13 +37,13 @@ export const UpdateSoldInput = z
     customer_id: RowId.optional(),
     sale_price: EuroMoney.optional(),
     associated_costs: EuroMoney.optional(),
-    paid_amount: EuroMoney.optional(),
+    paid_amount: EuroMoney.nullable().optional(),
     sold_at: LocalDate.nullable().optional(),
     notes: LongText.nullable().optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
-    if (data.paid_amount !== undefined && data.sale_price !== undefined) {
+    if (data.paid_amount != null && data.sale_price !== undefined) {
       if (data.paid_amount > data.sale_price) {
         ctx.addIssue({
           code: 'custom',
@@ -59,7 +59,7 @@ export const Sold = z.object({
   customer_id: RowId,
   sale_price: EuroMoney,
   associated_costs: EuroMoney,
-  paid_amount: EuroMoney,
+  paid_amount: EuroMoney.nullable(),
   sold_at: LocalDate.nullable(),
   notes: LongText.nullable(),
   created_at: z.string(),
