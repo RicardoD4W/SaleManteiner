@@ -24,6 +24,8 @@
 - **Deuda por cliente**: cada venta lleva el **importe cobrado**; la deuda del cliente es lo que falta por cobrar. El cobro es caja, no ganancia: no altera el beneficio de la venta. No se puede cobrar más de lo vendido.
 - **Campo "Cobrado"** en el alta y la edición de venta.
 - **Notas en compras, ventas y clientes** con icono: si no hay notas no aparece nada y al pasar el ratón por encima se lee la nota entera en un popover. Las compras, que no tenían campo de notas, lo reciben.
+- **Pestaña "Métricas"** en el dashboard: KPIs globales, comparativas frente al mes anterior y listados métricos (margen por producto, clientes con deuda y reparto de gastos). Es una vista aparte, sin gráficos ni tablas de registros: el dashboard no se recarga.
+- **Copias de seguridad desde la app**: un botón junto a la versión, en el pie. Crea una copia con fecha y hora, la deja en la carpeta `backups` y permite **descargarla**, **eliminarla** o **restaurar** desde una copia guardada o desde un archivo `.db` que tengas por ahí. Antes de restaurar se guarda sola una copia del estado actual (si restauraste lo que no era, vuelves atrás) y un archivo que no sea una base de datos válida se rechaza sin tocar nada.
 
 ### Cambiado
 
