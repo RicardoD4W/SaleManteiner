@@ -8,9 +8,11 @@ import { openDb } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { createCustomersRepo } from '../repo/customers-repo.js';
 import { createBuysRepo } from '../repo/buys-repo.js';
+import { createSoldsRepo } from '../repo/solds-repo.js';
 import { createBackupService, InvalidBackupError } from '../backup/backup-service.js';
 import { CreateCustomerInput } from '../schemas/customers.js';
 import { CreateBuyInput } from '../schemas/buys.js';
+import { CreateSoldInput } from '../schemas/solds.js';
 
 describe('copias de seguridad de la base de datos', () => {
   let dir: string;
@@ -140,5 +142,88 @@ describe('copias de seguridad de la base de datos', () => {
       InvalidBackupError,
     );
     expect(customerNames()).toEqual(['Ana']);
+  });
+
+  function seedSale(salePrice: number, paidAmount?: number): void {
+    const customerId = seedCustomer('Ana');
+    const buyId = createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10 }),
+    ).id;
+    createSoldsRepo(db).createManyWithStockCheck(
+      CreateSoldInput.parse({
+        customer_id: customerId,
+        sale_price: salePrice,
+        ...(paidAmount === undefined ? {} : { paid_amount: paidAmount }),
+        items: [{ buy_id: buyId, quantity: 1 }],
+      }),
+    );
+  }
+
+  function soldRow(): { paid_amount: number; sale_price: number } {
+    return db.prepare('SELECT paid_amount, sale_price FROM solds').get() as {
+      paid_amount: number;
+      sale_price: number;
+    };
+  }
+
+  function customerDebt(): number {
+    return createCustomersRepo(db).list()[0]?.deuda ?? 0;
+  }
+
+  function downgradeCopy(name: string): void {
+    const copy = new Database(join(dir, 'backups', name));
+    copy.exec('UPDATE solds SET paid_amount = 0');
+    copy.exec('DELETE FROM _migrations WHERE version = 8');
+    copy.close();
+  }
+
+  it('restaura una copia anterior a la deuda por defecto sin resucitar la deuda', () => {
+    seedSale(100);
+    const backup = service.create();
+    downgradeCopy(backup.name);
+
+    service.restoreFromStored(backup.name);
+
+    expect(soldRow()).toEqual({ paid_amount: 100, sale_price: 100 });
+    expect(customerDebt()).toBe(0);
+  });
+
+  it('una copia actual conserva un cobro de 0 explícito', () => {
+    seedSale(100, 0);
+    const backup = service.create();
+
+    service.restoreFromStored(backup.name);
+
+    expect(soldRow()).toEqual({ paid_amount: 0, sale_price: 100 });
+    expect(customerDebt()).toBe(100);
+  });
+
+  it('restaura una copia anterior al importe cobrado como ventas pagadas íntegras', () => {
+    seedSale(100);
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('ALTER TABLE solds DROP COLUMN paid_amount');
+    copy.exec('DELETE FROM _migrations WHERE version >= 6');
+    copy.close();
+
+    service.restoreFromStored(backup.name);
+
+    expect(soldRow()).toEqual({ paid_amount: 100, sale_price: 100 });
+    expect(customerDebt()).toBe(0);
+  });
+
+  it('una copia sin la tabla de migraciones conserva la deuda ya informada', () => {
+    seedSale(200, 40);
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('DROP TABLE _migrations');
+    copy.close();
+
+    service.restoreFromStored(backup.name);
+
+    expect(soldRow()).toEqual({ paid_amount: 40, sale_price: 200 });
+    expect(customerDebt()).toBe(160);
   });
 });

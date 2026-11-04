@@ -47,6 +47,8 @@ export class BackupNotFoundError extends Error {
 
 const REQUIRED_TABLES = ['customers', 'buys', 'solds', 'sale_items'];
 const SAFE_NAME_RE = /^[A-Za-z0-9._-]+$/;
+const COLLECTED_AMOUNT_SCHEMA_VERSION = 6;
+const DEBT_DEFAULT_SCHEMA_VERSION = 8;
 
 const DELETE_SALE_ITEMS = 'DELETE FROM sale_items';
 const DELETE_SOLDS = 'DELETE FROM solds';
@@ -90,6 +92,10 @@ const SELECT_BUYS_LEGACY =
   "SELECT json_object('id', id, 'product_name', product_name, 'purchase_cost', purchase_cost, 'quantity', quantity, 'associated_costs', associated_costs, 'purchase_date', purchase_date, 'created_at', created_at) AS row FROM buys";
 const SELECT_SOLDS_CURRENT =
   "SELECT json_object('id', id, 'customer_id', customer_id, 'sale_price', sale_price, 'associated_costs', associated_costs, 'paid_amount', paid_amount, 'sold_at', sold_at, 'notes', notes, 'created_at', created_at) AS row FROM solds";
+const SELECT_SOLDS_OLD_DEBT =
+  "SELECT json_object('id', id, 'customer_id', customer_id, 'sale_price', sale_price, 'associated_costs', associated_costs, 'paid_amount', CASE WHEN paid_amount IS NULL OR paid_amount = 0 THEN sale_price ELSE paid_amount END, 'sold_at', sold_at, 'notes', notes, 'created_at', created_at) AS row FROM solds";
+const SELECT_SOLDS_WITHOUT_COLLECTED_AMOUNT =
+  "SELECT json_object('id', id, 'customer_id', customer_id, 'sale_price', sale_price, 'associated_costs', associated_costs, 'paid_amount', sale_price, 'sold_at', sold_at, 'notes', notes, 'created_at', created_at) AS row FROM solds";
 const SELECT_SOLDS_LEGACY =
   "SELECT json_object('id', id, 'customer_id', customer_id, 'sale_price', sale_price, 'associated_costs', associated_costs, 'sold_at', sold_at, 'notes', notes, 'created_at', created_at) AS row FROM solds";
 const SELECT_SALE_ITEMS =
@@ -112,6 +118,26 @@ function tableExists(db: DatabaseType, table: string): boolean {
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
     .get(table) as { name: string } | undefined;
   return row !== undefined;
+}
+
+function columnExists(db: DatabaseType, table: string, column: string): boolean {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return rows.some((row) => row.name === column);
+}
+
+function appliedSchemaVersion(backup: DatabaseType): number {
+  if (!tableExists(backup, '_migrations')) return 0;
+  const row = backup.prepare('SELECT MAX(version) AS version FROM _migrations').get() as
+    { version: number | null } | undefined;
+  return row?.version ?? 0;
+}
+
+function soldsSelect(backup: DatabaseType): string {
+  const version = appliedSchemaVersion(backup);
+  if (version >= DEBT_DEFAULT_SCHEMA_VERSION) return SELECT_SOLDS_CURRENT;
+  if (version >= COLLECTED_AMOUNT_SCHEMA_VERSION) return SELECT_SOLDS_OLD_DEBT;
+  if (columnExists(backup, 'solds', 'paid_amount')) return SELECT_SOLDS_OLD_DEBT;
+  return SELECT_SOLDS_WITHOUT_COLLECTED_AMOUNT;
 }
 
 export function createBackupService(deps: {
@@ -203,11 +229,7 @@ export function createBackupService(deps: {
     return backup;
   }
 
-  function readRows(
-    backup: DatabaseType,
-    current: string,
-    legacy: string | null,
-  ): Array<Record<string, unknown>> {
+  function readRows(backup: DatabaseType, current: string, legacy: string | null): string[] {
     try {
       return unwrap(backup.prepare(current).all());
     } catch (err) {
@@ -216,14 +238,14 @@ export function createBackupService(deps: {
     }
   }
 
-  function unwrap(rows: unknown[]): Array<Record<string, unknown>> {
-    return (rows as Array<{ row: Record<string, unknown> }>).map((entry) => entry.row);
+  function unwrap(rows: unknown[]): string[] {
+    return (rows as Array<{ row: string }>).map((entry) => entry.row);
   }
 
   function importFrom(backup: DatabaseType): RestoreSummary {
     const customers = readRows(backup, SELECT_CUSTOMERS_CURRENT, SELECT_CUSTOMERS_LEGACY);
     const buys = readRows(backup, SELECT_BUYS_CURRENT, SELECT_BUYS_LEGACY);
-    const solds = readRows(backup, SELECT_SOLDS_CURRENT, SELECT_SOLDS_LEGACY);
+    const solds = readRows(backup, soldsSelect(backup), SELECT_SOLDS_LEGACY);
     const saleItems = readRows(backup, SELECT_SALE_ITEMS, null);
     const categories = tableExists(backup, 'expense_categories')
       ? readRows(backup, SELECT_EXPENSE_CATEGORIES, null)
