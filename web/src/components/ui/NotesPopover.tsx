@@ -1,12 +1,13 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface NotesPopoverProps {
   notes: string | null | undefined;
 }
 
-const POPOVER_WIDTH = 280;
-const POPOVER_MAX_HEIGHT = 200;
+const POPOVER_MAX_WIDTH = 280;
+const POPOVER_MIN_WIDTH = 80;
+const VIEWPORT_MARGIN = 8;
 
 export function NotesPopover({ notes }: NotesPopoverProps) {
   const text = notes?.trim();
@@ -18,18 +19,37 @@ function NotesIcon({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const anchorRef = useRef<HTMLSpanElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const show = () => {
     const rect = anchorRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const left = Math.min(Math.max(8, rect.left), window.innerWidth - POPOVER_WIDTH - 8);
-    const below = rect.bottom + 8;
-    const above = rect.top - POPOVER_MAX_HEIGHT - 8;
-    setPosition({ top: below + POPOVER_MAX_HEIGHT > window.innerHeight ? above : below, left });
+    setPosition({ top: rect.bottom + VIEWPORT_MARGIN, left: rect.left });
     setOpen(true);
   };
 
   const hide = () => setOpen(false);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const anchor = anchorRef.current?.getBoundingClientRect();
+    const popover = popoverRef.current?.getBoundingClientRect();
+    if (!anchor || !popover) return;
+
+    const maxLeft = window.innerWidth - popover.width - VIEWPORT_MARGIN;
+    const left = Math.min(
+      Math.max(VIEWPORT_MARGIN, anchor.left),
+      Math.max(VIEWPORT_MARGIN, maxLeft),
+    );
+    const below = anchor.bottom + VIEWPORT_MARGIN;
+    const above = anchor.top - popover.height - VIEWPORT_MARGIN;
+    const top =
+      below + popover.height > window.innerHeight ? Math.max(VIEWPORT_MARGIN, above) : below;
+
+    setPosition((current) =>
+      current.top === top && current.left === left ? current : { top, left },
+    );
+  }, [open, text]);
 
   return (
     <>
@@ -62,9 +82,15 @@ function NotesIcon({ text }: { text: string }) {
       {open
         ? createPortal(
             <div
+              ref={popoverRef}
               role="tooltip"
-              style={{ top: position.top, left: position.left, width: POPOVER_WIDTH }}
-              className="fixed z-50 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-gray-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-gray-100 dark:text-gray-900"
+              style={{
+                top: position.top,
+                left: position.left,
+                minWidth: POPOVER_MIN_WIDTH,
+                maxWidth: POPOVER_MAX_WIDTH,
+              }}
+              className="fixed z-50 max-h-48 w-fit overflow-y-auto overflow-x-hidden break-words whitespace-pre-wrap rounded-md bg-gray-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-gray-100 dark:text-gray-900"
             >
               {text}
             </div>,

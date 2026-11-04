@@ -106,17 +106,17 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### `components/ui/` — la base
 
-| Componente                                                      | Para qué                                                           |
-| --------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `Modal` + `useFocusTrap`                                        | el único modal del repo (foco inicial, foco atrapado, `Escape`)    |
-| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                     |
-| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                           |
-| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                  |
-| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)           |
-| `ErrorState`                                                    | estado de error con "reintentar"                                   |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario) |
-| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                 |
-| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón      |
+| Componente                                                      | Para qué                                                                                                                              |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `Modal` + `useFocusTrap`                                        | el único modal del repo (foco inicial, foco atrapado, `Escape`)                                                                       |
+| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                        |
+| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                              |
+| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                     |
+| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                              |
+| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                      |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                    |
+| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                    |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático: 80-280 px, el texto largo se parte en varias líneas) |
 
 ### `components/sales/` — el dominio
 
