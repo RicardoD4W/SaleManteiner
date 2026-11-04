@@ -16,7 +16,7 @@ export const CreateSoldInput = z
     customer_id: RowId,
     sale_price: EuroMoney.optional().default(0),
     associated_costs: EuroMoney.optional().default(0),
-    paid_amount: EuroMoney.optional().default(0),
+    paid_amount: EuroMoney.nullable().optional(),
     sold_at: LocalDate.optional(),
     notes: LongText.nullable().optional(),
 

@@ -26,7 +26,7 @@ export const SoldFieldsSchema = z.object({
   customer_id: CustomerIdField,
   sale_price: EuroMoneyField,
   associated_costs: EuroMoneyField,
-  paid_amount: EuroMoneyField.default(0),
+  paid_amount: EuroMoneyField.nullable().optional(),
   sold_at: FormDateField,
   notes: NotesField,
 });
@@ -35,7 +35,7 @@ function paidAmountNotAbovePrice(
   data: z.infer<typeof SoldFieldsSchema>,
   ctx: z.RefinementCtx,
 ): void {
-  if (data.paid_amount > data.sale_price) {
+  if (data.paid_amount != null && data.paid_amount > data.sale_price) {
     ctx.addIssue({
       code: 'custom',
       path: ['paid_amount'],

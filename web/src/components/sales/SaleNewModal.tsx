@@ -64,7 +64,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       items: [],
       sale_price: 0,
       associated_costs: 0,
-      paid_amount: 0,
+      paid_amount: null,
       sold_at: todayLocalDate(),
       notes: '',
     },
@@ -112,7 +112,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
       customer_id: selectedCustomer.id,
       sale_price: values.sale_price,
       associated_costs: values.associated_costs ?? 0,
-      paid_amount: values.paid_amount ?? 0,
+      paid_amount: values.paid_amount ?? null,
       sold_at: values.sold_at || undefined,
       notes: values.notes || undefined,
       items: values.items.map((item) => ({
@@ -243,9 +243,12 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           type="number"
           step="0.01"
           min="0"
-          {...register('paid_amount', { valueAsNumber: true })}
+          {...register('paid_amount', {
+            setValueAs: (value: string | null | undefined) =>
+              value === '' || value === null || value === undefined ? null : Number(value),
+          })}
           error={(errors.paid_amount as { message?: string } | undefined)?.message}
-          hint="Lo que te ha pagado de esta venta (opcional)"
+          hint="Vacío = se asume que te ha pagado el precio entero"
         />
 
         <Input
