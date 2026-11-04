@@ -27,6 +27,7 @@
 
 ### Cambiado
 
+- **La deuda por defecto de una venta es 0**: por defecto se asume que el comprador **paga el precio íntegro**. El campo **"Cobrado (€)"** pasa a ser opcional y **empieza vacío**: si escribes un importe, es lo que te pagó y la deuda es lo que falta (`precio − cobrado`); un `0` explícito significa "no me ha pagado nada". Las ventas que ya existían sin importe cobrado informado pasan a considerarse pagadas íntegras.
 - **El popover de notas ya no tiene un ancho fijo**: la caja se ajusta al texto (mínimo 80 px, máximo 280 px) y el texto largo se parte en varias líneas en lugar de quedarse en una sola línea larga.
 - **El popover de notas se puede usar con el ratón**: al salir del icono tarda una fracción de segundo en cerrarse y, si el puntero entra en la caja, se queda abierto. Así se puede leer y desplazar un texto largo con scroll. Entra y sale con una animación corta de opacidad y escala (se respeta `prefers-reduced-motion`).
 
@@ -34,6 +35,7 @@
 
 - `006`: tabla `expenses`, tabla `expense_categories`, `customers.phone/address/notes` y `solds.paid_amount`.
 - `007`: `buys.notes`.
+- `008`: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras, sin deuda).
 
 Las dos son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente.
 

@@ -91,6 +91,7 @@ db.pragma('busy_timeout = 5000');
 | `005_indices_de_fecha.sql`                 | índices de fecha para las consultas de rango                                                                |
 | `006_gastos_y_ficha_cliente.sql`           | **aditiva**: `customers.phone/address/notes`, `solds.paid_amount`, tablas `expenses` y `expense_categories` |
 | `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
+| `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
@@ -180,6 +181,18 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | 409    | borrar una categoría de gasto en uso  | `{ error }`                                                                                   |
 | 422    | stock insuficiente al crear una venta | `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }` |
 | 500    | error no previsto                     | `{ error: 'Internal Server Error' }`                                                          |
+
+### El importe cobrado (`paid_amount`) de una venta
+
+Es **opcional** y su ausencia significa "se asume que la venta está **pagada íntegra**" (deuda 0):
+
+| En la petición                      | Qué significa         | Qué se guarda | Deuda    |
+| ----------------------------------- | --------------------- | ------------- | -------- |
+| `paid_amount` ausente o `null`      | se asume pago íntegro | `sale_price`  | 0        |
+| `paid_amount: 0`                    | no te ha pagado nada  | `0`           | precio   |
+| `paid_amount: X` (`0 < X < precio`) | te ha pagado X        | `X`           | precio−X |
+
+En las respuestas, `paid_amount` es `number | null`: `null` cuando la venta está pagada íntegra. En un `PATCH`, ausente = se conserva el valor actual y `null` = vuelve a pago íntegro. Un importe cobrado **mayor** que el precio de venta se rechaza con **400**.
 
 Los KPIs del dashboard (`GET /api/stats/dashboard`) son: `compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur` (beneficio de ventas, **no cambia de significado**), `gastos_total_eur`, `beneficio_neto_eur` (`beneficio_total_eur - gastos_total_eur`), `stock_pendiente_count`. La serie `cashFlowByMonth` incluye `gastos` por mes y los descuenta del `resultado`.
 

@@ -122,6 +122,8 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 `BuyNewModal`, `SaleNewModal`, `ProductPickerModal` (multi-select con stock), `CustomerAutocomplete` (buscador con creación en línea), `CustomerFormModal`, `DeleteBuyModal`, `DeleteCascadeModal`, `DeleteDialogs`, `DeleteCustomerModal`, `DeleteCustomerDialogs`.
 
+El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vacío = se asume que te ha pagado el precio entero (deuda 0); con un importe, ese importe es lo que te pagó y la deuda es lo que falta. Un `0` explícito significa "no me ha pagado nada".
+
 ### `components/expenses/` — los gastos
 
 `ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
