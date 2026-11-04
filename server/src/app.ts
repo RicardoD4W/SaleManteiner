@@ -13,6 +13,7 @@ import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { metricsRouter } from './routes/metrics.js';
+import { backupsRouter } from './routes/backups.js';
 import { expensesRouter } from './routes/expenses.js';
 import { expenseCategoriesRouter } from './routes/expense-categories.js';
 import type { BuysRepo } from './repo/buys-repo.js';
@@ -22,6 +23,7 @@ import { createExpenseCategoriesRepo, createExpensesRepo } from './repo/expenses
 import type { ExpenseCategoriesRepo, ExpensesRepo } from './repo/expenses-repo.js';
 import { createMetricsRepo } from './repo/metrics-repo.js';
 import type { MetricsRepo } from './repo/metrics-repo.js';
+import type { BackupService } from './backup/backup-service.js';
 
 const SERVICE = 'salemanteiner-server';
 const { version: VERSION } = createRequire(import.meta.url)('../package.json') as {
@@ -35,6 +37,7 @@ export interface CreateAppDeps {
   expensesRepo?: ExpensesRepo;
   expenseCategoriesRepo?: ExpenseCategoriesRepo;
   metricsRepo?: MetricsRepo;
+  backupService?: BackupService;
   webDir?: string | null;
 }
 
@@ -59,6 +62,9 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use('/api/expense-categories', expenseCategoriesRouter({ repo: expenseCategoriesRepo }));
   app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
   app.use('/api/stats', metricsRouter({ repo: metricsRepo }));
+  if (deps.backupService) {
+    app.use('/api/backups', backupsRouter({ service: deps.backupService }));
+  }
 
   const webDir = deps.webDir === undefined ? WEB_DIR : deps.webDir;
   if (webDir && existsSync(webDir)) {

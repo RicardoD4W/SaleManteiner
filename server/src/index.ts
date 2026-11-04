@@ -5,6 +5,7 @@ import { runMigrations } from './db/migrate.js';
 import { createBuysRepo } from './repo/buys-repo.js';
 import { createSoldsRepo } from './repo/solds-repo.js';
 import { createCustomersRepo } from './repo/customers-repo.js';
+import { createBackupService } from './backup/backup-service.js';
 import { DB_PATH, DB_SOURCE, HOST, PORT } from './config.js';
 
 const db = openDb(DB_PATH);
@@ -12,8 +13,9 @@ runMigrations(db);
 const buysRepo = createBuysRepo(db);
 const soldsRepo = createSoldsRepo(db);
 const customersRepo = createCustomersRepo(db);
+const backupService = createBackupService({ db, dbPath: DB_PATH });
 
-const app = createApp({ buysRepo, soldsRepo, customersRepo });
+const app = createApp({ buysRepo, soldsRepo, customersRepo, backupService });
 
 const server = app.listen(PORT, HOST, () => {
   logger.info(
