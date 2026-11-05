@@ -11,7 +11,7 @@
 | Datos      | better-sqlite3 13      | WAL, foreign keys ON, `busy_timeout` 5 s       |
 | Validación | Zod 4                  | schemas por recurso + `safeParse`              |
 | Logging    | Pino 10 + pino-http 11 | `server/src/logger.ts`                         |
-| Tests      | Vitest 5               | 13 archivos / 238 tests, BD en `:memory:`      |
+| Tests      | Vitest 5               | 20 archivos / 350 tests, BD en `:memory:`      |
 
 ## 2. Estructura
 
@@ -34,9 +34,11 @@ server/
     ├── lib/
     │   ├── round.ts           ← round2()
     │   └── defined-only.ts    ← filtra undefined en los patches
+    ├── backup/
+    │   └── backup-service.ts  ← copias (VACUUM INTO), restauración y validación
     ├── schemas/               ← common, buys, solds, customers
-    ├── repo/                  ← buys-repo, solds-repo, customers-repo, types
-    ├── routes/                ← health, version, buys, solds, customers, dashboard, _shared
+    ├── repo/                  ← buys-repo, solds-repo, customers-repo, metrics-repo, types
+    ├── routes/                ← health, version, buys, solds, customers, dashboard, metrics, backups, _shared
     └── __tests__/             ← tests
 ```
 
@@ -46,6 +48,7 @@ server/
 
 - `cors` con origen local, `express.json` con límite de 1 MB, `pinoHttp` para los logs.
 - Routers: `/api/health`, `/api/version`, `/api/buys`, `/api/solds`, `/api/customers`, `/api/stats`.
+- El router `/api/backups` **solo se registra si se pasa un `backupService`** (`createApp`): el server real (`index.ts`) lo crea con `createBackupService({ db, dbPath: DB_PATH })` y lo inyecta.
 - **Static + fallback de SPA**: si existe `WEB_DIR`, sirve `web/dist` y devuelve `index.html` para cualquier ruta que no sea `/api` y no tenga extensión (esto es lo que hace que la app de escritorio tenga **un solo origen**).
 - 404 JSON para lo que no existe: `{ error: 'Not Found', path }`.
 - Error handler: 4xx → `warn` + `{ error: 'Invalid request' }`; cualquier otro → `error` + `{ error: 'Internal Server Error' }`.
@@ -159,6 +162,13 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | `PATCH /api/expense-categories/:id`  | edición del nombre                                          | 400/404             |
 | `DELETE /api/expense-categories/:id` | borra la categoría                                          | 409 si tiene gastos |
 | `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores | —                   |
+| `GET /api/stats/metrics`             | métricas: KPIs, mes actual/anterior, variaciones y listados | —                   |
+| `GET /api/backups`                   | lista de copias guardadas (nombre, tamaño, fecha)           | —                   |
+| `POST /api/backups`                  | crea una copia (`VACUUM INTO`)                              | —                   |
+| `GET /api/backups/:name/download`    | descarga una copia al disco del usuario                     | 404                 |
+| `DELETE /api/backups/:name`          | elimina una copia guardada                                  | 400/404             |
+| `POST /api/backups/:name/restore`    | restaura desde una copia guardada                           | 400/404             |
+| `POST /api/backups/restore`          | restaura desde un archivo subido (binario)                  | 400                 |
 
 ### Códigos de error
 
@@ -169,9 +179,61 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | 409    | el borrado dejaría ventas huérfanas   | `{ error, associated_sales }`                                                                 |
 | 409    | borrar una categoría de gasto en uso  | `{ error }`                                                                                   |
 | 422    | stock insuficiente al crear una venta | `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }` |
+| 500    | error no previsto                     | `{ error: 'Internal Server Error' }`                                                          |
 
 Los KPIs del dashboard (`GET /api/stats/dashboard`) son: `compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur` (beneficio de ventas, **no cambia de significado**), `gastos_total_eur`, `beneficio_neto_eur` (`beneficio_total_eur - gastos_total_eur`), `stock_pendiente_count`. La serie `cashFlowByMonth` incluye `gastos` por mes y los descuenta del `resultado`.
-| 500 | error no previsto | `{ error: 'Internal Server Error' }` |
+
+### `GET /api/stats/metrics` — métricas del dashboard
+
+Ruta propia (`server/src/routes/metrics.ts` + `server/src/repo/metrics-repo.ts`): el front **no** recalcula cifras de negocio, las pide ya redondeadas al server. Devuelve `{ data: … }` con:
+
+| Bloque             | Qué contiene                                                                                                                                                                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kpis`             | globales: `ingresos_total_eur`, `beneficio_total_eur`, `gastos_total_eur`, `beneficio_neto_eur`, `margen_pct`, `gastos_sobre_ingresos_pct`, `ticket_medio_eur`, `beneficio_medio_venta_eur`, `ventas_count`, `clientes_count`, `clientes_con_deuda`, `deuda_total_eur`, `stock_pendiente_count`, `stock_coste_total_eur` |
+| `mes_actual`       | el mes natural en curso: `month` (`YYYY-MM`), `ingresos`, `beneficio`, `gastos`, `resultado`, `margen_pct`, `ventas`                                                                                                                                                                                                     |
+| `mes_anterior`     | el mes natural anterior, con la misma forma                                                                                                                                                                                                                                                                              |
+| `variaciones`      | comparativa mes actual vs. mes anterior (o `null`, ver abajo)                                                                                                                                                                                                                                                            |
+| `margen_productos` | top 10 de productos por ingresos: `product_id`, `product_name`, `unidades`, `ingresos`, `beneficio`, `margen_pct`                                                                                                                                                                                                        |
+| `deudores`         | top 10 de clientes con deuda: `customer_id`, `customer_name`, `ventas`, `deuda`                                                                                                                                                                                                                                          |
+| `gastos_categoria` | reparto de gastos: `category_id`, `name`, `total`, `pct` (sobre el total de gastos)                                                                                                                                                                                                                                      |
+
+**Reglas de cálculo** (las aplica el repo, no el front):
+
+- **Margen %** = `beneficio / ingresos * 100`. El beneficio sale de las vistas SQL (`v_sold_costs`), nunca de una fórmula repetida en JS.
+- **Variación** = `(mes_actual − mes_anterior) / |mes_anterior| * 100`, en porcentaje. Trae cuatro variaciones (`ingresos_pct`, `beneficio_pct`, `gastos_pct`, `resultado_pct`).
+- **Sin base de comparación**: si el mes anterior no tuvo actividad (ni ventas ni gastos), `variaciones` es **`null`** (no "0 %": no hay con qué comparar). Dentro de `variaciones`, cada campo es `null` cuando su valor del mes anterior fue 0.
+- **La variación del margen va en puntos porcentuales**: `margen_puntos` = `margen_pct` actual − `margen_pct` anterior (de 20 % a 25 % son **+5 puntos**, no +25 %).
+- El mes se calcula por mes natural (`strftime('%Y-%m', …)`) sobre `sold_at` y `expense_date`.
+- El valor del stock pendiente usa el **coste de compra prorrateado** por unidad (`(purchase_cost + associated_costs) / quantity`), coherente con `v_item_costs`.
+- Todos los importes y porcentajes salen con `round2()`.
+
+La pestaña "Métricas" del web **no cambia el significado de los KPIs del resumen**: `beneficio_total_eur` sigue siendo el mismo.
+
+### Copias de seguridad y restauración
+
+`server/src/backup/backup-service.ts` + `server/src/routes/backups.ts`. El servicio se crea en `server/src/index.ts` con `createBackupService({ db, dbPath: DB_PATH })` y se inyecta en `createApp`.
+
+**Dónde viven las copias**: en `<carpeta de datos>/backups/`, la misma carpeta que aloja la base de datos (`SALEMANTEINER_DIR` o la ruta canónica por plataforma, p. ej. `%APPDATA%/SaleManteiner/backups/`).
+
+| Tipo de copia      | Nombre                                | Cuándo se crea                              |
+| ------------------ | ------------------------------------- | ------------------------------------------- |
+| Copia del usuario  | `salemanteiner-AAAAMMDD-HHmmss.db`    | a petición (`POST /api/backups`)            |
+| Copia de seguridad | `pre-restauracion-AAAAMMDD-HHmmss.db` | **siempre** antes de cualquier restauración |
+
+Si el nombre ya existe se le añade un sufijo (`-1`, `-2`, …). El nombre de la copia se sanea (`^[A-Za-z0-9._-]+$`, sin `..`): un nombre inválido se rechaza con 400.
+
+**Cómo se hace una copia**: con `VACUUM INTO` → un **único fichero SQLite consistente** (sin WAL ni journals que acompañarlo) que se puede restaurar tal cual.
+
+**Cómo se restaura**:
+
+1. **Validación previa** (si falla → **400** y **la BD del usuario no se toca**): el archivo se abre en solo lectura, se le pasa `integrity_check` y se comprueba que existan las tablas del esquema (`customers`, `buys`, `solds`, `sale_items`). Un archivo que no sea una BD válida, esté dañado o no contenga datos de SaleManteiner se rechaza.
+2. **Copia de seguridad automática** del estado actual (`pre-restauracion-AAAAMMDD-HHmmss.db`, también con `VACUUM INTO`) → una restauración equivocada es reversible.
+3. **Importación transaccional**: en una única `db.transaction()` se vacían las tablas de datos y se reinsertan las de la copia **conservando los ids** (las referencias entre ventas, compras y clientes siguen apuntando al mismo sitio). Si algo falla, `rollback`: no queda estado intermedio roto.
+4. **Migraciones**: al terminar se vuelve a ejecutar `runMigrations(db)`, así una copia de una versión anterior del esquema queda al día.
+
+Restaurar **reemplaza** el contenido actual de la base de datos por el de la copia (no se fusiona). El resumen devuelto (`{ customers, buys, solds, sale_items, expenses, expense_categories, safety_backup }`) dice qué se restauró y cómo se llama la copia de seguridad previa.
+
+**Subida de un archivo**: `POST /api/backups/restore` recibe el **cuerpo binario** (`Content-Type: application/octet-stream`, límite 512 MB) y el nombre original en la cabecera **`X-Filename`**. El archivo se escribe temporalmente en la carpeta de copias, se restaura y se borra. No hace falta `multipart` (ni `multer`).
 
 El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El borrado en cascada deja **audit trail** en el log (Pino, nivel `warn`): qué se borró y qué ventas se tocaron.
 
@@ -184,3 +246,14 @@ El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El b
 - **app**: la de `desktop/tauri.conf.json`, forzable con `SALE_MANTEINER_APP_VERSION`.
 
 `GET /api/version` las devuelve; el web las muestra en el footer.
+
+## 8. Tests del server
+
+Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (`createApp` + `listen`) contra una **BD temporal** (`mkdtempSync` en el `tmp` del sistema): **la base de datos del usuario no se toca nunca**.
+
+| Fichero                  | Qué cubre                                                                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `metrics.test.ts`        | el repo de métricas: KPIs, mes actual/anterior, variaciones (incluido el `null` sin base), márgenes, deudores y gastos por categoría            |
+| `metrics-routes.test.ts` | el contrato HTTP de `GET /api/stats/metrics`                                                                                                    |
+| `backups.test.ts`        | el servicio de copias: crear, listar, eliminar, restaurar, la copia de seguridad previa y el rechazo de un archivo inválido **sin tocar la BD** |
+| `backups-routes.test.ts` | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |

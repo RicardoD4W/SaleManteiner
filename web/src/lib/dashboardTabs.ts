@@ -11,6 +11,7 @@ export const DASHBOARD_TABS: DashboardTab[] = [
   { to: '/revenue', label: 'Ingresos', end: false },
   { to: '/products', label: 'Productos', end: false },
   { to: '/buyers', label: 'Compradores', end: false },
+  { to: '/metrics', label: 'Métricas', end: false },
 ];
 
 const DASHBOARD_ROUTES: string[] = DASHBOARD_TABS.map((tab) => tab.to);

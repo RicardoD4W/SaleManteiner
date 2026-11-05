@@ -44,19 +44,20 @@ web/
 
 `web/src/App.tsx` (React Router, `createBrowserRouter`):
 
-| Ruta         | Vista               | Qué hace                                                     |
-| ------------ | ------------------- | ------------------------------------------------------------ |
-| `/`          | `DashboardPage`     | 4 tabs anidadas: Resumen, Ingresos, Productos, Compradores   |
-| `/buys`      | `BuysListPage`      | tabla de compras + alta + borrado                            |
-| `/buys/:id`  | `BuyEditPage`       | edición de una compra                                        |
-| `/solds`     | `SoldsListPage`     | tabla de ventas + alta + borrado                             |
-| `/solds/:id` | `SoldEditPage`      | edición de una venta                                         |
-| `/customers` | `CustomersListPage` | clientes: alta, edición y borrado                            |
-| `/gastos`    | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total |
+| Ruta         | Vista               | Qué hace                                                             |
+| ------------ | ------------------- | -------------------------------------------------------------------- |
+| `/`          | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas |
+| `/metrics`   | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)               |
+| `/buys`      | `BuysListPage`      | tabla de compras + alta + borrado                                    |
+| `/buys/:id`  | `BuyEditPage`       | edición de una compra                                                |
+| `/solds`     | `SoldsListPage`     | tabla de ventas + alta + borrado                                     |
+| `/solds/:id` | `SoldEditPage`      | edición de una venta                                                 |
+| `/customers` | `CustomersListPage` | clientes: alta, edición y borrado                                    |
+| `/gastos`    | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total         |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
-Las rutas de las tabs del dashboard viven en `web/src/lib/dashboardTabs.ts` (fuente única para las tabs y para el link del header).
+Las rutas de las tabs del dashboard viven en `web/src/lib/dashboardTabs.ts` (fuente única para las tabs y para el link del header): Resumen (`/`), Ingresos (`/revenue`), Productos (`/products`), Compradores (`/buyers`) y **Métricas** (`/metrics`).
 
 ## 4. Datos: TanStack Query
 
@@ -75,8 +76,8 @@ new QueryClient({
 
 Convenciones:
 
-- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useBuy`, `useSold`, `useBuysStock`, `useExpenses`, `useExpenseCategories`.
-- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`, `useCreateExpense`, `useUpdateExpense`, `useDeleteExpense`, `useCreateExpenseCategory`, `useUpdateExpenseCategory`, `useDeleteExpenseCategory`.
+- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useStatsMetrics`, `useBuy`, `useSold`, `useBuysStock`, `useExpenses`, `useExpenseCategories`, `useBackups`.
+- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`, `useCreateExpense`, `useUpdateExpense`, `useDeleteExpense`, `useCreateExpenseCategory`, `useUpdateExpenseCategory`, `useDeleteExpenseCategory`, `useCreateBackup`, `useDeleteBackup`, `useRestoreBackup`.
 - Cada mutación invalida lo que dejó de ser cierto (p. ej. borrar una compra invalida `buys`, `solds` y `stats`).
 - Los hooks de cascada comparten máquina de estados: `useCascadeDeleteFlow`.
 
@@ -88,7 +89,11 @@ Convenciones:
 - `ApiError` lleva `status` y `body` (`{ error, issues? }`).
 - `apiErrorMessage(err, fallback)` → mensaje en español para pintar en la UI.
 
-Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
+Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.ts`, `api/backups.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
+
+Las **métricas** no tienen módulo propio: viven en `api/solds.ts` (`soldsApi.metricsStats()` → `GET /api/stats/metrics`), con el tipo `MetricsStats` (KPIs, mes actual/anterior, variaciones, márgenes por producto, deudores y gastos por categoría). El web **no recalcula** cifras de negocio: las pide ya redondeadas al server.
+
+Las **copias de seguridad** sí tienen módulo propio (`api/backups.ts`): `list`, `create`, `remove`, `restoreStored`, `restoreFromFile` y `downloadUrl`. La subida de un archivo va como **cuerpo binario** (`Content-Type: application/octet-stream` + cabecera `X-Filename` con el nombre original), no como `multipart`.
 
 ## 5. Schemas (Zod)
 
@@ -101,17 +106,17 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### `components/ui/` — la base
 
-| Componente                                                      | Para qué                                                           |
-| --------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `Modal` + `useFocusTrap`                                        | el único modal del repo (foco inicial, foco atrapado, `Escape`)    |
-| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                     |
-| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                           |
-| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                  |
-| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)           |
-| `ErrorState`                                                    | estado de error con "reintentar"                                   |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario) |
-| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                 |
-| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón      |
+| Componente                                                      | Para qué                                                                                                                                                    |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Modal` + `useFocusTrap`                                        | el único modal del repo (foco inicial, foco atrapado, `Escape`)                                                                                             |
+| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                              |
+| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                    |
+| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                           |
+| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                    |
+| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                            |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                          |
+| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                          |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
 
 ### `components/sales/` — el dominio
 
@@ -125,9 +130,35 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 `StatCard` (con `profitColorClass`: verde si ganaste, rojo si perdiste), `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
 
+### La pestaña "Métricas"
+
+`web/src/pages/dashboard/MetricsTab.tsx`, en la ruta `/metrics`. Es una pestaña más del dashboard y, por decisión explícita del usuario, contiene **solo cajitas de KPIs y listados métricos**: **sin gráficos y sin tablas de registros**. No toca los KPIs del resumen (el significado de `beneficio_total_eur` sigue siendo el mismo).
+
+Qué muestra, de arriba abajo:
+
+- **Este mes**: ingresos, beneficio, gastos, beneficio neto, margen % y nº de ventas.
+- **Frente al mes anterior**: variación de ingresos, beneficio, gastos y beneficio neto (en %) y variación del margen **en puntos porcentuales**. Si el mes anterior no tuvo actividad no hay comparación posible: se avisa con "El mes anterior no tuvo actividad" en lugar de mostrar un 0 %.
+- **Globales**: ingresos, beneficio, margen global, gastos sobre ingresos, ticket medio, beneficio medio por venta, deuda total, clientes con deuda, valor del stock pendiente, nº de ventas, beneficio neto y gastos totales.
+- **Listados métricos**: márgenes por producto, clientes con deuda y reparto de gastos por categoría.
+
+Los datos vienen de `useStatsMetrics` (`GET /api/stats/metrics`): el front no calcula cifras de negocio.
+
 ### `components/layout/`
 
 `Layout` (nav Dashboard · Compras · Ventas · Clientes + botón "+ Nueva" + `ThemeToggle` + footer de versiones), `NavLink`, `ThemeToggle`, `AppVersion`.
+
+`AppVersion` (el pie) lleva **junto a las versiones** el botón **"Copia de seguridad"**, que abre `BackupModal`.
+
+### `components/layout/BackupModal.tsx` — copia de seguridad
+
+Modal con el listado de las copias guardadas (nombre, fecha y tamaño) y sus acciones:
+
+- **Crear copia ahora** → `POST /api/backups` (toast "Copia creada").
+- **Descargar** → enlace a `GET /api/backups/:name/download` (el archivo se descarga al disco del usuario).
+- **Eliminar** → `DELETE /api/backups/:name`, con **modal de confirmación** (toast "Copia eliminada").
+- **Restaurar** desde una copia guardada o **desde un archivo del disco del usuario** (input de fichero `.db`, subida binaria a `POST /api/backups/restore`).
+
+Restaurar **reescribe la base de datos del usuario**, así que exige una **confirmación explícita** en un segundo modal: dice qué archivo se va a restaurar y recuerda que antes se guardará una copia del estado actual. Tras restaurar se invalidan las queries de datos (`backups`, `stats`, `buys`, `solds`, `customers`, `expenses`, `expense-categories`) y se avisa con el resumen de lo restaurado.
 
 ## 7. Ordenamiento y búsqueda
 

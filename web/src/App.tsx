@@ -5,6 +5,7 @@ import { OverviewTab } from './pages/dashboard/OverviewTab';
 import { RevenueTab } from './pages/dashboard/RevenueTab';
 import { ProductsTab } from './pages/dashboard/ProductsTab';
 import { BuyersTab } from './pages/dashboard/BuyersTab';
+import { MetricsTab } from './pages/dashboard/MetricsTab';
 import { BuysListPage } from './pages/buys/BuysListPage';
 import { BuyEditPage } from './pages/buys/BuyEditPage';
 import { SoldsListPage } from './pages/solds/SoldsListPage';
@@ -17,6 +18,7 @@ const dashboardChildren: RouteObject[] = [
   { path: 'revenue', element: <RevenueTab /> },
   { path: 'products', element: <ProductsTab /> },
   { path: 'buyers', element: <BuyersTab /> },
+  { path: 'metrics', element: <MetricsTab /> },
 ];
 
 const router = createBrowserRouter([

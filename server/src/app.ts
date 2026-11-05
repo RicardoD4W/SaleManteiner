@@ -12,6 +12,8 @@ import { buysRouter } from './routes/buys.js';
 import { soldsRouter } from './routes/solds.js';
 import { customersRouter } from './routes/customers.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { metricsRouter } from './routes/metrics.js';
+import { backupsRouter } from './routes/backups.js';
 import { expensesRouter } from './routes/expenses.js';
 import { expenseCategoriesRouter } from './routes/expense-categories.js';
 import type { BuysRepo } from './repo/buys-repo.js';
@@ -19,6 +21,9 @@ import type { SoldsRepo } from './repo/solds-repo.js';
 import type { CustomersRepo } from './repo/customers-repo.js';
 import { createExpenseCategoriesRepo, createExpensesRepo } from './repo/expenses-repo.js';
 import type { ExpenseCategoriesRepo, ExpensesRepo } from './repo/expenses-repo.js';
+import { createMetricsRepo } from './repo/metrics-repo.js';
+import type { MetricsRepo } from './repo/metrics-repo.js';
+import type { BackupService } from './backup/backup-service.js';
 
 const SERVICE = 'salemanteiner-server';
 const { version: VERSION } = createRequire(import.meta.url)('../package.json') as {
@@ -31,6 +36,8 @@ export interface CreateAppDeps {
   customersRepo: CustomersRepo;
   expensesRepo?: ExpensesRepo;
   expenseCategoriesRepo?: ExpenseCategoriesRepo;
+  metricsRepo?: MetricsRepo;
+  backupService?: BackupService;
   webDir?: string | null;
 }
 
@@ -40,6 +47,7 @@ export function createApp(deps: CreateAppDeps): Express {
   const expensesRepo = deps.expensesRepo ?? createExpensesRepo(deps.customersRepo.db);
   const expenseCategoriesRepo =
     deps.expenseCategoriesRepo ?? createExpenseCategoriesRepo(deps.customersRepo.db);
+  const metricsRepo = deps.metricsRepo ?? createMetricsRepo(deps.customersRepo.db);
 
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
@@ -53,6 +61,10 @@ export function createApp(deps: CreateAppDeps): Express {
   app.use('/api/expenses', expensesRouter({ repo: expensesRepo }));
   app.use('/api/expense-categories', expenseCategoriesRouter({ repo: expenseCategoriesRepo }));
   app.use('/api/stats', dashboardRouter({ repo: deps.soldsRepo }));
+  app.use('/api/stats', metricsRouter({ repo: metricsRepo }));
+  if (deps.backupService) {
+    app.use('/api/backups', backupsRouter({ service: deps.backupService }));
+  }
 
   const webDir = deps.webDir === undefined ? WEB_DIR : deps.webDir;
   if (webDir && existsSync(webDir)) {

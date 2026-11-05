@@ -39,3 +39,26 @@ export function toastUpdated(kind: ToastKind, description?: string): void {
 export function toastDeleted(kind: ToastKind, description?: string): void {
   show(TITLES[kind].deleted, description);
 }
+
+export function toastBackupCreated(description?: string): void {
+  sileo.success({
+    ...(description ? { description: description } : {}),
+    title: 'Copia de seguridad creada',
+    styles: { title: 'normal-case!' },
+  });
+}
+
+export function toastBackupDeleted(): void {
+  sileo.success({
+    title: 'Copia de seguridad eliminada',
+    styles: { title: 'normal-case!' },
+  });
+}
+
+export function toastBackupRestored(description?: string): void {
+  sileo.success({
+    ...(description ? { description: description } : {}),
+    title: 'Copia restaurada',
+    styles: { title: 'normal-case!' },
+  });
+}

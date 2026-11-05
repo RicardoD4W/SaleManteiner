@@ -68,6 +68,7 @@ Vista propia (la quinta del header) para los gastos que **no** son compras ni ve
 - **Gráfico de flujo de caja** de los últimos 12 meses: beneficio, compras, gastos y resultado del mes.
 - **Top 5 productos** y **Top 5 compradores**, con lo que generó cada uno.
 - Cuatro pestañas: **Resumen**, **Ingresos**, **Productos** y **Compradores**, cada una ordenable.
+- Una quinta pestaña, **Métricas**: KPIs globales, comparativas frente al mes anterior (en % y en puntos de margen) y listados métricos (márgenes por producto, clientes con deuda, reparto de gastos).
 
 ### 🔎 Filtros y búsqueda que entiende de verdad
 
@@ -115,7 +116,13 @@ Dónde vive la base de datos:
 
 Si esa carpeta está vacía pero tienes una base vieja en `~/.salemanteiner/data.db`, la app la usa: **nadie pierde datos**.
 
-**Copia de seguridad**: es un archivo. Copialo cuando quieras (con la app cerrada, o con `sqlite3 data.db ".backup copia.db"`).
+**Copia de seguridad**: la app te la hace. Abajo a la derecha, junto a la versión, hay un botón **"Copia de seguridad"** que abre una ventana con tus copias:
+
+- **Crear una copia** ahora (el archivo lleva la fecha y la hora) y **descargarla** a tu disco.
+- **Restaurar** una copia guardada o un archivo `.db` que tengas por ahí. Antes de restaurar, la app guarda sola una copia del estado actual: si restauraste lo que no era, volvés atrás.
+- Un archivo que no sea una base de datos válida se rechaza y no toca nada.
+
+Las copias se guardan en la carpeta `backups` de la misma carpeta de datos que tu base de datos.
 
 ---
 
