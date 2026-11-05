@@ -108,6 +108,7 @@ export function RowActions<T extends ArmedRow>({
   editBasePath,
   deleteAriaLabel,
   onDelete,
+  extraAction,
 }: {
   row: T;
 
@@ -116,10 +117,12 @@ export function RowActions<T extends ArmedRow>({
   deleteAriaLabel: string;
 
   onDelete: (row: T) => void;
+
+  extraAction?: ReactNode;
 }) {
   const { armRow } = useContext(ArmedRowContext);
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <Link
         to={`${editBasePath}/${row.id}`}
         viewTransition
@@ -130,6 +133,7 @@ export function RowActions<T extends ArmedRow>({
       >
         Editar
       </Link>
+      {extraAction}
       <button
         type="button"
         onClick={() => onDelete(row)}

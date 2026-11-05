@@ -128,16 +128,24 @@ export function SoldEditPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
-        <Link
-          to="/solds"
-          state={{ armedRowId: soldId }}
-          viewTransition
-          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
-        >
-          ← Volver
-        </Link>
+        <div className="flex items-baseline gap-3">
+          <Link
+            to={`/solds/${soldId}/receipt`}
+            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Recibo
+          </Link>
+          <Link
+            to="/solds"
+            state={{ armedRowId: soldId }}
+            viewTransition
+            className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+          >
+            ← Volver
+          </Link>
+        </div>
       </div>
 
       <Card>
