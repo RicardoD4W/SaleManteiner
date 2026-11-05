@@ -86,7 +86,7 @@ Las migraciones `006` (gastos + ficha de cliente) y `007` (notas en compras) son
 | `customer_id`      | INTEGER NOT NULL FK→customers.id ON DELETE RESTRICT | el cliente no se puede borrar si tiene ventas       |
 | `sale_price`       | REAL                                                | precio TOTAL de la venta (no se prorratea por item) |
 | `associated_costs` | REAL                                                | gastos envío/comisión TOTALES de la venta           |
-| `paid_amount`      | REAL NOT NULL DEFAULT 0                             | importe cobrado de la venta (0 = nada cobrado)      |
+| `paid_amount`      | REAL NOT NULL DEFAULT 0                             | importe cobrado (igual al precio = se asume pagada) |
 | `sold_at`          | TEXT                                                | `YYYY-MM-DD`, día local. Default hoy. Nullable.     |
 | `notes`            | TEXT NULL                                           | notas libres                                        |
 | `created_at`       | TEXT NOT NULL                                       | ISO 8601, automático                                |
@@ -94,6 +94,8 @@ Las migraciones `006` (gastos + ficha de cliente) y `007` (notas en compras) son
 Índices: `idx_solds_sold_at`, `idx_solds_customer`.
 
 **Deuda del cliente**: `Σ(sale_price - paid_amount)` de sus ventas. El cobro es caja, **no** ganancia: `paid_amount` no toca el beneficio de la venta (que sale de `v_sold_costs`).
+
+**Deuda por defecto = 0**: por defecto se asume que la venta está **pagada íntegro**. Como la columna es `NOT NULL`, "pagada íntegro" se guarda como `paid_amount = sale_price` y la API lo devuelve como `null` (campo vacío). Un `paid_amount = 0` **explícito** significa "no me ha pagado nada" (deuda = precio completo): vacío y `0` son estados distintos.
 
 ### `expense_categories` (categorías de gasto) y `expenses` (gastos)
 

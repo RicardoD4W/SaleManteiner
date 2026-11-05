@@ -24,9 +24,12 @@
 - **Deuda por cliente**: cada venta lleva el **importe cobrado**; la deuda del cliente es lo que falta por cobrar. El cobro es caja, no ganancia: no altera el beneficio de la venta. No se puede cobrar más de lo vendido.
 - **Campo "Cobrado"** en el alta y la edición de venta.
 - **Notas en compras, ventas y clientes** con icono: si no hay notas no aparece nada y al pasar el ratón por encima se lee la nota entera en un popover. Las compras, que no tenían campo de notas, lo reciben.
+- **Pestaña "Métricas"** en el dashboard: KPIs globales, comparativas frente al mes anterior y listados métricos (margen por producto, clientes con deuda y reparto de gastos). Es una vista aparte, sin gráficos ni tablas de registros: el dashboard no se recarga.
+- **Copias de seguridad desde la app**: un botón junto a la versión, en el pie. Crea una copia con fecha y hora, la deja en la carpeta `backups` y permite **descargarla**, **eliminarla** o **restaurar** desde una copia guardada o desde un archivo `.db` que tengas por ahí. Antes de restaurar se guarda sola una copia del estado actual (si restauraste lo que no era, vuelves atrás) y un archivo que no sea una base de datos válida se rechaza sin tocar nada.
 
 ### Cambiado
 
+- **La deuda por defecto de una venta es 0**: por defecto se asume que el comprador **paga el precio íntegro**. El campo **"Cobrado (€)"** pasa a ser opcional y **empieza vacío**: si escribes un importe, es lo que te pagó y la deuda es lo que falta (`precio − cobrado`); un `0` explícito significa "no me ha pagado nada". Las ventas que ya existían sin importe cobrado informado pasan a considerarse pagadas íntegras, **también cuando las restauras desde una copia de seguridad anterior**.
 - **El popover de notas ya no tiene un ancho fijo**: la caja se ajusta al texto (mínimo 80 px, máximo 280 px) y el texto largo se parte en varias líneas en lugar de quedarse en una sola línea larga.
 - **El popover de notas se puede usar con el ratón**: al salir del icono tarda una fracción de segundo en cerrarse y, si el puntero entra en la caja, se queda abierto. Así se puede leer y desplazar un texto largo con scroll. Entra y sale con una animación corta de opacidad y escala (se respeta `prefers-reduced-motion`).
 
@@ -34,8 +37,9 @@
 
 - `006`: tabla `expenses`, tabla `expense_categories`, `customers.phone/address/notes` y `solds.paid_amount`.
 - `007`: `buys.notes`.
+- `008`: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras, sin deuda).
 
-Las dos son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente.
+La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente. La `008` es una migración de **datos**: reescribe el importe cobrado de las ventas que nunca se informó (de `0` a su precio de venta) y no toca ninguna otra columna.
 
 ## [0.1.1]
 

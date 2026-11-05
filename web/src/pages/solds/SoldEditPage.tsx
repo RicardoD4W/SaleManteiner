@@ -57,7 +57,7 @@ export function SoldEditPage() {
       customer_id: sold.customer_id,
       sale_price: sold.sale_price,
       associated_costs: sold.associated_costs,
-      paid_amount: sold.paid_amount ?? 0,
+      paid_amount: sold.paid_amount,
       sold_at: sold.sold_at ?? '',
       notes: sold.notes ?? '',
     });
@@ -68,7 +68,7 @@ export function SoldEditPage() {
       customer_id: selectedCustomer ? selectedCustomer.id : values.customer_id,
       sale_price: values.sale_price,
       associated_costs: values.associated_costs,
-      paid_amount: values.paid_amount ?? 0,
+      paid_amount: values.paid_amount ?? null,
       sold_at: values.sold_at?.trim() || undefined,
       notes: values.notes?.trim() || undefined,
     };
@@ -227,9 +227,12 @@ export function SoldEditPage() {
               type="number"
               step="0.01"
               min="0"
-              {...register('paid_amount', { valueAsNumber: true })}
+              {...register('paid_amount', {
+                setValueAs: (value: string | null | undefined) =>
+                  value === '' || value === null || value === undefined ? null : Number(value),
+              })}
               error={(errors.paid_amount as { message?: string } | undefined)?.message}
-              hint="Lo que te ha pagado de esta venta (opcional)"
+              hint="Vacío = se asume que te ha pagado el precio entero"
             />
 
             <Input

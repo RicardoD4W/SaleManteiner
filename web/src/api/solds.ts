@@ -4,7 +4,7 @@ import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 
 export interface SoldWithProfit extends Sold {
   profit: number;
-  paid_amount: number;
+  paid_amount: number | null;
   items: SaleItemOutput[];
 }
 

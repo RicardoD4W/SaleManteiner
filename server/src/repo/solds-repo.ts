@@ -36,11 +36,22 @@ function rowToSold(row: SoldRow): Sold {
     customer_id: row.customer_id,
     sale_price: row.sale_price,
     associated_costs: row.associated_costs,
-    paid_amount: row.paid_amount,
+    paid_amount: row.paid_amount === row.sale_price ? null : row.paid_amount,
     sold_at: row.sold_at,
     notes: row.notes,
     created_at: row.created_at,
   };
+}
+
+function resolvePaidAmount(
+  existing: Sold,
+  patch: number | null | undefined,
+  nextSalePrice: number,
+): number {
+  if (patch === null) return nextSalePrice;
+  if (patch !== undefined) return round2(patch);
+  if (existing.paid_amount === null) return nextSalePrice;
+  return existing.paid_amount;
 }
 
 export interface SoldListFilters {
@@ -325,8 +336,8 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       }
 
       const salePrice = round2(input.sale_price);
-      const paidAmount = round2(input.paid_amount);
-      if (paidAmount > salePrice) {
+      const paidAmount = input.paid_amount == null ? salePrice : round2(input.paid_amount);
+      if (input.paid_amount != null && paidAmount > salePrice) {
         throw new PaidAmountExceedsPriceError();
       }
 
@@ -439,17 +450,20 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     const definedPatch = definedOnly(input);
     if (Object.keys(definedPatch).length === 0) return existing;
 
+    const nextSalePrice = round2(definedPatch.sale_price ?? existing.sale_price);
+    const paidAmount = resolvePaidAmount(existing, definedPatch.paid_amount, nextSalePrice);
+
     const next = {
       ...existing,
       ...definedPatch,
-      sale_price: round2(definedPatch.sale_price ?? existing.sale_price),
+      sale_price: nextSalePrice,
       associated_costs: round2(definedPatch.associated_costs ?? existing.associated_costs),
-      paid_amount: round2(definedPatch.paid_amount ?? existing.paid_amount),
+      paid_amount: paidAmount,
       id: existing.id,
       created_at: existing.created_at,
     };
 
-    if (next.paid_amount > next.sale_price) {
+    if (paidAmount > nextSalePrice) {
       throw new PaidAmountExceedsPriceError();
     }
 

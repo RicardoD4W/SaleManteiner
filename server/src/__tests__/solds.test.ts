@@ -36,6 +36,18 @@ function validUpdate(overrides: Record<string, unknown> = {}) {
   return UpdateSoldSchema.parse(overrides);
 }
 
+function rawPaidAmount(db: Database, soldId: number): number {
+  const row = db.prepare('SELECT paid_amount FROM solds WHERE id = ?').get(soldId) as {
+    paid_amount: number;
+  };
+  return row.paid_amount;
+}
+
+function customerDebt(repo: ReturnType<typeof createCustomersRepo>, customerId: number): number {
+  const customer = repo.list().find((c) => c.id === customerId);
+  return customer?.deuda ?? 0;
+}
+
 describe('solds repo', () => {
   let db: Database;
   let buysRepo: ReturnType<typeof createBuysRepo>;
@@ -498,7 +510,7 @@ describe('ventas: importe cobrado (paid_amount)', () => {
     expect(soldsRepo.getById(sold.id)?.paid_amount).toBe(40);
   });
 
-  it('sin importe cobrado explícito, la venta empieza con 0 cobrado', () => {
+  it('sin importe cobrado explícito, la venta se guarda como pagada íntegra', () => {
     const customer = makeCustomer(customersRepo);
     const buy = makeBuy(buysRepo);
 
@@ -506,7 +518,34 @@ describe('ventas: importe cobrado (paid_amount)', () => {
       validSold(customer.id, buy.id, { sale_price: 100 }),
     );
 
+    expect(sold.paid_amount).toBeNull();
+    expect(rawPaidAmount(db, sold.id)).toBe(100);
+    expect(customerDebt(customersRepo, customer.id)).toBe(0);
+  });
+
+  it('un importe cobrado de 0 significa que no te ha pagado nada', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 0 }),
+    );
+
     expect(sold.paid_amount).toBe(0);
+    expect(rawPaidAmount(db, sold.id)).toBe(0);
+    expect(customerDebt(customersRepo, customer.id)).toBe(100);
+  });
+
+  it('un cobro parcial deja la deuda pendiente', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+
+    const sold = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 40 }),
+    );
+
+    expect(sold.paid_amount).toBe(40);
+    expect(customerDebt(customersRepo, customer.id)).toBe(60);
   });
 
   it('no permite cobrar más de lo vendido', () => {
@@ -532,7 +571,9 @@ describe('ventas: importe cobrado (paid_amount)', () => {
       validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 100 }),
     );
 
-    expect(sold.paid_amount).toBe(100);
+    expect(sold.paid_amount).toBeNull();
+    expect(rawPaidAmount(db, sold.id)).toBe(100);
+    expect(customerDebt(customersRepo, customer.id)).toBe(0);
   });
 
   it('actualiza el importe cobrado', () => {
@@ -558,7 +599,7 @@ describe('ventas: importe cobrado (paid_amount)', () => {
     expect(() => soldsRepo.update(created.id, validUpdate({ paid_amount: 150 }))).toThrow(
       PaidAmountExceedsPriceError,
     );
-    expect(soldsRepo.getById(created.id)?.paid_amount).toBe(0);
+    expect(soldsRepo.getById(created.id)?.paid_amount).toBeNull();
   });
 
   it('rechaza bajar el precio de venta por debajo de lo ya cobrado', () => {
@@ -584,8 +625,48 @@ describe('ventas: importe cobrado (paid_amount)', () => {
 
     const [row] = soldsRepo.listWithProfit();
     expect(row?.profit).toBe(50);
-    expect(row?.paid_amount).toBe(100);
-    expect(sold.paid_amount).toBe(100);
+    expect(row?.paid_amount).toBeNull();
+    expect(sold.paid_amount).toBeNull();
+  });
+
+  it('volver a null deja la venta pagada íntegra otra vez', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 40 }),
+    );
+
+    const updated = soldsRepo.update(created.id, validUpdate({ paid_amount: null }));
+
+    expect(updated?.paid_amount).toBeNull();
+    expect(customerDebt(customersRepo, customer.id)).toBe(0);
+  });
+
+  it('cambiar el precio de una venta pagada íntegra la deja sin deuda', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100 }),
+    );
+
+    const updated = soldsRepo.update(created.id, validUpdate({ sale_price: 150 }));
+
+    expect(updated?.sale_price).toBe(150);
+    expect(updated?.paid_amount).toBeNull();
+    expect(customerDebt(customersRepo, customer.id)).toBe(0);
+  });
+
+  it('bajar el precio por debajo de lo cobrado sigue rechazándose', () => {
+    const customer = makeCustomer(customersRepo);
+    const buy = makeBuy(buysRepo);
+    const created = soldsRepo.createManyWithStockCheck(
+      validSold(customer.id, buy.id, { sale_price: 100, paid_amount: 80 }),
+    );
+
+    expect(() => soldsRepo.update(created.id, validUpdate({ sale_price: 50 }))).toThrow(
+      PaidAmountExceedsPriceError,
+    );
+    expect(soldsRepo.getById(created.id)?.sale_price).toBe(100);
   });
 });
 
@@ -600,14 +681,25 @@ describe('schemas solds: paid_amount', () => {
     expect(r.success).toBe(false);
   });
 
-  it('create sin paid_amount → 0 por defecto', () => {
+  it('create sin paid_amount → sin importe informado', () => {
     const r = CreateSoldSchema.safeParse({
       customer_id: 1,
       sale_price: 100,
       items: [{ buy_id: 1, quantity: 1 }],
     });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.paid_amount).toBe(0);
+    if (r.success) expect(r.data.paid_amount).toBeUndefined();
+  });
+
+  it('create con paid_amount null → acepta (pago íntegro)', () => {
+    const r = CreateSoldSchema.safeParse({
+      customer_id: 1,
+      sale_price: 100,
+      paid_amount: null,
+      items: [{ buy_id: 1, quantity: 1 }],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.paid_amount).toBeNull();
   });
 
   it('create con paid_amount negativo → rechaza', () => {
@@ -727,7 +819,7 @@ describe('contrato HTTP del importe cobrado', () => {
     expect(res.body?.error).toBe('El importe cobrado no puede superar el precio de venta');
   });
 
-  it('POST /api/solds sin importe cobrado guarda 0', async () => {
+  it('POST /api/solds sin importe cobrado guarda la venta como pagada íntegra', async () => {
     const customer = seedCustomer();
     const buy = seedBuy();
 
@@ -739,7 +831,7 @@ describe('contrato HTTP del importe cobrado', () => {
     });
 
     expect(res.status).toBe(201);
-    expect((res.body?.data as { paid_amount: number }).paid_amount).toBe(0);
+    expect((res.body?.data as { paid_amount: number | null }).paid_amount).toBeNull();
   });
 
   it('PATCH /api/solds/:id actualiza el importe cobrado', async () => {

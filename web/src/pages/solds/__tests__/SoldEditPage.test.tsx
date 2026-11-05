@@ -99,4 +99,39 @@ describe('SoldEditPage', () => {
       });
     });
   });
+
+  it('una venta pagada íntegra muestra el campo Cobrado vacío', async () => {
+    vi.mocked(useSold).mockReturnValue({
+      data: { ...soldFixture, paid_amount: null } as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderPage();
+
+    expect(await screen.findByLabelText('Cobrado (€)')).toHaveValue(null);
+  });
+
+  it('vaciar el campo Cobrado guarda null (vuelve a pago íntegro)', async () => {
+    const user = userEvent.setup();
+    const update = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(soldFixture),
+    });
+    vi.mocked(useUpdateSold).mockReturnValue(update as never);
+
+    renderPage();
+
+    const paidInput = await screen.findByLabelText('Cobrado (€)');
+    await user.clear(paidInput);
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(update.mutateAsync).toHaveBeenCalledWith({
+        id: soldFixture.id,
+        input: expect.objectContaining({ paid_amount: null }),
+      });
+    });
+  });
 });
