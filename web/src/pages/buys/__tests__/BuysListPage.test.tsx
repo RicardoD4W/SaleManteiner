@@ -23,6 +23,7 @@ vi.mock('@tanstack/react-virtual', () => ({
 import { useBuys } from '@/hooks/useBuys';
 import { BuysListPage } from '@/pages/buys/BuysListPage';
 import { renderWithProviders } from '@/test-utils/render';
+import { presetRange } from '@/lib/dateRange';
 
 const buysFixture = [
   {
@@ -135,5 +136,55 @@ describe('BuysListPage', () => {
     await user.hover(icon);
 
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Pedido a la marca');
+  });
+
+  it('al elegir un preset pide las compras de ese período', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuysListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+
+    expect(useBuys).toHaveBeenLastCalledWith(presetRange('month'));
+  });
+
+  it('"Quitar filtro" deja la lista sin rango', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuysListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro' }));
+
+    expect(useBuys).toHaveBeenLastCalledWith({});
+  });
+
+  it('sin compras y sin filtro avisa de que no hay compras todavía', () => {
+    vi.mocked(useBuys).mockReturnValue({
+      data: [] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.getByText('No hay compras todavía.')).toBeInTheDocument();
+  });
+
+  it('sin compras dentro del período avisa de que el período está vacío', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuys).mockReturnValue({
+      data: [] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+
+    expect(screen.getByText('No hay compras en este período.')).toBeInTheDocument();
   });
 });
