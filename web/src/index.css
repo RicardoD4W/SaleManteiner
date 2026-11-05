@@ -4,6 +4,13 @@
 
 html {
   scrollbar-gutter: stable;
+  color-scheme: light;
+  background-color: var(--color-gray-50);
+}
+
+html.dark {
+  color-scheme: dark;
+  background-color: var(--color-gray-950);
 }
 
 @theme {

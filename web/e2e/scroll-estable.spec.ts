@@ -91,6 +91,34 @@ test('la raíz reserva el hueco de la barra de scroll', async ({ page }) => {
   );
 });
 
+test('el hueco reservado tiene el mismo fondo que la app', async ({ page }) => {
+  await page.goto('/customers');
+  await page.waitForTimeout(300);
+
+  const read = () =>
+    page.evaluate(() => {
+      const layout = document.querySelector('#root > div');
+      return {
+        html: getComputedStyle(document.documentElement).backgroundColor,
+        layout: layout ? getComputedStyle(layout).backgroundColor : 'none',
+      };
+    });
+
+  const light = await read();
+  expect(light.html, 'el hueco reservado no puede verse de otro color que la app').toBe(
+    light.layout,
+  );
+
+  await page.evaluate(() => localStorage.setItem('salemanteiner-theme', 'dark'));
+  await page.reload();
+  await page.waitForTimeout(300);
+
+  const dark = await read();
+  expect(dark.html, 'en dark mode el hueco reservado no puede verse de otro color').toBe(
+    dark.layout,
+  );
+});
+
 test('pasar de una lista larga a una ficha corta no cambia el ancho del contenido', async ({
   page,
   request,

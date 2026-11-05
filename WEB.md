@@ -127,7 +127,7 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 - **Portal a `document.body`**: el modal se monta fuera del contenedor de la página. Si se montara dentro, heredaría sus márgenes (`space-y-*` da `margin-bottom` a todos los hijos menos el último) y **el documento crecería 16 px** al abrirlo → aparecería la barra de scroll y el contenido se desplazaría de lado.
 - **Scroll de fondo bloqueado** (`useScrollLock`): con el modal abierto, la raíz tiene `overflow: hidden`, así que la rueda del ratón no mueve la página que queda detrás. La posición del scroll se conserva y se restaura al cerrar; las aperturas anidadas se cuentan, para que cerrar el modal de encima no desbloquee el de abajo.
-- **Barra de scroll reservada** (`scrollbar-gutter: stable` en `html`, `web/src/index.css`): el hueco de la barra de scroll vertical está siempre reservado, así que el ancho del contenido no depende de si la página se puede desplazar (si no, al pasar de una lista larga a una ficha corta el contenido se iría de lado).
+- **Barra de scroll reservada** (`scrollbar-gutter: stable` en `html`, `web/src/index.css`): el hueco de la barra de scroll vertical está siempre reservado, así que el ancho del contenido no depende de si la página se puede desplazar (si no, al pasar de una lista larga a una ficha corta el contenido se iría de lado). El hueco reservado se pinta con el **fondo de la raíz** (`html`), que lleva el mismo color que la app (`gray-50` / `dark:gray-950`) y `color-scheme` según el tema: si no, se vería una franja de otro color a la derecha cuando la página no tiene scroll.
 
 ### El recibo de una venta
 
@@ -222,7 +222,7 @@ Los tokens se combinan con AND: varias palabras = todas las condiciones.
 ## 8. Estilos
 
 - Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, fuentes) en `web/src/index.css`.
-- `html` lleva `scrollbar-gutter: stable`: el hueco de la barra de scroll vertical está siempre reservado y el contenido no se desplaza de lado al cambiar de ruta o al abrir un modal.
+- `html` lleva `scrollbar-gutter: stable`: el hueco de la barra de scroll vertical está siempre reservado y el contenido no se desplaza de lado al cambiar de ruta o al abrir un modal. La raíz pinta ese hueco con el fondo de la app (`gray-50` / `gray-950` en dark) y fija `color-scheme` según el tema, para que no quede una franja de otro color ni una barra de scroll en claro sobre la app en dark.
 - Dark mode clase-based (`dark`), con anti-FOUC en `index.html` y persistencia en `localStorage` (`salemanteiner-theme`).
 - Tokens y reglas: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 - Cero comentarios en el código (solo directivas funcionales de ESLint) e identificadores en inglés.
