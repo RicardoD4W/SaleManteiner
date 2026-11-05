@@ -44,16 +44,17 @@ web/
 
 `web/src/App.tsx` (React Router, `createBrowserRouter`):
 
-| Ruta         | Vista               | Qué hace                                                             |
-| ------------ | ------------------- | -------------------------------------------------------------------- |
-| `/`          | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas |
-| `/metrics`   | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)               |
-| `/buys`      | `BuysListPage`      | tabla de compras + alta + borrado                                    |
-| `/buys/:id`  | `BuyEditPage`       | edición de una compra                                                |
-| `/solds`     | `SoldsListPage`     | tabla de ventas + alta + borrado                                     |
-| `/solds/:id` | `SoldEditPage`      | edición de una venta                                                 |
-| `/customers` | `CustomersListPage` | clientes: alta, edición y borrado                                    |
-| `/gastos`    | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total         |
+| Ruta                 | Vista               | Qué hace                                                             |
+| -------------------- | ------------------- | -------------------------------------------------------------------- |
+| `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas |
+| `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)               |
+| `/buys`              | `BuysListPage`      | tabla de compras + alta + borrado                                    |
+| `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                |
+| `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                     |
+| `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                 |
+| `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total) |
+| `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                    |
+| `/gastos`            | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total         |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
@@ -119,6 +120,15 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
 | `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                   |
+
+### El recibo de una venta
+
+`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el enlace **"Recibo"** de cada fila de la lista de ventas y desde el botón **"Recibo"** de la página de editar la venta.
+
+- **Imprimir**: el botón **"Imprimir o guardar como PDF"** llama a `window.print()` → el diálogo de impresión del navegador (o del WebView2 en la app de escritorio) permite imprimir en papel o **guardar como PDF**. No hay librería de PDF: el PDF lo pone el propio diálogo.
+- **En la hoja solo sale el recibo**: la cabecera de la app y el pie con la versión se ocultan al imprimir (`print:hidden`), y el documento se imprime en A4 con márgenes de 15 mm (`@page` en `index.css`).
+- **El recibo no lleva datos internos**: ni las notas ni los gastos asociados (envío, comisión). Son cosas del vendedor, no del cliente.
+- Los helpers (líneas, total, pendiente, fecha) están en `web/src/lib/receipt.ts`; el cliente se pide con `useCustomer`.
 
 ### `components/sales/` — el dominio
 
