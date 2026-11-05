@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('@/hooks/useBackups', () => ({
   useBackups: vi.fn(),
@@ -90,7 +90,7 @@ describe('BackupModal', () => {
 
     renderWithProviders(<BackupModal onClose={vi.fn()} />);
 
-    fireEvent.click(screen.getAllByText('Restaurar')[0]);
+    fireEvent.click(within(screen.getByTestId('backup-list')).getAllByText('Restaurar')[0]);
 
     expect(screen.getByText('Restaurar la copia')).toBeInTheDocument();
     expect(restore.mutateAsync).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('BackupModal', () => {
 
     renderWithProviders(<BackupModal onClose={vi.fn()} />);
 
-    fireEvent.click(screen.getAllByText('Restaurar')[0]);
+    fireEvent.click(within(screen.getByTestId('backup-list')).getAllByText('Restaurar')[0]);
     fireEvent.click(screen.getByText('Sí, restaurar'));
 
     await waitFor(() =>
