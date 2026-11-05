@@ -39,6 +39,7 @@
 - **La tabla de gastos se puede ordenar**: las cabeceras **Concepto**, **Categoría**, **Importe** y **Fecha** ordenan la lista con un clic (o con el teclado: Tab + Enter o espacio), como las tablas de compras, ventas y clientes.
 - **El filtro de fechas va en una sola línea**: los presets ("Todo", "Este mes"…) y la descripción del rango quedan a la izquierda; a la derecha, las dos fechas y el botón **"Quitar filtro"**, que ahora aparece siempre (y no hace nada cuando no hay filtro).
 - **El modal de copia de seguridad** tiene los botones **"Crear copia"** y **"Restaurar"**, centrados y con más separación entre ellos.
+- **La página ya no se mueve al cambiar de ruta ni al abrir un modal**: el hueco de la barra de scroll está siempre reservado (el contenido no se desplaza de lado al pasar de una lista larga a una ficha), al abrir un modal la página de fondo no se puede desplazar con la rueda y el modal ya no aumenta la altura de la página.
 
 ### Migraciones
 
