@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-
 vi.mock('recharts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('recharts')>();
   const Real = actual.ResponsiveContainer;
@@ -16,6 +16,7 @@ vi.mock('recharts', async (importOriginal) => {
 });
 
 import { CashFlowChart } from '../CashFlowChart';
+import { METRIC_CHART_COLOR } from '../../../lib/colors';
 
 const DATA = [
   { month: '2026-01', ingresos: 80, compras: 100, gastos: 40, beneficio: 50, resultado: -20 },
@@ -29,7 +30,7 @@ describe('CashFlowChart (recharts)', () => {
 
     const root = container.querySelector('[data-testid="cashflow-chart"]');
     expect(root).toBeInTheDocument();
-    expect(root).toHaveAttribute('role', 'img');
+    expect(root).toHaveAttribute('role', 'group');
     expect(root).toHaveAttribute(
       'aria-label',
       'Flujo de caja por mes (compras, gastos, beneficio y resultado del mes)',
@@ -57,22 +58,25 @@ describe('CashFlowChart (recharts)', () => {
     expect(height).toBeGreaterThanOrEqual(3 * lineHeight);
   });
 
-  it('la serie de gastos se dibuja con su propio color', () => {
+  it('cada serie se dibuja con el color de su KPI', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toContain('var(--chart-expenses)');
+    expect(strokes).toContain('var(--color-metric-compras)');
+    expect(strokes).toContain('var(--color-metric-gastos)');
+    expect(strokes).toContain('var(--color-metric-beneficio)');
+    expect(strokes).toContain('var(--color-metric-resultado)');
   });
 
-  it('la serie de resultado del mes se dibuja con el naranja de marca', () => {
+  it('la serie de gastos usa el mismo token que el KPI de gastos', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toContain('var(--color-chart-profit)');
+    expect(strokes).toContain(METRIC_CHART_COLOR.gastos);
   });
 
   it('el eje Y cubre el resultado cuando es más negativo que el beneficio', () => {
@@ -137,5 +141,62 @@ describe('CashFlowChart (recharts)', () => {
 
     expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
     expect(tickValues.length).toBeGreaterThan(1);
+  });
+});
+
+describe('CashFlowChart (leyenda interactiva)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('por defecto muestra todas las series', () => {
+    render(<CashFlowChart data={DATA} />);
+
+    expect(screen.getByTestId('legend-toggle-compras')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-beneficio')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-resultado')).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(4);
+  });
+
+  it('al hacer click en el nombre de una serie la oculta, y al volver a hacer click la muestra', async () => {
+    const user = userEvent.setup();
+    render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-gastos'));
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('Gastos')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('legend-toggle-gastos'));
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(4);
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('guarda la serie oculta en localStorage', async () => {
+    const user = userEvent.setup();
+    render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-resultado'));
+
+    expect(window.localStorage.getItem('salemanteiner-chart-cashflow-hidden')).toBe(
+      '["resultado"]',
+    );
+  });
+
+  it('recuerda las series ocultas al volver a cargar la gráfica', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-beneficio'));
+    unmount();
+
+    render(<CashFlowChart data={DATA} />);
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(screen.getByTestId('legend-toggle-beneficio')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
   });
 });

@@ -16,12 +16,36 @@ interface ItemResponse {
   data: Expense;
 }
 
+export interface ApiExpenseCategory {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+export interface ApiExpenseCategoryWithMetrics extends ApiExpenseCategory {
+  expenses_count: number;
+  total_amount: number;
+}
+
 interface CategoryListResponse {
-  data: ExpenseCategory[];
+  data: ApiExpenseCategoryWithMetrics[];
 }
 
 interface CategoryItemResponse {
-  data: ExpenseCategory;
+  data: ApiExpenseCategoryWithMetrics;
+}
+
+interface CategoryPlainItemResponse {
+  data: ApiExpenseCategory;
+}
+
+function toExpenseCategory(raw: ApiExpenseCategoryWithMetrics): ExpenseCategory {
+  return {
+    id: raw.id,
+    name: raw.name,
+    expenses_count: raw.expenses_count,
+    total: raw.total_amount,
+  };
 }
 
 export const expensesApi = {
@@ -44,15 +68,18 @@ export const expensesApi = {
 };
 
 export const expenseCategoriesApi = {
-  list: () => apiFetch<CategoryListResponse>('/api/expense-categories').then((r) => r.data),
+  list: () =>
+    apiFetch<CategoryListResponse>('/api/expense-categories').then((r) =>
+      r.data.map(toExpenseCategory),
+    ),
 
   create: (input: CreateExpenseCategoryInput) =>
     apiFetch<CategoryItemResponse>('/api/expense-categories', { method: 'POST', body: input }).then(
-      (r) => r.data,
+      (r) => toExpenseCategory(r.data),
     ),
 
   update: (id: number, input: UpdateExpenseCategoryInput) =>
-    apiFetch<CategoryItemResponse>(`/api/expense-categories/${id}`, {
+    apiFetch<CategoryPlainItemResponse>(`/api/expense-categories/${id}`, {
       method: 'PATCH',
       body: input,
     }).then((r) => r.data),

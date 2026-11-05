@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider, type RouteObject } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { OverviewTab } from './pages/dashboard/OverviewTab';
@@ -34,7 +34,8 @@ const router = createBrowserRouter([
       { path: 'solds/:id', element: <SoldEditPage /> },
       { path: 'solds/:id/receipt', element: <SoldReceiptPage /> },
       { path: 'customers', element: <CustomersListPage /> },
-      { path: 'gastos', element: <ExpensesListPage /> },
+      { path: 'expenses', element: <ExpensesListPage /> },
+      { path: 'gastos', element: <Navigate to="/expenses" replace /> },
     ],
   },
 ]);

@@ -1,14 +1,11 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
-import { StatCard, profitColorClass } from '../../components/dashboard/StatCard';
+import { StatCard } from '../../components/dashboard/StatCard';
+import { METRIC_COLOR, profitColorClass } from '../../lib/colors';
 import { Spinner } from '../../components/ui/Spinner';
 import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';
 import { ErrorState } from '../../components/ui/ErrorState';
-
-function netColorClass(value: number): string {
-  return value < 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-800 dark:text-emerald-300';
-}
 
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
@@ -50,13 +47,12 @@ export function OverviewTab() {
           label="Compras totales"
           value={formatEuro(k.compras_total_eur)}
           hint="Productos + costes de compra y de venta"
-          valueClassName="dark:text-red-200 text-red-400"
+          valueClassName={METRIC_COLOR.compras}
         />
         <StatCard
           label="Ventas totales"
           value={formatEuro(k.ventas_total_eur)}
           hint="Ingresos brutos de las ventas"
-          valueClassName="dark:text-emerald-300 text-emerald-800"
         />
         <StatCard
           label="Beneficio"
@@ -68,19 +64,19 @@ export function OverviewTab() {
           label="Gastos"
           value={formatEuro(k.gastos_total_eur)}
           hint="Gastos generales del periodo"
-          valueClassName="dark:text-amber-300 text-amber-700"
+          valueClassName={METRIC_COLOR.gastos}
         />
         <StatCard
           label="Beneficio neto"
           value={`${netProfitSign}${formatEuro(k.beneficio_neto_eur)}`}
           hint="Beneficio de ventas menos gastos"
-          valueClassName={netColorClass(k.beneficio_neto_eur)}
+          valueClassName={profitColorClass(k.beneficio_neto_eur)}
         />
         <StatCard
           label="Stock pendiente"
           value={String(k.stock_pendiente_count)}
           hint={k.stock_pendiente_count > 1 ? 'Productos en el almacén' : 'Producto en el almacén'}
-          valueClassName="dark:text-blue-300 text-blue-400"
+          valueClassName={METRIC_COLOR.stock}
         />
       </div>
 

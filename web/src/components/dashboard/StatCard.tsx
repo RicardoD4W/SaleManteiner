@@ -28,9 +28,3 @@ export function StatCard({ label, value, hint, valueClassName, cardClassName }: 
     </Card>
   );
 }
-
-export function profitColorClass(value: number): string {
-  if (value < 0) return 'text-red-700 dark:text-red-400';
-  if (value === 0) return 'text-orange-500 dark:text-orange-400';
-  return 'text-emerald-800 dark:text-emerald-300';
-}

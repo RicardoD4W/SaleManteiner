@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ExpenseFormSchema,
@@ -49,6 +49,7 @@ export function ExpenseFormModal(props: ExpenseFormModalProps) {
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     formState: { errors, isSubmitting },
     setError,
@@ -180,20 +181,32 @@ export function ExpenseFormModal(props: ExpenseFormModalProps) {
           >
             Categoría *
           </label>
-          <select
-            {...register('category_id', { valueAsNumber: true })}
-            id={categorySelectId}
-            className={cn(selectClass)}
-            aria-invalid={errors.category_id ? true : undefined}
-            aria-describedby={errors.category_id ? categoryErrorId : undefined}
-          >
-            <option value="">Selecciona una categoría</option>
-            {categoryOptions.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="category_id"
+            render={({ field }) => (
+              <select
+                id={categorySelectId}
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ''}
+                onBlur={field.onBlur}
+                onChange={(event) =>
+                  field.onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                }
+                className={cn(selectClass)}
+                aria-invalid={errors.category_id ? true : undefined}
+                aria-describedby={errors.category_id ? categoryErrorId : undefined}
+              >
+                <option value="">Selecciona una categoría</option>
+                {categoryOptions.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
           {errors.category_id ? (
             <p id={categoryErrorId} role="alert" className="text-sm text-red-700 dark:text-red-400">
               {errors.category_id.message}

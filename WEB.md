@@ -54,7 +54,7 @@ web/
 | `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                          |
 | `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total)          |
 | `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                             |
-| `/gastos`            | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
+| `/expenses`          | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
@@ -109,7 +109,7 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 | Componente                                                      | Para qué                                                                                                                                                    |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Modal` + `useFocusTrap`                                        | el único modal del repo (foco inicial, foco atrapado, `Escape`)                                                                                             |
+| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado)                    |
 | `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                              |
 | `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                    |
 | `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                           |
@@ -120,6 +120,14 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
 | `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                   |
+
+### El modal y el scroll de la página
+
+`Modal` es el único shell de diálogo del repo (`web/src/components/ui/Modal.tsx`). Tres reglas lo hacen **no mover la página** al abrirse:
+
+- **Portal a `document.body`**: el modal se monta fuera del contenedor de la página. Si se montara dentro, heredaría sus márgenes (`space-y-*` da `margin-bottom` a todos los hijos menos el último) y **el documento crecería 16 px** al abrirlo → aparecería la barra de scroll y el contenido se desplazaría de lado.
+- **Scroll de fondo bloqueado** (`useScrollLock`): con el modal abierto, la raíz tiene `overflow: hidden`, así que la rueda del ratón no mueve la página que queda detrás. La posición del scroll se conserva y se restaura al cerrar; las aperturas anidadas se cuentan, para que cerrar el modal de encima no desbloquee el de abajo.
+- **Barra de scroll reservada** (`scrollbar-gutter: stable both-edges` en `html`, `web/src/index.css`): el hueco de la barra de scroll vertical está siempre reservado, así que el ancho del contenido no depende de si la página se puede desplazar (si no, al pasar de una lista larga a una ficha corta el contenido se iría de lado). Con `both-edges` el hueco se reserva **a los dos lados**: el contenido queda centrado en la ventana en vez de pegado al borde izquierdo. El hueco se pinta con el **fondo de la raíz** (`html`), que lleva el mismo color que la app (`gray-50` / `dark:gray-950`) y `color-scheme` según el tema: si no, se vería una franja de otro color cuando la página no tiene scroll.
 
 ### El recibo de una venta
 
@@ -144,9 +152,17 @@ El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vac�
 
 `ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
 
+El servidor manda el total de cada categoría como `total_amount`: `web/src/api/expenses.ts` lo convierte a `total` (el nombre que usa el modelo del web) al mapear la respuesta de la API. Cualquier alta, edición o borrado de un gasto invalida también la consulta de categorías: el nº de gastos y el total de cada categoría se actualizan solos.
+
 ### `components/dashboard/`
 
-`StatCard` (con `profitColorClass`: verde si ganaste, rojo si perdiste), `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
+`StatCard`, `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
+
+**La leyenda es interactiva**: el nombre de cada serie es un botón. Al hacer click, esa línea se esconde de la gráfica (y el nombre queda tachado y atenuado); al volver a hacer click, la línea aparece. Por defecto se muestran todas.
+
+**La web recuerda la selección**: las series ocultas se guardan en `localStorage` (clave `salemanteiner-chart-<gráfica>-hidden`), así que el usuario no tiene que volver a prepararla en cada visita. La lectura y la escritura están en `web/src/lib/chartPreferences.ts` y el estado en `web/src/hooks/useChartSeriesVisibility.ts`; si el almacenamiento no está disponible (modo privado) o el valor guardado está corrupto, la gráfica se dibuja con todas las series.
+
+**El KPI y su línea son del mismo color**: cada métrica tiene un único token (`--color-metric-*` en `web/src/index.css`) y el mapa vive en `web/src/lib/colors.ts` (`METRIC_COLOR` para el texto del KPI, `METRIC_CHART_COLOR` para la línea y `METRIC_DOT_COLOR` para el punto del tooltip). Compras en rojo, gastos en ámbar, beneficio en verde y resultado del mes en violeta: el número de la cajita y la línea que lo dibuja se leen como la misma magnitud. El verde es siempre del beneficio (los ingresos van en neutro) y el cero es neutro, no un color. Detalle de la paleta: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 
 ### La pestaña "Métricas"
 
@@ -213,7 +229,9 @@ Los tokens se combinan con AND: varias palabras = todas las condiciones.
 
 ## 8. Estilos
 
-- Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, fuentes) en `web/src/index.css`.
+- Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, paleta de métricas, fuentes) en `web/src/index.css`.
+- `html` lleva `scrollbar-gutter: stable both-edges`: el hueco de la barra de scroll vertical está siempre reservado (a los dos lados, para que el contenido quede centrado) y el contenido no se desplaza de lado al cambiar de ruta o al abrir un modal. La raíz pinta ese hueco con el fondo de la app (`gray-50` / `gray-950` en dark) y fija `color-scheme` según el tema, para que no quede una franja de otro color ni una barra de scroll en claro sobre la app en dark.
+- **Barra de scroll con el tema de la app** (`web/src/index.css`): `::-webkit-scrollbar` la deja fina (10 px), con el **track transparente** (el hueco reservado se sigue viendo como el fondo de la app) y el **pulgar redondeado** en los tonos del tema (`gray-300` en claro, `gray-700` en dark, con un tono más claro al pasar el ratón). Los tokens viven en `--scrollbar-thumb` / `--scrollbar-thumb-hover`. Para los navegadores que no soportan `::-webkit-scrollbar` (Firefox), hay un bloque `@supports not selector(::-webkit-scrollbar)` con `scrollbar-width` y `scrollbar-color`. Chromium y el WebView2 de la app de escritorio sí lo soportan.
 - Dark mode clase-based (`dark`), con anti-FOUC en `index.html` y persistencia en `localStorage` (`salemanteiner-theme`).
 - Tokens y reglas: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 - Cero comentarios en el código (solo directivas funcionales de ESLint) e identificadores en inglés.

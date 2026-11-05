@@ -235,4 +235,43 @@ describe('Modal', () => {
       'dark:bg-gray-900',
     );
   });
+
+  it('se monta en el body, fuera del contenedor de la página', () => {
+    const { container } = renderWithProviders(
+      <Modal title="Nueva compra" onClose={vi.fn()}>
+        <p>Cuerpo</p>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+
+    expect(container).not.toContainElement(dialog);
+    expect(dialog.closest('body')).toBe(document.body);
+  });
+
+  it('bloquea el scroll de fondo mientras está abierto y lo restaura al cerrar', async () => {
+    const user = userEvent.setup();
+
+    function Harness() {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setIsOpen(true)}>
+            Abrir
+          </button>
+          {isOpen ? <Modal title="Nueva compra" onClose={() => setIsOpen(false)} /> : null}
+        </>
+      );
+    }
+
+    renderWithProviders(<Harness />);
+
+    expect(document.documentElement.style.overflow).toBe('');
+
+    await user.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    await user.keyboard('{Escape}');
+    expect(document.documentElement.style.overflow).toBe('');
+  });
 });

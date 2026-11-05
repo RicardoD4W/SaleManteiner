@@ -1,5 +1,7 @@
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { useFocusTrap } from './useFocusTrap';
+import { useScrollLock } from './useScrollLock';
 
 type ModalSize = 'compact' | 'medium' | 'wide' | 'panel';
 
@@ -66,11 +68,13 @@ export function Modal({
     initialFocusSelector,
   });
 
+  useScrollLock();
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !isPending) onClose();
   };
 
-  return (
+  return createPortal(
     <div className={backdropClass} role="presentation" onClick={handleBackdropClick}>
       <div
         ref={dialogRef}
@@ -113,6 +117,7 @@ export function Modal({
 
         {footer}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

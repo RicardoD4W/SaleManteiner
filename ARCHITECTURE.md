@@ -200,13 +200,25 @@ Tokens canónicos (un par por rol, no inventar variantes):
 | `border-gray-300`                 | `dark:border-gray-700`   | bordes de inputs, botones secundarios |
 | `bg-red-50`                       | `dark:bg-red-950/30`     | fondo de error (alerts)               |
 | `text-red-700`                    | `dark:text-red-400`      | texto de error y pérdida              |
-| `text-red-400`                    | `dark:text-red-200`      | total gastado (KPI de compras)        |
 | `bg-emerald-100` / `bg-green-100` | `dark:bg-emerald-900/30` | fondo badge success                   |
-| `text-emerald-800`                | `dark:text-emerald-300`  | texto success (beneficio positivo)    |
-| `text-orange-500`                 | `dark:text-orange-400`   | valor cero o neutro                   |
 | `text-yellow-600`                 | `dark:text-yellow-400`   | aviso de stock bajo                   |
-| `text-blue-400`                   | `dark:text-blue-300`     | KPI informativo                       |
 | `text-brand-600`                  | `dark:text-brand-400`    | link de acción                        |
+
+### Paleta de métricas: el KPI y su línea son del mismo color
+
+Cada métrica tiene **un solo color**, así que el número de un KPI y la línea que lo dibuja en la gráfica se leen como la misma cosa. Los tokens viven en `@theme` (`web/src/index.css`) y el mapa en `web/src/lib/colors.ts` (`METRIC_COLOR` para las clases del KPI, `METRIC_CHART_COLOR` para las líneas y `METRIC_DOT_COLOR` para los puntos del tooltip):
+
+| Token                      | Claro     | Dark      | Lo pinta                                         |
+| -------------------------- | --------- | --------- | ------------------------------------------------ |
+| `--color-metric-compras`   | `#dc2626` | `#f87171` | KPI de compras y línea de compras                |
+| `--color-metric-gastos`    | `#d97706` | `#fbbf24` | KPI de gastos y línea de gastos                  |
+| `--color-metric-beneficio` | `#059669` | `#34d399` | KPI de beneficio (positivo) y línea de beneficio |
+| `--color-metric-resultado` | `#7c3aed` | `#a78bfa` | línea del resultado del mes                      |
+| `--color-metric-stock`     | `#2563eb` | `#60a5fa` | KPI de stock pendiente y valor del stock         |
+| `--color-metric-deuda`     | `#475569` | `#94a3b8` | KPI de deuda y de clientes con deuda             |
+| `--color-metric-perdida`   | `#b91c1c` | `#f87171` | beneficio o resultado negativo                   |
+
+Reglas: **el verde es del beneficio** (nunca de los ingresos), **cada métría tiene un color propio** (nada de dos KPIs con el mismo matiz) y **el cero es neutro**, no un color: así un 0 no parece un warning.
 
 - **SVG / charts**: los `fill="#..."` / `stroke="#..."` hardcodeados se quedan como fallback; agregar `className="dark:fill-... dark:stroke-..."` (Tailwind lo traduce con CSS specificity que pisa el atributo). Patrón en `web/src/components/dashboard/CashFlowChart.tsx`.
 - **Focus visible en dark**: el `ring-offset` va sobre el fondo oscuro del contenedor → `focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`.

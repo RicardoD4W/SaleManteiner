@@ -12,6 +12,7 @@ vi.mock('@/components/dashboard/LazyCashFlowChart', () => ({
 import { useStatsDashboard } from '@/hooks/useStatsDashboard';
 import { OverviewTab } from '@/pages/dashboard/OverviewTab';
 import { formatEuro } from '@/lib/format';
+import { METRIC_COLOR } from '@/lib/colors';
 import { renderWithProviders } from '@/test-utils/render';
 
 const statsFixture = {
@@ -66,7 +67,14 @@ describe('OverviewTab', () => {
     renderWithProviders(<OverviewTab />);
 
     expect(cardValue('Beneficio')).toHaveTextContent(`+${euro(500)}`);
-    expect(cardValue('Beneficio').className).toMatch(/text-emerald-800/);
+    expect(cardValue('Beneficio').className).toContain(METRIC_COLOR.beneficio);
+  });
+
+  it('el KPI de gastos usa el color de gastos y el de compras el suyo', () => {
+    renderWithProviders(<OverviewTab />);
+
+    expect(cardValue('Gastos').className).toContain(METRIC_COLOR.gastos);
+    expect(cardValue('Compras totales').className).toContain(METRIC_COLOR.compras);
   });
 
   it('el KPI de gastos muestra el total de gastos en euros', () => {
@@ -79,7 +87,7 @@ describe('OverviewTab', () => {
     renderWithProviders(<OverviewTab />);
 
     expect(cardValue('Beneficio neto')).toHaveTextContent(`+${euro(300)}`);
-    expect(cardValue('Beneficio neto').className).toMatch(/text-emerald-800/);
+    expect(cardValue('Beneficio neto').className).toContain(METRIC_COLOR.beneficio);
   });
 
   it('el KPI de beneficio neto es rojo si es negativo', () => {
@@ -97,7 +105,7 @@ describe('OverviewTab', () => {
     renderWithProviders(<OverviewTab />);
 
     expect(cardValue('Beneficio neto')).toHaveTextContent(euro(-120));
-    expect(cardValue('Beneficio neto').className).toMatch(/text-red-700/);
+    expect(cardValue('Beneficio neto').className).toContain(METRIC_COLOR.perdida);
   });
 
   it('la rejilla de KPIs se adapta: 2 columnas en móvil, 3 en sm y 6 en xl', () => {

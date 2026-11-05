@@ -12,7 +12,7 @@ function renderLayout(route: string) {
         <Route path="products" element={<div>Productos</div>} />
         <Route path="buyers" element={<div>Compradores</div>} />
         <Route path="buys" element={<div>Compras</div>} />
-        <Route path="gastos" element={<div>Gastos</div>} />
+        <Route path="expenses" element={<div>Gastos</div>} />
       </Route>
     </Routes>,
     { route: route },
@@ -49,10 +49,10 @@ describe('Layout', () => {
     expect(links).toEqual(['Dashboard', 'Compras', 'Ventas', 'Clientes', 'Gastos']);
   });
 
-  it('el enlace "Gastos" apunta a /gastos', () => {
+  it('el enlace "Gastos" apunta a /expenses', () => {
     renderLayout('/');
 
     const gastos = screen.getByRole('link', { name: 'Gastos' });
-    expect(gastos).toHaveAttribute('href', '/gastos');
+    expect(gastos).toHaveAttribute('href', '/expenses');
   });
 });

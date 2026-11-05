@@ -29,6 +29,7 @@ import { makeHookWrapper } from '@/test-utils/hook-wrapper';
 const categoryFixture = {
   id: 3,
   name: 'Alquiler',
+  created_at: '2026-10-02T10:00:00.000Z',
   expenses_count: 2,
   total: 1200,
 };

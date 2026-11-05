@@ -15,7 +15,7 @@ export function useCreateExpense() {
   return useMutation({
     mutationFn: (input: CreateExpenseInput) => expensesApi.create(input),
     onSuccess: () => {
-      invalidate(qc, ['expenses'], ['stats', 'dashboard']);
+      invalidate(qc, ['expenses'], ['expense-categories'], ['stats', 'dashboard']);
     },
   });
 }
@@ -26,7 +26,7 @@ export function useUpdateExpense() {
     mutationFn: ({ id, input }: { id: number; input: UpdateExpenseInput }) =>
       expensesApi.update(id, input),
     onSuccess: () => {
-      invalidate(qc, ['expenses'], ['stats', 'dashboard']);
+      invalidate(qc, ['expenses'], ['expense-categories'], ['stats', 'dashboard']);
     },
   });
 }
@@ -36,7 +36,7 @@ export function useDeleteExpense() {
   return useMutation({
     mutationFn: (id: number) => expensesApi.remove(id),
     onSuccess: () => {
-      invalidate(qc, ['expenses'], ['stats', 'dashboard']);
+      invalidate(qc, ['expenses'], ['expense-categories'], ['stats', 'dashboard']);
     },
   });
 }
