@@ -15,6 +15,8 @@ import { BuyNewModal } from '../../components/sales/BuyNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterBuys } from '../../lib/searchQuery';
+import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
+import { isRangeActive, type DateRange } from '../../lib/dateRange';
 import type { BuyWithStock } from '../../api/buys';
 import type { Buy } from '../../schemas/buys';
 import { cn } from '../../lib/classNames';
@@ -39,7 +41,8 @@ function toBuyDetail(buy: BuyWithStock): Buy {
 }
 
 export function BuysListPage() {
-  const { data, isLoading, isError, error, refetch } = useBuys();
+  const [range, setRange] = useState<DateRange>({});
+  const { data, isLoading, isError, error, refetch } = useBuys(range);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [query, setQuery] = useState('');
@@ -204,14 +207,18 @@ export function BuysListPage() {
   }
 
   if (!data || data.length === 0) {
+    const filtered = isRangeActive(range);
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
           <Button onClick={() => setIsModalOpen(true)}>+ Nueva compra</Button>
         </div>
+        <DateRangeFilter value={range} onChange={setRange} />
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-sm text-gray-600 dark:text-gray-400">No hay compras todavía.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {filtered ? 'No hay compras en este período.' : 'No hay compras todavía.'}
+          </p>
         </div>
         {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
       </div>
@@ -235,6 +242,8 @@ export function BuysListPage() {
         </div>
         <Button onClick={() => setIsModalOpen(true)}>+ Nueva compra</Button>
       </div>
+
+      <DateRangeFilter value={range} onChange={setRange} />
 
       {filteredBuys.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">

@@ -118,6 +118,7 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                          |
 | `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
+| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                   |
 
 ### `components/sales/` — el dominio
 
@@ -189,6 +190,16 @@ Restaurar **reescribe la base de datos del usuario**, así que exige una **confi
 Los tokens se combinan con AND: varias palabras = todas las condiciones.
 
 `lib/searchQuery.ts` exporta además `normalizeText` (minúsculas + sin acentos) y `highlightMatch`, que devuelve el texto partido en fragmentos para **resaltar** la coincidencia dentro de un nombre.
+
+**Filtro por rango de fechas** (`lib/dateRange.ts` + `components/ui/DateRangeFilter.tsx`):
+
+- Vive en las listas de **compras** (`/buys`) y **ventas** (`/solds`), debajo de la cabecera.
+- Presets: **Este mes**, **Último trimestre** (los tres meses que incluyen el actual) y **Este año**. **Todo** quita el filtro.
+- Rango a medida con dos campos de fecha: **Desde** y **Hasta**. El rango es **cerrado**: los dos extremos entran.
+- **El filtro va al servidor**: `GET /api/buys?from=YYYY-MM-DD&to=YYYY-MM-DD` y lo mismo en `/api/solds` (`api/queryString.ts` monta la query). La clave de la query incluye el rango (`['buys', from, to]`) y la query usa `placeholderData`, así que la lista no parpadea mientras llega la nueva.
+- En compras filtra por `purchase_date` y en ventas por `sold_at`: **las filas sin fecha no aparecen** con un filtro activo (los formularios de alta ya ponen la fecha de hoy por defecto).
+- Un rango inválido (desde > hasta) **no se aplica**: sale un aviso y la lista se queda con el último rango válido.
+- Con el filtro activo y sin resultados, la lista vacía dice _"No hay compras en este período"_ (o _"No hay ventas en este período"_), no "todavía".
 
 ## 8. Estilos
 

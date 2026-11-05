@@ -16,6 +16,8 @@ import { SaleNewModal } from '../../components/sales/SaleNewModal';
 import { DeleteDialogs, type DeleteTarget } from '../../components/sales/DeleteDialogs';
 import { formatDate, formatEuro } from '../../lib/format';
 import { filterSolds, type SoldWithCustomer } from '../../lib/searchQuery';
+import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
+import { isRangeActive, type DateRange } from '../../lib/dateRange';
 import type { SaleItemOutput } from '../../schemas/solds';
 import type { SoldWithItems } from '../../schemas/solds';
 import { cn } from '../../lib/classNames';
@@ -45,7 +47,8 @@ interface SoldRow extends SoldWithCustomer {
 }
 
 export function SoldsListPage() {
-  const { data: solds, isLoading, isError, error, refetch } = useSolds();
+  const [range, setRange] = useState<DateRange>({});
+  const { data: solds, isLoading, isError, error, refetch } = useSolds(range);
   const { data: customers } = useCustomers();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -251,14 +254,18 @@ export function SoldsListPage() {
   }
 
   if (!solds || solds.length === 0) {
+    const filtered = isRangeActive(range);
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Ventas</h2>
           <Button onClick={() => setIsModalOpen(true)}>+ Nueva venta</Button>
         </div>
+        <DateRangeFilter value={range} onChange={setRange} />
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-sm text-gray-600 dark:text-gray-400">No hay ventas todavía.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {filtered ? 'No hay ventas en este período.' : 'No hay ventas todavía.'}
+          </p>
         </div>
         {isModalOpen ? <SaleNewModal onClose={() => setIsModalOpen(false)} /> : null}
       </div>
@@ -282,6 +289,8 @@ export function SoldsListPage() {
         </div>
         <Button onClick={() => setIsModalOpen(true)}>+ Nueva venta</Button>
       </div>
+
+      <DateRangeFilter value={range} onChange={setRange} />
 
       {filteredSolds.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">

@@ -32,6 +32,7 @@ import { useSolds } from '@/hooks/useSolds';
 import { useCustomers } from '@/hooks/useCustomers';
 import { SoldsListPage } from '@/pages/solds/SoldsListPage';
 import { renderWithProviders } from '@/test-utils/render';
+import { presetRange } from '@/lib/dateRange';
 
 const soldsFixture = [
   {
@@ -94,5 +95,55 @@ describe('SoldsListPage', () => {
     await user.hover(screen.getByRole('img', { name: /Notas/ }));
 
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Paga por transferencia');
+  });
+
+  it('al elegir un preset pide las ventas de ese período', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SoldsListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+
+    expect(useSolds).toHaveBeenLastCalledWith(presetRange('month'));
+  });
+
+  it('"Quitar filtro" deja la lista sin rango', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SoldsListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro' }));
+
+    expect(useSolds).toHaveBeenLastCalledWith({});
+  });
+
+  it('sin ventas y sin filtro avisa de que no hay ventas todavía', () => {
+    vi.mocked(useSolds).mockReturnValue({
+      data: [] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<SoldsListPage />);
+
+    expect(screen.getByText('No hay ventas todavía.')).toBeInTheDocument();
+  });
+
+  it('sin ventas dentro del período avisa de que el período está vacío', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useSolds).mockReturnValue({
+      data: [] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<SoldsListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Este mes' }));
+
+    expect(screen.getByText('No hay ventas en este período.')).toBeInTheDocument();
   });
 });
