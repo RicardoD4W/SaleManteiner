@@ -81,84 +81,81 @@ export function DateRangeFilter({
   };
 
   const handleClear = () => {
+    if (!isRangeActive(value) && !isRangeActive(draft)) return;
     applyRange({});
   };
 
-  const canClear = isRangeActive(value) || isRangeActive(draft);
-
   return (
     <fieldset
-      className={['flex flex-wrap items-end gap-3', className ?? ''].join(' ')}
+      className={['flex flex-col gap-2 mt-2', className ?? ''].join(' ')}
       aria-label={label}
     >
-      <legend className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</legend>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1">
+          {DATE_RANGE_PRESETS.map((preset) => {
+            const active = activePreset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => handlePreset(preset.id)}
+                className={[
+                  PRESET_BUTTON_CLASSES,
+                  active ? PRESET_ACTIVE_CLASSES : PRESET_IDLE_CLASSES,
+                ].join(' ')}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+          <p className="ml-1 text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
+            {describeRange(value)}
+          </p>
+        </div>
 
-      <div className="flex flex-wrap items-center gap-1">
-        {DATE_RANGE_PRESETS.map((preset) => {
-          const active = activePreset === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => handlePreset(preset.id)}
-              className={[
-                PRESET_BUTTON_CLASSES,
-                active ? PRESET_ACTIVE_CLASSES : PRESET_IDLE_CLASSES,
-              ].join(' ')}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+        <div className="flex flex-wrap items-end gap-2">
+          {fromLabel}:
+          <Input
+            id={`${groupId}-from`}
+            type="date"
+            value={draft.from ?? ''}
+            aria-label={fromLabel}
+            aria-invalid={invalid || undefined}
+            aria-describedby={error ? errorId : undefined}
+            onChange={(event) => handleFromChange(event.target.value)}
+            className="w-40"
+          />
+          {toLabel}:
+          <Input
+            id={`${groupId}-to`}
+            type="date"
+            value={draft.to ?? ''}
+            aria-label={toLabel}
+            aria-invalid={invalid || undefined}
+            aria-describedby={error ? errorId : undefined}
+            onChange={(event) => handleToChange(event.target.value)}
+            className="w-40"
+          />
+          <button
+            type="button"
+            onClick={handleClear}
+            className={[
+              'rounded-md px-2 py-1.5 text-sm font-medium text-brand-700 hover:underline',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+              'focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900',
+            ].join(' ')}
+          >
+            {clearLabel}
+          </button>
+        </div>
       </div>
-
-      <div className="flex flex-wrap items-end gap-2">
-        <Input
-          id={`${groupId}-from`}
-          label={fromLabel}
-          type="date"
-          value={draft.from ?? ''}
-          aria-invalid={invalid || undefined}
-          aria-describedby={error ? errorId : undefined}
-          onChange={(event) => handleFromChange(event.target.value)}
-          className="w-40"
-        />
-        <Input
-          id={`${groupId}-to`}
-          label={toLabel}
-          type="date"
-          value={draft.to ?? ''}
-          aria-invalid={invalid || undefined}
-          aria-describedby={error ? errorId : undefined}
-          onChange={(event) => handleToChange(event.target.value)}
-          className="w-40"
-        />
-      </div>
-
-      {canClear ? (
-        <button
-          type="button"
-          onClick={handleClear}
-          className={[
-            'rounded-md px-2 py-1.5 text-sm font-medium text-brand-700 hover:underline',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-            'focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900',
-          ].join(' ')}
-        >
-          {clearLabel}
-        </button>
-      ) : null}
 
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       ) : null}
-
-      <p className="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
-        {describeRange(value)}
-      </p>
     </fieldset>
   );
 }

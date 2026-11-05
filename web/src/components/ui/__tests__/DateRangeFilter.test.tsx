@@ -85,7 +85,7 @@ describe('DateRangeFilter', () => {
     );
   });
 
-  it('"Quitar filtro" aparece con un filtro activo y lo borra', async () => {
+  it('"Quitar filtro" aparece siempre y borra el filtro', async () => {
     const user = userEvent.setup();
     const { onChange } = renderFilter({ value: { from: '2026-04-10', to: '2026-04-30' } });
 
@@ -95,10 +95,40 @@ describe('DateRangeFilter', () => {
     expect(onChange).toHaveBeenCalledWith({});
   });
 
-  it('sin filtro no hay nada que quitar', () => {
+  it('sin filtro el botón "Quitar filtro" sigue visible y no hace nada', async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderFilter();
+
+    const quitar = screen.getByRole('button', { name: 'Quitar filtro' });
+    await user.click(quitar);
+
+    expect(quitar).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('los presets quedan a la izquierda y las fechas y "Quitar filtro" a la derecha', () => {
+    renderFilter({ value: { from: '2026-04-10', to: '2026-04-30' } });
+
+    const presetsGroup = screen.getByRole('button', { name: 'Todo' }).parentElement!;
+    const row = presetsGroup.parentElement!;
+    const datesGroup = screen.getByLabelText('Desde').parentElement!.parentElement!;
+    const quitar = screen.getByRole('button', { name: 'Quitar filtro' });
+
+    expect(row).toHaveClass('justify-between');
+    expect(row.firstElementChild).toBe(presetsGroup);
+    expect(datesGroup.parentElement).toBe(row);
+    expect(datesGroup.contains(quitar)).toBe(true);
+  });
+
+  it('la descripción del rango queda justo a la derecha de "Este año"', () => {
     renderFilter();
 
-    expect(screen.queryByRole('button', { name: 'Quitar filtro' })).toBeNull();
+    const presetsGroup = screen.getByRole('button', { name: 'Todo' }).parentElement!;
+    const ultimoPreset = screen.getByRole('button', { name: 'Este año' });
+    const descripcion = screen.getByText('Sin filtro de fecha');
+
+    expect(presetsGroup.contains(descripcion)).toBe(true);
+    expect(descripcion.previousElementSibling).toBe(ultimoPreset);
   });
 
   it('el rango aplicado se describe en pantalla', () => {
