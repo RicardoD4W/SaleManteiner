@@ -101,6 +101,18 @@
   }
 }
 
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+}
+
 ::view-transition-old(.box) {
   animation: chip-arrives var(--dur-transition) linear both;
 }

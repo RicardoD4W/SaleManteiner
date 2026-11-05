@@ -11,7 +11,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-      <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <header className="border-b border-gray-200 bg-white print:hidden dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <div className="flex items-baseline gap-3">
             <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400">SaleManteiner</h1>
