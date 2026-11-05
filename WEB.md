@@ -154,7 +154,9 @@ El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vac�
 
 ### `components/dashboard/`
 
-`StatCard` (con `profitColorClass`: verde si ganaste, rojo si perdiste), `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
+`StatCard`, `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
+
+**El KPI y su línea son del mismo color**: cada métrica tiene un único token (`--color-metric-*` en `web/src/index.css`) y el mapa vive en `web/src/lib/colors.ts` (`METRIC_COLOR` para el texto del KPI, `METRIC_CHART_COLOR` para la línea y `METRIC_DOT_COLOR` para el punto del tooltip). Compras en rojo, gastos en ámbar, beneficio en verde y resultado del mes en violeta: el número de la cajita y la línea que lo dibuja se leen como la misma magnitud. El verde es siempre del beneficio (los ingresos van en neutro) y el cero es neutro, no un color. Detalle de la paleta: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 
 ### La pestaña "Métricas"
 
@@ -221,7 +223,7 @@ Los tokens se combinan con AND: varias palabras = todas las condiciones.
 
 ## 8. Estilos
 
-- Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, fuentes) en `web/src/index.css`.
+- Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, paleta de métricas, fuentes) en `web/src/index.css`.
 - `html` lleva `scrollbar-gutter: stable both-edges`: el hueco de la barra de scroll vertical está siempre reservado (a los dos lados, para que el contenido quede centrado) y el contenido no se desplaza de lado al cambiar de ruta o al abrir un modal. La raíz pinta ese hueco con el fondo de la app (`gray-50` / `gray-950` en dark) y fija `color-scheme` según el tema, para que no quede una franja de otro color ni una barra de scroll en claro sobre la app en dark.
 - **Barra de scroll con el tema de la app** (`web/src/index.css`): `::-webkit-scrollbar` la deja fina (10 px), con el **track transparente** (el hueco reservado se sigue viendo como el fondo de la app) y el **pulgar redondeado** en los tonos del tema (`gray-300` en claro, `gray-700` en dark, con un tono más claro al pasar el ratón). Los tokens viven en `--scrollbar-thumb` / `--scrollbar-thumb-hover`. Para los navegadores que no soportan `::-webkit-scrollbar` (Firefox), hay un bloque `@supports not selector(::-webkit-scrollbar)` con `scrollbar-width` y `scrollbar-color`. Chromium y el WebView2 de la app de escritorio sí lo soportan.
 - Dark mode clase-based (`dark`), con anti-FOUC en `index.html` y persistencia en `localStorage` (`salemanteiner-theme`).

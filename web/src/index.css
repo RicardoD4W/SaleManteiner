@@ -29,16 +29,24 @@ html.dark {
     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
 
-  --color-chart-purchases: #ef4444;
-  --color-chart-sales: #10b981;
-  --color-chart-profit: #b84a0a;
+  --color-metric-compras: #dc2626;
+  --color-metric-gastos: #d97706;
+  --color-metric-beneficio: #059669;
+  --color-metric-resultado: #7c3aed;
+  --color-metric-stock: #2563eb;
+  --color-metric-deuda: #475569;
+  --color-metric-perdida: #b91c1c;
   --color-chart-dot: #ffffff;
 }
 
 .dark {
-  --color-chart-purchases: #f87171;
-  --color-chart-sales: #34d399;
-  --color-chart-profit: #f57d3a;
+  --color-metric-compras: #f87171;
+  --color-metric-gastos: #fbbf24;
+  --color-metric-beneficio: #34d399;
+  --color-metric-resultado: #a78bfa;
+  --color-metric-stock: #60a5fa;
+  --color-metric-deuda: #94a3b8;
+  --color-metric-perdida: #f87171;
   --color-chart-dot: #111827;
 }
 

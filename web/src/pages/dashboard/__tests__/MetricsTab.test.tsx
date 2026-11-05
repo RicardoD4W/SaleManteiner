@@ -8,6 +8,7 @@ vi.mock('@/hooks/useStatsMetrics', () => ({
 import { useStatsMetrics } from '@/hooks/useStatsMetrics';
 import { MetricsTab } from '@/pages/dashboard/MetricsTab';
 import { formatEuro } from '@/lib/format';
+import { METRIC_COLOR } from '@/lib/colors';
 import { renderWithProviders } from '@/test-utils/render';
 
 const metricsFixture = {
@@ -114,6 +115,23 @@ describe('MetricsTab', () => {
     expect(section.getByText('Valor del stock')).toBeInTheDocument();
     expect(cardValue('Ticket medio')).toHaveTextContent(euro(150));
     expect(cardValue('Margen global')).toHaveTextContent('50 %');
+  });
+
+  it('los KPIs de gastos, deuda y stock usan su propio color', () => {
+    renderWithProviders(<MetricsTab />);
+
+    const mes = within(screen.getByTestId('metrics-mes-kpis'));
+    expect(mes.getByText('Gastos').parentElement?.querySelectorAll('p')[1]?.className).toContain(
+      METRIC_COLOR.gastos,
+    );
+
+    const globales = within(screen.getByTestId('metrics-kpis'));
+    expect(
+      globales.getByText('Deuda total').parentElement?.querySelectorAll('p')[1]?.className,
+    ).toContain(METRIC_COLOR.deuda);
+    expect(
+      globales.getByText('Valor del stock').parentElement?.querySelectorAll('p')[1]?.className,
+    ).toContain(METRIC_COLOR.stock);
   });
 
   it('compara con el mes anterior y deja en blanco la variación sin base', () => {

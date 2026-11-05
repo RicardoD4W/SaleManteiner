@@ -16,6 +16,7 @@ vi.mock('recharts', async (importOriginal) => {
 });
 
 import { CashFlowChart } from '../CashFlowChart';
+import { METRIC_CHART_COLOR } from '../../../lib/colors';
 
 const DATA = [
   { month: '2026-01', ingresos: 80, compras: 100, gastos: 40, beneficio: 50, resultado: -20 },
@@ -57,22 +58,25 @@ describe('CashFlowChart (recharts)', () => {
     expect(height).toBeGreaterThanOrEqual(3 * lineHeight);
   });
 
-  it('la serie de gastos se dibuja con su propio color', () => {
+  it('cada serie se dibuja con el color de su KPI', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toContain('var(--chart-expenses)');
+    expect(strokes).toContain('var(--color-metric-compras)');
+    expect(strokes).toContain('var(--color-metric-gastos)');
+    expect(strokes).toContain('var(--color-metric-beneficio)');
+    expect(strokes).toContain('var(--color-metric-resultado)');
   });
 
-  it('la serie de resultado del mes se dibuja con el naranja de marca', () => {
+  it('la serie de gastos usa el mismo token que el KPI de gastos', () => {
     const { container } = render(<CashFlowChart data={DATA} />);
 
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toContain('var(--color-chart-profit)');
+    expect(strokes).toContain(METRIC_CHART_COLOR.gastos);
   });
 
   it('el eje Y cubre el resultado cuando es más negativo que el beneficio', () => {

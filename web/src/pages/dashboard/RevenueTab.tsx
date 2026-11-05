@@ -1,6 +1,7 @@
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
 import { Card, CardBody } from '../../components/ui/Card';
-import { StatCard, profitColorClass } from '../../components/dashboard/StatCard';
+import { StatCard } from '../../components/dashboard/StatCard';
+import { profitColorClass } from '../../lib/colors';
 import { Spinner } from '../../components/ui/Spinner';
 import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';

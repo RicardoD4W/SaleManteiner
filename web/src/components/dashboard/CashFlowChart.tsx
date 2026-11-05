@@ -10,6 +10,7 @@ import {
   type TooltipContentProps,
 } from 'recharts';
 import { formatEuro } from '../../lib/format';
+import { METRIC_CHART_COLOR, METRIC_DOT_COLOR } from '../../lib/colors';
 
 export interface CashFlowChartProps {
   data: Array<{
@@ -28,10 +29,10 @@ export interface CashFlowChartProps {
 }
 
 const SERIES_COLOR_CLASS: Record<string, string> = {
-  compras: 'bg-chart-purchases',
-  gastos: 'bg-[var(--chart-expenses)]',
-  beneficio: 'bg-chart-sales',
-  resultado: 'bg-chart-profit',
+  compras: METRIC_DOT_COLOR.compras,
+  gastos: METRIC_DOT_COLOR.gastos,
+  beneficio: METRIC_DOT_COLOR.beneficio,
+  resultado: METRIC_DOT_COLOR.resultado,
 };
 
 const LEGEND_LINE_HEIGHT = 18;
@@ -113,8 +114,6 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
     <div
       className={[
         'h-64 w-full',
-        '[--chart-expenses:#7c3aed]',
-        'dark:[--chart-expenses:#a78bfa]',
         '[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-200',
         'dark:[&_.recharts-cartesian-grid-horizontal_line]:stroke-gray-800',
         '[&_.recharts-cartesian-axis-line]:stroke-gray-300',
@@ -147,7 +146,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="compras"
             name="Compras"
-            stroke="var(--color-chart-purchases)"
+            stroke={METRIC_CHART_COLOR.compras}
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
@@ -157,7 +156,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="gastos"
             name="Gastos"
-            stroke="var(--chart-expenses)"
+            stroke={METRIC_CHART_COLOR.gastos}
             strokeWidth={2.5}
             strokeDasharray="2 3"
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
@@ -168,7 +167,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="beneficio"
             name="Beneficio"
-            stroke="var(--color-chart-sales)"
+            stroke={METRIC_CHART_COLOR.beneficio}
             strokeWidth={2.5}
             dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
             activeDot={{ r: 4 }}
@@ -179,7 +178,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             type="linear"
             dataKey="resultado"
             name="Resultado del mes"
-            stroke="var(--color-chart-profit)"
+            stroke={METRIC_CHART_COLOR.resultado}
             strokeWidth={2.5}
             strokeDasharray="5 4"
             dot={{ r: 2, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}

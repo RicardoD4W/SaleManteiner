@@ -1,6 +1,7 @@
 import { useStatsMetrics } from '../../hooks/useStatsMetrics';
 import { Card, CardBody } from '../../components/ui/Card';
-import { StatCard, profitColorClass } from '../../components/dashboard/StatCard';
+import { StatCard } from '../../components/dashboard/StatCard';
+import { METRIC_COLOR, profitColorClass, variationColorClass } from '../../lib/colors';
 import { Spinner } from '../../components/ui/Spinner';
 import { ErrorState } from '../../components/ui/ErrorState';
 import {
@@ -10,12 +11,6 @@ import {
   formatSignedPercent,
   formatSignedPoints,
 } from '../../lib/format';
-
-function variationColorClass(value: number | null, inverse = false): string {
-  if (value === null || value === 0) return 'text-gray-600 dark:text-gray-400';
-  const positive = inverse ? value < 0 : value > 0;
-  return positive ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-700 dark:text-red-400';
-}
 
 export function MetricsTab() {
   const { data, isLoading, isError, error, refetch } = useStatsMetrics();
@@ -73,6 +68,7 @@ export function MetricsTab() {
             label="Gastos"
             value={formatEuro(actual.gastos)}
             hint="Gastos generales del mes"
+            valueClassName={METRIC_COLOR.gastos}
           />
           <StatCard
             label="Beneficio neto"
@@ -171,6 +167,7 @@ export function MetricsTab() {
             label="Gastos sobre ingresos"
             value={formatPercent(k.gastos_sobre_ingresos_pct)}
             hint="Peso de los gastos en la facturación"
+            valueClassName={METRIC_COLOR.gastos}
           />
           <StatCard
             label="Ticket medio"
@@ -187,14 +184,13 @@ export function MetricsTab() {
             label="Deuda total"
             value={formatEuro(k.deuda_total_eur)}
             hint="Cobrado pendiente de los clientes"
-            valueClassName={
-              k.deuda_total_eur > 0 ? 'text-amber-700 dark:text-amber-300' : undefined
-            }
+            valueClassName={METRIC_COLOR.deuda}
           />
           <StatCard
             label="Clientes con deuda"
             value={String(k.clientes_con_deuda)}
             hint={`${k.clientes_count} ${k.clientes_count === 1 ? 'cliente' : 'clientes'}`}
+            valueClassName={METRIC_COLOR.deuda}
           />
           <StatCard
             label="Valor del stock"
@@ -202,6 +198,7 @@ export function MetricsTab() {
             hint={`Coste de ${k.stock_pendiente_count} ${
               k.stock_pendiente_count === 1 ? 'producto pendiente' : 'productos pendientes'
             }`}
+            valueClassName={METRIC_COLOR.stock}
           />
           <StatCard
             label="Ventas"
@@ -218,6 +215,7 @@ export function MetricsTab() {
             label="Gastos totales"
             value={formatEuro(k.gastos_total_eur)}
             hint="Gastos generales registrados"
+            valueClassName={METRIC_COLOR.gastos}
           />
         </div>
       </section>
