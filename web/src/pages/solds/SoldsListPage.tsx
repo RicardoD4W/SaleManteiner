@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useSolds } from '../../hooks/useSolds';
 import { useSortable } from '../../hooks/useSortable';
@@ -116,7 +117,7 @@ export function SoldsListPage() {
       columnHelper.accessor('firstProduct', {
         id: 'firstProduct',
         header: 'Productos',
-        size: 190,
+        size: 165,
         cell: (info) => {
           const items = info.row.original.items as SaleItemOutput[];
           if (items.length === 0) {
@@ -200,13 +201,21 @@ export function SoldsListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        size: 130,
+        size: 155,
         cell: (info) => (
           <RowActions
             row={info.row.original}
             editBasePath="/solds"
             deleteAriaLabel={`Borrar venta #${info.row.original.id}`}
             onDelete={(row) => setDeleteTarget({ kind: 'sale', id: row.id })}
+            extraAction={
+              <Link
+                to={`/solds/${info.row.original.id}/receipt`}
+                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Recibo
+              </Link>
+            }
           />
         ),
       }),

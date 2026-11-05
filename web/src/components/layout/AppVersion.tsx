@@ -8,7 +8,7 @@ export function AppVersion() {
   const [isBackupOpen, setIsBackupOpen] = useState(false);
 
   return (
-    <footer className="border-t border-gray-200 bg-white px-4 py-2 text-center text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+    <footer className="border-t border-gray-200 bg-white px-4 py-2 text-center text-xs text-gray-500 print:hidden dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
       <div className="flex flex-wrap items-center justify-center gap-3">
         <span>
           AFB: {app} - {front} - {back}
