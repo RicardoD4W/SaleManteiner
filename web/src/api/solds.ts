@@ -1,4 +1,6 @@
 import { apiFetch } from './client.js';
+import { dateRangeQuery } from './queryString.js';
+import type { DateRange } from '../lib/dateRange.js';
 import type { Sold, SoldWithItems, SaleItemOutput } from '../schemas/solds.js';
 import type { CreateSoldInput, UpdateSoldInput } from '../schemas/solds.js';
 
@@ -130,7 +132,8 @@ export interface DashboardStats {
 }
 
 export const soldsApi = {
-  list: () => apiFetch<ListResponse>('/api/solds').then((r) => r.data),
+  list: (range?: DateRange) =>
+    apiFetch<ListResponse>(`/api/solds${dateRangeQuery(range)}`).then((r) => r.data),
 
   getByIdWithItems: (id: number) =>
     apiFetch<ItemWithItemsResponse>(`/api/solds/${id}`).then((r) => r.data),

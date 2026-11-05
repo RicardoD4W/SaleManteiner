@@ -1,4 +1,6 @@
 import { apiFetch } from './client.js';
+import { dateRangeQuery } from './queryString.js';
+import type { DateRange } from '../lib/dateRange.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
@@ -17,7 +19,8 @@ interface StockResponse {
 }
 
 export const buysApi = {
-  list: () => apiFetch<ListResponse>('/api/buys').then((r) => r.data),
+  list: (range?: DateRange) =>
+    apiFetch<ListResponse>(`/api/buys${dateRangeQuery(range)}`).then((r) => r.data),
 
   getById: (id: number) => apiFetch<ItemResponse>(`/api/buys/${id}`).then((r) => r.data),
 
