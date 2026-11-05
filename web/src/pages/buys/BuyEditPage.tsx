@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
@@ -7,6 +7,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { ProductNameAutocomplete } from '../../components/sales/ProductNameAutocomplete';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
 import { apiErrorMessage } from '../../api/client';
@@ -31,6 +32,7 @@ export function BuyEditPage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
     setError,
   } = useForm<BuyFormInput, unknown, BuyFormOutput>({
@@ -141,14 +143,20 @@ export function BuyEditPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <Input
-              label="Producto *"
-              placeholder="Funda iPhone 15"
-              autoFocus
-              {...register('product_name')}
-              error={errors.product_name?.message}
-              className="vt-box"
-              style={{ viewTransitionName: transitionName('product') }}
+            <Controller
+              control={control}
+              name="product_name"
+              render={({ field, fieldState }) => (
+                <ProductNameAutocomplete
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={fieldState.error?.message}
+                  className="vt-box"
+                  autoFocus
+                  style={{ viewTransitionName: transitionName('product') }}
+                />
+              )}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

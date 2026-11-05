@@ -3,6 +3,7 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
 
 import { Spinner } from '../ui/Spinner';
+import { inputClassName } from '../ui/inputStyles.js';
 import type { Customer } from '../../schemas/customers';
 
 interface CustomerAutocompleteProps {
@@ -139,15 +140,7 @@ export function CustomerAutocomplete({
           onBlur={() => setIsOpen(false)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={[
-            'block w-full rounded-md border bg-white px-3 py-2 pr-10 text-sm text-gray-900',
-            'placeholder:text-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0',
-            'dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400',
-            error
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-800'
-              : 'border-gray-300 focus:border-brand-500 focus:ring-brand-100 dark:border-gray-700 dark:focus:border-brand-400 dark:focus:ring-brand-900',
-          ].join(' ')}
+          className={inputClassName(error, 'pr-10')}
         />
 
         {isLoading ? (

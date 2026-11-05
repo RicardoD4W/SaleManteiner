@@ -39,7 +39,7 @@ const NUMBER_RE = /^\d+(?:[.,]\d+)*$/;
 
 const COMBINING_MARKS_RE = /[\u0300-\u036f]/g;
 
-function normalizeText(value: string): string {
+export function normalizeText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(COMBINING_MARKS_RE, '');
 }
 

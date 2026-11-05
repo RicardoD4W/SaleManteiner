@@ -1,4 +1,5 @@
 import { useId, type InputHTMLAttributes, type Ref } from 'react';
+import { inputClassName } from './inputStyles.js';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
@@ -25,18 +26,7 @@ export function Input({ label, error, hint, id, className, ref, ...rest }: Input
         id={inputId}
         aria-invalid={error ? true : undefined}
         aria-describedby={errorId ?? hintId}
-        className={[
-          'block w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900',
-          'placeholder:text-gray-400',
-          'focus:outline-none focus:ring-2 focus:ring-offset-0',
-          'dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400',
-          'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
-          'dark:disabled:bg-gray-900 dark:disabled:text-gray-500',
-          error
-            ? 'border-red-500 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-800'
-            : 'border-gray-300 focus:border-brand-500 focus:ring-brand-100 dark:border-gray-700 dark:focus:border-brand-400 dark:focus:ring-brand-900',
-          className ?? '',
-        ].join(' ')}
+        className={inputClassName(error, className)}
         {...rest}
       />
       {error ? (
