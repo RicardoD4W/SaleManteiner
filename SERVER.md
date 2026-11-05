@@ -132,45 +132,45 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 
 ## 6. Rutas
 
-| Método + ruta                        | Qué hace                                                    | Errores             |
-| ------------------------------------ | ----------------------------------------------------------- | ------------------- |
-| `GET /api/health`                    | estado + versión del server                                 | —                   |
-| `GET /api/version`                   | `{ app, front, back }`                                      | —                   |
-| `GET /api/buys`                      | lista de compras con `disponibles`                          | —                   |
-| `GET /api/buys/stock`                | stock por compra                                            | —                   |
-| `GET /api/buys/:id`                  | una compra                                                  | 404                 |
-| `POST /api/buys`                     | alta                                                        | 400                 |
-| `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)       | 400/404             |
-| `DELETE /api/buys/:id`               | borra la compra                                             | 409 si tiene ventas |
-| `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción         | 404                 |
-| `GET /api/products`                  | nombres de producto distintos (para el autocompletado)      | —                   |
-| `GET /api/solds`                     | lista de ventas con beneficio + items                       | —                   |
-| `GET /api/solds/:id`                 | una venta con sus items                                     | 404                 |
-| `POST /api/solds`                    | alta con items (valida stock)                               | 400/**422**         |
-| `PATCH /api/solds/:id`               | edición                                                     | 400/404             |
-| `DELETE /api/solds/:id`              | borra la venta                                              | 404                 |
-| `GET /api/customers`                 | clientes con nº de ventas, total gastado y deuda            | —                   |
-| `GET /api/customers/:id`             | un cliente                                                  | 404                 |
-| `POST /api/customers`                | alta                                                        | 400                 |
-| `PATCH /api/customers/:id`           | edición                                                     | 400/404             |
-| `DELETE /api/customers/:id`          | borra el cliente                                            | 409 si tiene ventas |
-| `GET /api/expenses`                  | lista de gastos (filtro opcional por `category_id`)         | —                   |
-| `GET /api/expenses/:id`              | un gasto                                                    | 404                 |
-| `POST /api/expenses`                 | alta (exige `category_id`)                                  | 400                 |
-| `PATCH /api/expenses/:id`            | edición                                                     | 400/404             |
-| `DELETE /api/expenses/:id`           | borra el gasto                                              | 404                 |
-| `GET /api/expense-categories`        | categorías con nº de gastos e importe total                 | —                   |
-| `POST /api/expense-categories`       | alta (nombre único)                                         | 400/409             |
-| `PATCH /api/expense-categories/:id`  | edición del nombre                                          | 400/404             |
-| `DELETE /api/expense-categories/:id` | borra la categoría                                          | 409 si tiene gastos |
-| `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores | —                   |
-| `GET /api/stats/metrics`             | métricas: KPIs, mes actual/anterior, variaciones y listados | —                   |
-| `GET /api/backups`                   | lista de copias guardadas (nombre, tamaño, fecha)           | —                   |
-| `POST /api/backups`                  | crea una copia (`VACUUM INTO`)                              | —                   |
-| `GET /api/backups/:name/download`    | descarga una copia al disco del usuario                     | 404                 |
-| `DELETE /api/backups/:name`          | elimina una copia guardada                                  | 400/404             |
-| `POST /api/backups/:name/restore`    | restaura desde una copia guardada                           | 400/404             |
-| `POST /api/backups/restore`          | restaura desde un archivo subido (binario)                  | 400                 |
+| Método + ruta                        | Qué hace                                                                       | Errores             |
+| ------------------------------------ | ------------------------------------------------------------------------------ | ------------------- |
+| `GET /api/health`                    | estado + versión del server                                                    | —                   |
+| `GET /api/version`                   | `{ app, front, back }`                                                         | —                   |
+| `GET /api/buys`                      | lista de compras con `disponibles`                                             | —                   |
+| `GET /api/buys/stock`                | stock por compra                                                               | —                   |
+| `GET /api/buys/:id`                  | una compra                                                                     | 404                 |
+| `POST /api/buys`                     | alta                                                                           | 400                 |
+| `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)                          | 400/404             |
+| `DELETE /api/buys/:id`               | borra la compra                                                                | 409 si tiene ventas |
+| `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción                            | 404                 |
+| `GET /api/products`                  | nombres de producto distintos (para el autocompletado)                         | —                   |
+| `GET /api/solds`                     | lista de ventas con beneficio + items                                          | —                   |
+| `GET /api/solds/:id`                 | una venta con sus items                                                        | 404                 |
+| `POST /api/solds`                    | alta con items (valida stock)                                                  | 400/**422**         |
+| `PATCH /api/solds/:id`               | edición                                                                        | 400/404             |
+| `DELETE /api/solds/:id`              | borra la venta                                                                 | 404                 |
+| `GET /api/customers`                 | clientes con nº de ventas, total gastado y deuda                               | —                   |
+| `GET /api/customers/:id`             | un cliente                                                                     | 404                 |
+| `POST /api/customers`                | alta                                                                           | 400                 |
+| `PATCH /api/customers/:id`           | edición                                                                        | 400/404             |
+| `DELETE /api/customers/:id`          | borra el cliente                                                               | 409 si tiene ventas |
+| `GET /api/expenses`                  | lista de gastos (filtro opcional por `category_id`)                            | —                   |
+| `GET /api/expenses/:id`              | un gasto                                                                       | 404                 |
+| `POST /api/expenses`                 | alta (exige `category_id`)                                                     | 400                 |
+| `PATCH /api/expenses/:id`            | edición                                                                        | 400/404             |
+| `DELETE /api/expenses/:id`           | borra el gasto                                                                 | 404                 |
+| `GET /api/expense-categories`        | categorías con nº de gastos e importe total (`expenses_count`, `total_amount`) | —                   |
+| `POST /api/expense-categories`       | alta (nombre único)                                                            | 400/409             |
+| `PATCH /api/expense-categories/:id`  | edición del nombre                                                             | 400/404             |
+| `DELETE /api/expense-categories/:id` | borra la categoría                                                             | 409 si tiene gastos |
+| `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores                    | —                   |
+| `GET /api/stats/metrics`             | métricas: KPIs, mes actual/anterior, variaciones y listados                    | —                   |
+| `GET /api/backups`                   | lista de copias guardadas (nombre, tamaño, fecha)                              | —                   |
+| `POST /api/backups`                  | crea una copia (`VACUUM INTO`)                                                 | —                   |
+| `GET /api/backups/:name/download`    | descarga una copia al disco del usuario                                        | 404                 |
+| `DELETE /api/backups/:name`          | elimina una copia guardada                                                     | 400/404             |
+| `POST /api/backups/:name/restore`    | restaura desde una copia guardada                                              | 400/404             |
+| `POST /api/backups/restore`          | restaura desde un archivo subido (binario)                                     | 400                 |
 
 ### Códigos de error
 

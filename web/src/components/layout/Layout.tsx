@@ -40,7 +40,7 @@ export function Layout() {
               <NavLink to="/customers" viewTransition className={navLinkClass}>
                 Clientes
               </NavLink>
-              <NavLink to="/gastos" viewTransition className={navLinkClass}>
+              <NavLink to="/expenses" viewTransition className={navLinkClass}>
                 Gastos
               </NavLink>
             </nav>

@@ -108,6 +108,7 @@ describe('useCreateExpense', () => {
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-categories'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -151,6 +152,7 @@ describe('useUpdateExpense', () => {
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-categories'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });
@@ -175,6 +177,7 @@ describe('useDeleteExpense', () => {
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expense-categories'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['stats', 'dashboard'] });
     });
   });

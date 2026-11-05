@@ -54,7 +54,7 @@ web/
 | `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                          |
 | `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total)          |
 | `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                             |
-| `/gastos`            | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
+| `/expenses`          | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
@@ -151,6 +151,8 @@ El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vac�
 ### `components/expenses/` — los gastos
 
 `ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
+
+El servidor manda el total de cada categoría como `total_amount`: `web/src/api/expenses.ts` lo convierte a `total` (el nombre que usa el modelo del web) al mapear la respuesta de la API. Cualquier alta, edición o borrado de un gasto invalida también la consulta de categorías: el nº de gastos y el total de cada categoría se actualizan solos.
 
 ### `components/dashboard/`
 

@@ -34,7 +34,7 @@ test.beforeEach(async ({ request }) => {
 });
 
 test('crea la primera categoría en línea y registra un gasto', async ({ page, request }) => {
-  await page.goto('/gastos');
+  await page.goto('/expenses');
 
   await page.getByRole('button', { name: '+ Nuevo gasto' }).click();
   const dialog = page.getByRole('dialog');
@@ -45,10 +45,19 @@ test('crea la primera categoría en línea y registra un gasto', async ({ page, 
   await dialog.getByRole('button', { name: 'Crear y usar' }).click();
   await expect(dialog.getByLabel('Nombre de la nueva categoría')).toHaveCount(0);
 
+  await expect
+    .poll(async () =>
+      dialog
+        .getByLabel('Categoría *')
+        .evaluate(
+          (element) => (element as HTMLSelectElement).selectedOptions[0]?.textContent ?? '',
+        ),
+    )
+    .toBe('Alquiler');
+
   await dialog.getByLabel('Concepto *').fill('Alquiler de octubre');
   await dialog.getByLabel('Importe (€) *').fill('1200');
   await dialog.getByLabel('Fecha *').fill('2026-10-02');
-  await dialog.getByLabel('Categoría *').selectOption({ label: 'Alquiler' });
   await dialog.getByRole('button', { name: 'Guardar' }).click();
 
   await expect(dialog).toBeHidden();
@@ -63,6 +72,11 @@ test('crea la primera categoría en línea y registra un gasto', async ({ page, 
   expect(expensesBody.data[0].concept).toBe('Alquiler de octubre');
   expect(expensesBody.data[0].amount).toBe(1200);
   expect(expensesBody.data[0].expense_date).toBe('2026-10-02');
+
+  await page.getByRole('button', { name: 'Gestionar categorías' }).click();
+  const manager = page.getByRole('dialog');
+  await expect(manager.getByText('1 gasto')).toBeVisible();
+  await expect(manager.getByText(/1200,00\s*€/)).toBeVisible();
 });
 
 test('filtra por categoría y muestra el total de lo filtrado', async ({ page, request }) => {
@@ -86,7 +100,7 @@ test('filtra por categoría y muestra el total de lo filtrado', async ({ page, r
     },
   });
 
-  await page.goto('/gastos');
+  await page.goto('/expenses');
   await expect(page.getByRole('cell', { name: 'Papel de impresora', exact: true })).toBeVisible();
   await expect(page.getByText('Total: 1350,00 €')).toBeVisible();
 
@@ -108,7 +122,7 @@ test('no borra una categoría en uso: avisa del 409 y la mantiene', async ({ pag
     },
   });
 
-  await page.goto('/gastos');
+  await page.goto('/expenses');
   await page.getByRole('button', { name: 'Gestionar categorías' }).click();
 
   const dialog = page.getByRole('dialog');

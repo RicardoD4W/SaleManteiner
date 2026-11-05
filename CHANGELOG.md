@@ -16,7 +16,7 @@
 
 ### Añadido
 
-- **Gastos generales**: una vista nueva **Gastos** (`/gastos`, la quinta del header) con alta, edición, borrado, filtro por categoría y total de la lista. Los gastos son los que no son ni compras ni ventas (alquiler, suministros, papelería): viven en su propia tabla, no generan stock y no entran en el beneficio de ventas.
+- **Gastos generales**: una vista nueva **Gastos** (`/expenses`, la quinta del header) con alta, edición, borrado, filtro por categoría y total de la lista. Los gastos son los que no son ni compras ni ventas (alquiler, suministros, papelería): viven en su propia tabla, no generan stock y no entran en el beneficio de ventas.
 - **Categorías de gasto gestionadas por el usuario**: se crean, renombran y borran desde la propia vista. No hay catálogo sembrado → la base de datos del usuario no se toca con datos inventados. Borrar una categoría que tiene gastos devuelve 409.
 - **KPI "Gastos" y KPI "Beneficio neto"** en el dashboard. El KPI de beneficio **no cambia de significado**: el beneficio neto es el beneficio de ventas menos los gastos generales del periodo.
 - **La serie de gastos en el flujo de caja** de los últimos 12 meses: el resultado del mes descuenta los gastos.
@@ -39,10 +39,17 @@
 - **El popover de notas ya no tiene un ancho fijo**: la caja se ajusta al texto (mínimo 80 px, máximo 280 px) y el texto largo se parte en varias líneas en lugar de quedarse en una sola línea larga.
 - **El popover de notas se puede usar con el ratón**: al salir del icono tarda una fracción de segundo en cerrarse y, si el puntero entra en la caja, se queda abierto. Así se puede leer y desplazar un texto largo con scroll. Entra y sale con una animación corta de opacidad y escala (se respeta `prefers-reduced-motion`).
 - **La tabla de gastos se puede ordenar**: las cabeceras **Concepto**, **Categoría**, **Importe** y **Fecha** ordenan la lista con un clic (o con el teclado: Tab + Enter o espacio), como las tablas de compras, ventas y clientes.
+- **La vista de gastos vive en `/expenses`**: la URL `/gastos` redirige a `/expenses`.
 - **El filtro de fechas va en una sola línea**: los presets ("Todo", "Este mes"…) y la descripción del rango quedan a la izquierda; a la derecha, las dos fechas y el botón **"Quitar filtro"**, que ahora aparece siempre (y no hace nada cuando no hay filtro).
 - **El modal de copia de seguridad** tiene los botones **"Crear copia"** y **"Restaurar"**, centrados y con más separación entre ellos.
 - **La página ya no se mueve al cambiar de ruta ni al abrir un modal**: el hueco de la barra de scroll está siempre reservado (el contenido no se desplaza de lado al pasar de una lista larga a una ficha), al abrir un modal la página de fondo no se puede desplazar con la rueda y el modal ya no aumenta la altura de la página. Ese hueco reservado se pinta con **el mismo fondo que la app** y queda **a los dos lados**, para que el contenido siga centrado en la ventana. En dark mode, la barra de scroll se dibuja en oscuro: no se ve una franja de otro color ni una barra en claro sobre la app.
 - **La barra de scroll lleva los colores de la app**: es fina, con la pista transparente (el hueco reservado no se ve como una franja) y el tirador redondeado en gris claro, o en gris oscuro en el modo oscuro, y se aclara al pasar el ratón por encima.
+
+### Corregido
+
+- **Crear una categoría en línea ya la usa**: al escribir el nombre de una categoría nueva y pulsar **"Crear y usar"**, la categoría queda **seleccionada** en el campo de categoría del gasto (antes se creaba pero el selector se quedaba vacío).
+- **El total de cada categoría ya no sale "NaN €"**: el servidor manda el importe como `total_amount` y el web lo leía con otro nombre, así que el gestor de categorías mostraba "NaN €" en el total.
+- **El nº de gastos y el total de cada categoría se actualizan al añadir, editar o borrar un gasto**: la lista de categorías se quedaba con las cifras viejas hasta recargar la página.
 
 ### Migraciones
 
