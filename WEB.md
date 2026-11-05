@@ -44,17 +44,17 @@ web/
 
 `web/src/App.tsx` (React Router, `createBrowserRouter`):
 
-| Ruta                 | Vista               | Qué hace                                                             |
-| -------------------- | ------------------- | -------------------------------------------------------------------- |
-| `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas |
-| `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)               |
-| `/buys`              | `BuysListPage`      | tabla de compras + alta + borrado                                    |
-| `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                |
-| `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                     |
-| `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                 |
-| `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total) |
-| `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                    |
-| `/gastos`            | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría y total         |
+| Ruta                 | Vista               | Qué hace                                                                      |
+| -------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas          |
+| `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)                        |
+| `/buys`              | `BuysListPage`      | tabla de compras + alta + borrado                                             |
+| `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                         |
+| `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                              |
+| `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                          |
+| `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total)          |
+| `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                             |
+| `/gastos`            | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 

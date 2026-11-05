@@ -8,6 +8,7 @@ interface SortableTableHeadProps<T> {
   currentKey: keyof T | null;
   currentDir: SortDir;
   onSort: (key: keyof T & string) => void;
+  align?: 'left' | 'right';
 }
 
 export function SortableTableHead<T>({
@@ -16,6 +17,7 @@ export function SortableTableHead<T>({
   currentKey,
   currentDir,
   onSort,
+  align = 'left',
 }: SortableTableHeadProps<T>) {
   const isActive = currentKey === sortKey;
   return (
@@ -23,8 +25,13 @@ export function SortableTableHead<T>({
       label={label}
       sorted={isActive ? (currentDir === 'asc' ? 'asc' : 'desc') : false}
       onSort={() => onSort(sortKey)}
-      className={`${tableHeadClass} cursor-pointer text-left focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:focus-visible:ring-brand-400`}
+      className={[
+        tableHeadClass,
+        'cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none dark:focus-visible:ring-brand-400',
+        align === 'right' ? 'text-right' : 'text-left',
+      ].join(' ')}
       labelClassName="whitespace-nowrap"
+      contentClassName={align === 'right' ? 'justify-end' : undefined}
     />
   );
 }

@@ -36,6 +36,7 @@
 - **La deuda por defecto de una venta es 0**: por defecto se asume que el comprador **paga el precio íntegro**. El campo **"Cobrado (€)"** pasa a ser opcional y **empieza vacío**: si escribes un importe, es lo que te pagó y la deuda es lo que falta (`precio − cobrado`); un `0` explícito significa "no me ha pagado nada". Las ventas que ya existían sin importe cobrado informado pasan a considerarse pagadas íntegras, **también cuando las restauras desde una copia de seguridad anterior**.
 - **El popover de notas ya no tiene un ancho fijo**: la caja se ajusta al texto (mínimo 80 px, máximo 280 px) y el texto largo se parte en varias líneas en lugar de quedarse en una sola línea larga.
 - **El popover de notas se puede usar con el ratón**: al salir del icono tarda una fracción de segundo en cerrarse y, si el puntero entra en la caja, se queda abierto. Así se puede leer y desplazar un texto largo con scroll. Entra y sale con una animación corta de opacidad y escala (se respeta `prefers-reduced-motion`).
+- **La tabla de gastos se puede ordenar**: las cabeceras **Concepto**, **Categoría**, **Importe** y **Fecha** ordenan la lista con un clic (o con el teclado: Tab + Enter o espacio), como las tablas de compras, ventas y clientes.
 
 ### Migraciones
 
