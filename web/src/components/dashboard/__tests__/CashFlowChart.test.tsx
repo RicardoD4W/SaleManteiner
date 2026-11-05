@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-
 vi.mock('recharts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('recharts')>();
   const Real = actual.ResponsiveContainer;
@@ -30,7 +30,7 @@ describe('CashFlowChart (recharts)', () => {
 
     const root = container.querySelector('[data-testid="cashflow-chart"]');
     expect(root).toBeInTheDocument();
-    expect(root).toHaveAttribute('role', 'img');
+    expect(root).toHaveAttribute('role', 'group');
     expect(root).toHaveAttribute(
       'aria-label',
       'Flujo de caja por mes (compras, gastos, beneficio y resultado del mes)',
@@ -141,5 +141,62 @@ describe('CashFlowChart (recharts)', () => {
 
     expect(tickValues.some((t) => t.trim().startsWith('-'))).toBe(true);
     expect(tickValues.length).toBeGreaterThan(1);
+  });
+});
+
+describe('CashFlowChart (leyenda interactiva)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('por defecto muestra todas las series', () => {
+    render(<CashFlowChart data={DATA} />);
+
+    expect(screen.getByTestId('legend-toggle-compras')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-beneficio')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('legend-toggle-resultado')).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(4);
+  });
+
+  it('al hacer click en el nombre de una serie la oculta, y al volver a hacer click la muestra', async () => {
+    const user = userEvent.setup();
+    render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-gastos'));
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('Gastos')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('legend-toggle-gastos'));
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(4);
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('guarda la serie oculta en localStorage', async () => {
+    const user = userEvent.setup();
+    render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-resultado'));
+
+    expect(window.localStorage.getItem('salemanteiner-chart-cashflow-hidden')).toBe(
+      '["resultado"]',
+    );
+  });
+
+  it('recuerda las series ocultas al volver a cargar la gráfica', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<CashFlowChart data={DATA} />);
+
+    await user.click(screen.getByTestId('legend-toggle-beneficio'));
+    unmount();
+
+    render(<CashFlowChart data={DATA} />);
+
+    expect(document.querySelectorAll('.recharts-line-curve')).toHaveLength(3);
+    expect(screen.getByTestId('legend-toggle-beneficio')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('legend-toggle-gastos')).toHaveAttribute('aria-pressed', 'true');
   });
 });

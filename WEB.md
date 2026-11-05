@@ -158,6 +158,10 @@ El servidor manda el total de cada categoría como `total_amount`: `web/src/api/
 
 `StatCard`, `CashFlowChart` (Recharts) y `LazyCashFlowChart` (carga diferida: el chart pesa y no tiene por qué bloquear el primer render).
 
+**La leyenda es interactiva**: el nombre de cada serie es un botón. Al hacer click, esa línea se esconde de la gráfica (y el nombre queda tachado y atenuado); al volver a hacer click, la línea aparece. Por defecto se muestran todas.
+
+**La web recuerda la selección**: las series ocultas se guardan en `localStorage` (clave `salemanteiner-chart-<gráfica>-hidden`), así que el usuario no tiene que volver a prepararla en cada visita. La lectura y la escritura están en `web/src/lib/chartPreferences.ts` y el estado en `web/src/hooks/useChartSeriesVisibility.ts`; si el almacenamiento no está disponible (modo privado) o el valor guardado está corrupto, la gráfica se dibuja con todas las series.
+
 **El KPI y su línea son del mismo color**: cada métrica tiene un único token (`--color-metric-*` en `web/src/index.css`) y el mapa vive en `web/src/lib/colors.ts` (`METRIC_COLOR` para el texto del KPI, `METRIC_CHART_COLOR` para la línea y `METRIC_DOT_COLOR` para el punto del tooltip). Compras en rojo, gastos en ámbar, beneficio en verde y resultado del mes en violeta: el número de la cajita y la línea que lo dibuja se leen como la misma magnitud. El verde es siempre del beneficio (los ingresos van en neutro) y el cero es neutro, no un color. Detalle de la paleta: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 
 ### La pestaña "Métricas"

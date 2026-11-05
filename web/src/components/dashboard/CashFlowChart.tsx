@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -11,6 +12,7 @@ import {
 } from 'recharts';
 import { formatEuro } from '../../lib/format';
 import { METRIC_CHART_COLOR, METRIC_DOT_COLOR } from '../../lib/colors';
+import { useChartSeriesVisibility } from '../../hooks/useChartSeriesVisibility';
 
 export interface CashFlowChartProps {
   data: Array<{
@@ -27,6 +29,39 @@ export interface CashFlowChartProps {
     resultado: number;
   }>;
 }
+
+const CHART_ID = 'cashflow';
+
+type SeriesKey = 'compras' | 'gastos' | 'beneficio' | 'resultado';
+
+interface CashFlowSeries {
+  key: SeriesKey;
+  name: string;
+  color: string;
+  strokeDasharray?: string;
+  dotRadius: number;
+}
+
+const CASH_FLOW_SERIES: CashFlowSeries[] = [
+  { key: 'compras', name: 'Compras', color: METRIC_CHART_COLOR.compras, dotRadius: 3 },
+  {
+    key: 'gastos',
+    name: 'Gastos',
+    color: METRIC_CHART_COLOR.gastos,
+    strokeDasharray: '2 3',
+    dotRadius: 3,
+  },
+  { key: 'beneficio', name: 'Beneficio', color: METRIC_CHART_COLOR.beneficio, dotRadius: 3 },
+  {
+    key: 'resultado',
+    name: 'Resultado del mes',
+    color: METRIC_CHART_COLOR.resultado,
+    strokeDasharray: '5 4',
+    dotRadius: 2,
+  },
+];
+
+const SERIES_KEYS = CASH_FLOW_SERIES.map((series) => series.key);
 
 const SERIES_COLOR_CLASS: Record<string, string> = {
   compras: METRIC_DOT_COLOR.compras,
@@ -65,17 +100,21 @@ function formatEurosShort(euros: number): string {
   return `${euros.toFixed(0)} €`;
 }
 
-type CashFlowTooltipProps = Partial<TooltipContentProps<number, string>>;
+type CashFlowTooltipProps = Partial<TooltipContentProps<number, string>> & {
+  hiddenSeries?: ReadonlySet<string>;
+};
 
-function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
+function CashFlowTooltip({ active, payload, label, hiddenSeries }: CashFlowTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
+  const visiblePayload = payload.filter((entry) => !hiddenSeries?.has(String(entry.dataKey)));
+  if (visiblePayload.length === 0) return null;
   return (
     <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs shadow-md dark:border-gray-700 dark:bg-gray-900">
       <p className="mb-1 font-medium text-gray-900 dark:text-gray-100">
         {monthLabel(String(label))}
       </p>
       <ul className="space-y-0.5">
-        {payload.map((entry) => (
+        {visiblePayload.map((entry) => (
           <li key={String(entry.dataKey)} className="flex items-center gap-2">
             <span
               className={[
@@ -95,7 +134,59 @@ function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
   );
 }
 
+interface CashFlowLegendProps {
+  hiddenSeries: ReadonlySet<string>;
+  onToggle: (seriesKey: string) => void;
+}
+
+function seriesSwatchStyle(series: CashFlowSeries): CSSProperties {
+  if (!series.strokeDasharray) {
+    return { backgroundColor: series.color };
+  }
+  return {
+    backgroundImage: `repeating-linear-gradient(90deg, ${series.color} 0 4px, transparent 4px 7px)`,
+  };
+}
+
+function CashFlowLegend({ hiddenSeries, onToggle }: CashFlowLegendProps) {
+  return (
+    <ul className="recharts-default-legend" style={{ padding: 0, margin: 0, textAlign: 'left' }}>
+      {CASH_FLOW_SERIES.map((series) => {
+        const isHidden = hiddenSeries.has(series.key);
+        return (
+          <li
+            key={series.key}
+            className="recharts-legend-item"
+            style={{ display: 'inline-block', marginRight: 10, whiteSpace: 'nowrap' }}
+          >
+            <button
+              type="button"
+              onClick={() => onToggle(series.key)}
+              aria-pressed={!isHidden}
+              data-testid={`legend-toggle-${series.key}`}
+              className={[
+                'flex cursor-pointer items-center gap-1 rounded leading-[18px]',
+                isHidden ? 'opacity-50 line-through' : 'opacity-100',
+              ].join(' ')}
+              style={{ color: series.color }}
+            >
+              <span
+                aria-hidden="true"
+                className="inline-block h-[3px] w-4 shrink-0 rounded-full"
+                style={seriesSwatchStyle(series)}
+              />
+              <span className="recharts-legend-item-text">{series.name}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function CashFlowChart({ data }: CashFlowChartProps) {
+  const { hiddenSeries, toggleSeries } = useChartSeriesVisibility(CHART_ID, SERIES_KEYS);
+
   if (data.length === 0) {
     return (
       <div className="h-64 w-full" data-testid="cashflow-chart">
@@ -126,7 +217,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
         'dark:[&_.recharts-legend-item-text]:fill-gray-300',
       ].join(' ')}
       data-testid="cashflow-chart"
-      role="img"
+      role="group"
       aria-label="Flujo de caja por mes (compras, gastos, beneficio y resultado del mes)"
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -134,57 +225,30 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="month" tickFormatter={monthLabel} tickMargin={8} />
           <YAxis tickFormatter={formatEurosShort} domain={[yMin, yMax]} width={56} tickMargin={4} />
-          <Tooltip content={<CashFlowTooltip />} />
+          <Tooltip content={<CashFlowTooltip hiddenSeries={hiddenSeries} />} />
           <Legend
             verticalAlign="top"
             align="left"
             height={LEGEND_HEIGHT}
             wrapperStyle={{ fontSize: 12, lineHeight: '18px' }}
+            content={<CashFlowLegend hiddenSeries={hiddenSeries} onToggle={toggleSeries} />}
           />
 
-          <Line
-            type="linear"
-            dataKey="compras"
-            name="Compras"
-            stroke={METRIC_CHART_COLOR.compras}
-            strokeWidth={2.5}
-            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
-            activeDot={{ r: 4 }}
-            isAnimationActive={true}
-          />
-          <Line
-            type="linear"
-            dataKey="gastos"
-            name="Gastos"
-            stroke={METRIC_CHART_COLOR.gastos}
-            strokeWidth={2.5}
-            strokeDasharray="2 3"
-            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
-            activeDot={{ r: 4 }}
-            isAnimationActive={true}
-          />
-          <Line
-            type="linear"
-            dataKey="beneficio"
-            name="Beneficio"
-            stroke={METRIC_CHART_COLOR.beneficio}
-            strokeWidth={2.5}
-            dot={{ r: 3, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
-            activeDot={{ r: 4 }}
-            isAnimationActive={true}
-          />
-
-          <Line
-            type="linear"
-            dataKey="resultado"
-            name="Resultado del mes"
-            stroke={METRIC_CHART_COLOR.resultado}
-            strokeWidth={2.5}
-            strokeDasharray="5 4"
-            dot={{ r: 2, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
-            activeDot={{ r: 4 }}
-            isAnimationActive={true}
-          />
+          {CASH_FLOW_SERIES.map((series) => (
+            <Line
+              key={series.key}
+              type="linear"
+              dataKey={series.key}
+              name={series.name}
+              stroke={series.color}
+              strokeWidth={2.5}
+              strokeDasharray={series.strokeDasharray}
+              dot={{ r: series.dotRadius, fill: 'var(--color-chart-dot)', strokeWidth: 2 }}
+              activeDot={{ r: 4 }}
+              isAnimationActive={true}
+              hide={hiddenSeries.has(series.key)}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>

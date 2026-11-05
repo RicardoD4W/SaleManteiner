@@ -577,6 +577,22 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
   await expect(negativeTick.first()).toBeVisible();
 });
 
+test('cashflow-chart: la leyenda oculta una serie y el navegador lo recuerda', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('overview-kpis')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('cashflow-chart')).toBeVisible();
+
+  const series = page.locator('[data-testid="cashflow-chart"] .recharts-line-curve');
+  await expect(series).toHaveCount(4);
+
+  await page.getByTestId('legend-toggle-gastos').click();
+  await expect(series).toHaveCount(3);
+
+  await page.reload();
+  await expect(page.getByTestId('cashflow-chart')).toBeVisible();
+  await expect(page.locator('[data-testid="cashflow-chart"] .recharts-line-curve')).toHaveCount(3);
+});
+
 test('la tabla entra en el viewport: la columna Acciones se ve completa (sin scroll horizontal)', async ({
   page,
   request,

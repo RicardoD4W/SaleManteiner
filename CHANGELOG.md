@@ -16,6 +16,7 @@
 
 ### Añadido
 
+- **La leyenda de la gráfica de flujo de caja es interactiva**: al hacer click en el nombre de una serie (por ejemplo, "Gastos") esa línea se esconde de la gráfica, y al volver a hacer click aparece. La web **recuerda** qué series están ocultas, así que no hay que volver a prepararla cada vez: se abre la app y la gráfica sale como la dejaste.
 - **Gastos generales**: una vista nueva **Gastos** (`/expenses`, la quinta del header) con alta, edición, borrado, filtro por categoría y total de la lista. Los gastos son los que no son ni compras ni ventas (alquiler, suministros, papelería): viven en su propia tabla, no generan stock y no entran en el beneficio de ventas.
 - **Categorías de gasto gestionadas por el usuario**: se crean, renombran y borran desde la propia vista. No hay catálogo sembrado → la base de datos del usuario no se toca con datos inventados. Borrar una categoría que tiene gastos devuelve 409.
 - **KPI "Gastos" y KPI "Beneficio neto"** en el dashboard. El KPI de beneficio **no cambia de significado**: el beneficio neto es el beneficio de ventas menos los gastos generales del periodo.
