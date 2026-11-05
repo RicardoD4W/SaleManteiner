@@ -143,6 +143,7 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)       | 400/404             |
 | `DELETE /api/buys/:id`               | borra la compra                                             | 409 si tiene ventas |
 | `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción         | 404                 |
+| `GET /api/products`                  | nombres de producto distintos (para el autocompletado)      | —                   |
 | `GET /api/solds`                     | lista de ventas con beneficio + items                       | —                   |
 | `GET /api/solds/:id`                 | una venta con sus items                                     | 404                 |
 | `POST /api/solds`                    | alta con items (valida stock)                               | 400/**422**         |
@@ -195,6 +196,18 @@ Es **opcional** y su ausencia significa "se asume que la venta está **pagada í
 En las respuestas, `paid_amount` es `number | null`: `null` cuando la venta está pagada íntegra. En un `PATCH`, ausente = se conserva el valor actual y `null` = vuelve a pago íntegro. Un importe cobrado **mayor** que el precio de venta se rechaza con **400**.
 
 Los KPIs del dashboard (`GET /api/stats/dashboard`) son: `compras_total_eur`, `ventas_total_eur`, `beneficio_total_eur` (beneficio de ventas, **no cambia de significado**), `gastos_total_eur`, `beneficio_neto_eur` (`beneficio_total_eur - gastos_total_eur`), `stock_pendiente_count`. La serie `cashFlowByMonth` incluye `gastos` por mes y los descuenta del `resultado`.
+
+### `GET /api/products` — nombres de producto para el autocompletado
+
+Devuelve los nombres de producto que el usuario ya tiene en sus compras, derivados de `buys.product_name` (**no hay tabla de productos ni migración**):
+
+```json
+{ "data": [{ "name": "Funda iPhone 15", "uses": 3 }] }
+```
+
+- **Agrupado sin distinguir mayúsculas**: `GROUP BY product_name COLLATE NOCASE`. "iPhone 15" y "iphone 15" son el mismo producto; el nombre devuelto es la grafía de la fila **más reciente** del grupo.
+- **Ordenado por número de usos** y, a igualdad, por uso más reciente: lo que más se usa es lo que más se busca.
+- El filtrado de las sugerencias se hace en el cliente (el volumen es pequeño), pero el server ya unifica la grafía.
 
 ### `GET /api/stats/metrics` — métricas del dashboard
 
@@ -264,9 +277,11 @@ El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El b
 
 Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (`createApp` + `listen`) contra una **BD temporal** (`mkdtempSync` en el `tmp` del sistema): **la base de datos del usuario no se toca nunca**.
 
-| Fichero                  | Qué cubre                                                                                                                                       |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metrics.test.ts`        | el repo de métricas: KPIs, mes actual/anterior, variaciones (incluido el `null` sin base), márgenes, deudores y gastos por categoría            |
-| `metrics-routes.test.ts` | el contrato HTTP de `GET /api/stats/metrics`                                                                                                    |
-| `backups.test.ts`        | el servicio de copias: crear, listar, eliminar, restaurar, la copia de seguridad previa y el rechazo de un archivo inválido **sin tocar la BD** |
-| `backups-routes.test.ts` | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |
+| Fichero                   | Qué cubre                                                                                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `metrics.test.ts`         | el repo de métricas: KPIs, mes actual/anterior, variaciones (incluido el `null` sin base), márgenes, deudores y gastos por categoría            |
+| `metrics-routes.test.ts`  | el contrato HTTP de `GET /api/stats/metrics`                                                                                                    |
+| `backups.test.ts`         | el servicio de copias: crear, listar, eliminar, restaurar, la copia de seguridad previa y el rechazo de un archivo inválido **sin tocar la BD** |
+| `backups-routes.test.ts`  | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |
+| `products.test.ts`        | el repo de nombres de producto: agrupación sin mayúsculas, grafía más reciente, orden por usos y conteo                                         |
+| `products-routes.test.ts` | el contrato HTTP de `GET /api/products`                                                                                                         |

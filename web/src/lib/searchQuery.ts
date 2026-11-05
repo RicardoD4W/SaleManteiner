@@ -39,8 +39,44 @@ const NUMBER_RE = /^\d+(?:[.,]\d+)*$/;
 
 const COMBINING_MARKS_RE = /[\u0300-\u036f]/g;
 
-function normalizeText(value: string): string {
+export function normalizeText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(COMBINING_MARKS_RE, '');
+}
+
+export interface HighlightSegment {
+  text: string;
+  match: boolean;
+}
+
+export function highlightMatch(text: string, query: string): HighlightSegment[] {
+  const needle = normalizeText(query).trim();
+  if (needle.length === 0) return [{ text, match: false }];
+
+  const chars = Array.from(text);
+  const hayParts: string[] = [];
+  const originIndexes: number[] = [];
+  chars.forEach((char, index) => {
+    for (const normalizedChar of normalizeText(char)) {
+      hayParts.push(normalizedChar);
+      originIndexes.push(index);
+    }
+  });
+
+  const haystack = hayParts.join('');
+  const start = haystack.indexOf(needle);
+  if (start === -1) return [{ text, match: false }];
+
+  const end = start + needle.length - 1;
+  const firstIndex = originIndexes[start];
+  const lastIndex = originIndexes[end];
+
+  const segments: HighlightSegment[] = [];
+  if (firstIndex > 0) segments.push({ text: chars.slice(0, firstIndex).join(''), match: false });
+  segments.push({ text: chars.slice(firstIndex, lastIndex + 1).join(''), match: true });
+  if (lastIndex + 1 < chars.length) {
+    segments.push({ text: chars.slice(lastIndex + 1).join(''), match: false });
+  }
+  return segments;
 }
 
 function datePart(value: string): string {

@@ -116,11 +116,16 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                            |
 | `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                          |
 | `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                          |
+| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
 
 ### `components/sales/` — el dominio
 
 `BuyNewModal`, `SaleNewModal`, `ProductPickerModal` (multi-select con stock), `CustomerAutocomplete` (buscador con creación en línea), `CustomerFormModal`, `DeleteBuyModal`, `DeleteCascadeModal`, `DeleteDialogs`, `DeleteCustomerModal`, `DeleteCustomerDialogs`.
+
+`ProductNameAutocomplete` es el **autocompletado del nombre del producto** en el alta y la edición de compra: un combobox (patrón ARIA `combobox` + `listbox`) que sugiere los nombres que ya tienes en tus compras, ignora mayúsculas y acentos, se recorre con `↑ ↓`, `Enter` elige y `Esc` cierra. **No rellena nada más**: solo el nombre del producto, y el resto del formulario se sigue escribiendo a mano. Si no eliges ninguna sugerencia, el texto se guarda tal cual (un producto nuevo siempre se puede escribir). No hay autocompletado de nombre en las ventas: una línea de venta apunta a una compra (`sale_items.buy_id`), así que el nombre viene del selector.
+
+`ProductPickerModal` además **resalta la coincidencia** dentro del nombre del producto y **recorre la lista con `↑ ↓`** (`Enter` marca o desmarca el producto activo). El filtro ignora mayúsculas y acentos, como el buscador del resto de la app.
 
 El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vacío = se asume que te ha pagado el precio entero (deuda 0); con un importe, ese importe es lo que te pagó y la deuda es lo que falta. Un `0` explícito significa "no me ha pagado nada".
 
@@ -182,6 +187,8 @@ Restaurar **reescribe la base de datos del usuario**, así que exige una **confi
 | `-30`          | signo    | ventas con pérdida de 30 €                       |
 
 Los tokens se combinan con AND: varias palabras = todas las condiciones.
+
+`lib/searchQuery.ts` exporta además `normalizeText` (minúsculas + sin acentos) y `highlightMatch`, que devuelve el texto partido en fragmentos para **resaltar** la coincidencia dentro de un nombre.
 
 ## 8. Estilos
 

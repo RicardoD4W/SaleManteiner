@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   filterBuys,
   filterSolds,
+  highlightMatch,
   matchesNumber,
   parseDate,
   parseNumber,
@@ -314,5 +315,32 @@ describe('helpers de extracción', () => {
   it('toSoldSearchRow tolera sold_at null', () => {
     const row = toSoldSearchRow(soldB);
     expect(row.dates).toEqual(['2026-10-07']);
+  });
+});
+
+describe('highlightMatch', () => {
+  it('marca el fragmento que coincide con la consulta', () => {
+    expect(highlightMatch('Funda iPhone 15', 'iphone')).toEqual([
+      { text: 'Funda ', match: false },
+      { text: 'iPhone', match: true },
+      { text: ' 15', match: false },
+    ]);
+  });
+
+  it('ignora mayúsculas y acentos al localizar la coincidencia', () => {
+    expect(highlightMatch('Cámara réflex', 'camara')).toEqual([
+      { text: 'Cámara', match: true },
+      { text: ' réflex', match: false },
+    ]);
+  });
+
+  it('devuelve el texto entero sin marcar cuando no hay coincidencia', () => {
+    expect(highlightMatch('Funda iPhone', 'cargador')).toEqual([
+      { text: 'Funda iPhone', match: false },
+    ]);
+  });
+
+  it('devuelve el texto entero sin marcar cuando la consulta está vacía', () => {
+    expect(highlightMatch('Funda iPhone', '   ')).toEqual([{ text: 'Funda iPhone', match: false }]);
   });
 });

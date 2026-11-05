@@ -15,6 +15,11 @@ const mockBuysWithStock = [
   { id: 2, product_name: 'Cargador USB-C', quantity: 5, disponibles: 3 },
 ];
 
+const mockBuysWithAccents = [
+  { id: 1, product_name: 'Cámara réflex', quantity: 4, disponibles: 4 },
+  { id: 2, product_name: 'Funda iPhone', quantity: 10, disponibles: 8 },
+];
+
 describe('ProductPickerModal', () => {
   beforeEach(() => {
     vi.mocked(useBuysStock).mockReset();
@@ -363,5 +368,82 @@ describe('ProductPickerModal', () => {
     const items = screen.getAllByRole('listitem');
     expect(items[0]).toHaveTextContent('Cargador USB-C');
     expect(items[1]).toHaveTextContent('Funda iPhone');
+  });
+
+  it('el filtro ignora mayúsculas y acentos', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithAccents as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cámara réflex')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText('Buscar producto'), 'camara');
+
+    await waitFor(() => {
+      const items = screen.getAllByRole('listitem');
+      expect(items).toHaveLength(1);
+      expect(items[0]).toHaveTextContent('Cámara réflex');
+    });
+  });
+
+  it('resalta la coincidencia dentro del nombre del producto', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText('Buscar producto'), 'iphone');
+
+    const mark = await screen.findByText('iPhone');
+    expect(mark.tagName).toBe('MARK');
+  });
+
+  it('las flechas recorren la lista y Enter marca el producto activo', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuysStock).mockReturnValue({
+      data: mockBuysWithStock as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<ProductPickerModal onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Funda iPhone')).toBeInTheDocument();
+    });
+
+    const search = screen.getByLabelText('Buscar producto');
+    await user.click(search);
+    await user.keyboard('{ArrowDown}');
+
+    expect(screen.getByLabelText('Seleccionar Funda iPhone')).toHaveFocus();
+
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByLabelText('Seleccionar Cargador USB-C')).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+    expect(screen.getByLabelText('Seleccionar Cargador USB-C')).toBeChecked();
+    expect(screen.getByText(/1 seleccionado/)).toBeInTheDocument();
   });
 });

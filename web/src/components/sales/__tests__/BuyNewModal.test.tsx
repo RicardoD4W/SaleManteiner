@@ -6,7 +6,12 @@ vi.mock('@/hooks/useCreateBuy', () => ({
   useCreateBuy: vi.fn(),
 }));
 
+vi.mock('@/hooks/useProductNames', () => ({
+  useProductNames: vi.fn(),
+}));
+
 import { useCreateBuy } from '@/hooks/useCreateBuy';
+import { useProductNames } from '@/hooks/useProductNames';
 import { BuyNewModal } from '@/components/sales/BuyNewModal';
 import { renderWithProviders } from '@/test-utils/render';
 
@@ -35,6 +40,16 @@ describe('BuyNewModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useCreateBuy).mockReturnValue(mutationMock() as never);
+    vi.mocked(useProductNames).mockReturnValue({
+      data: [
+        { name: 'Funda iPhone 15', uses: 3 },
+        { name: 'Cámara réflex', uses: 1 },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
   });
 
   it('el foco inicial va al primer input y el focus trap no deja salir', async () => {
@@ -84,6 +99,31 @@ describe('BuyNewModal', () => {
 
     expect(await screen.findByText('Máximo 2 decimales')).toBeInTheDocument();
     expect(create.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('ofrece los nombres de producto existentes y guarda el elegido', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce({ id: 1 }),
+    });
+    vi.mocked(useCreateBuy).mockReturnValue(create as never);
+
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Producto *'), 'iphone');
+    const option = await screen.findByRole('option', { name: /Funda iPhone 15/ });
+    await user.click(option);
+
+    expect(screen.getByLabelText('Producto *')).toHaveValue('Funda iPhone 15');
+
+    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '45.5' } });
+    await user.click(screen.getByRole('button', { name: 'Crear compra' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ product_name: 'Funda iPhone 15' }),
+      );
+    });
   });
 
   it('guarda la compra y manda la fecha vacía como undefined', async () => {

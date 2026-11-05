@@ -11,8 +11,13 @@ vi.mock('@/hooks/useUpdateBuy', () => ({
   useUpdateBuy: vi.fn(),
 }));
 
+vi.mock('@/hooks/useProductNames', () => ({
+  useProductNames: vi.fn(),
+}));
+
 import { useBuy } from '@/hooks/useBuy';
 import { useUpdateBuy } from '@/hooks/useUpdateBuy';
+import { useProductNames } from '@/hooks/useProductNames';
 import { BuyEditPage } from '@/pages/buys/BuyEditPage';
 import { renderWithProviders } from '@/test-utils/render';
 
@@ -67,6 +72,16 @@ describe('BuyEditPage', () => {
       refetch: vi.fn(),
     } as never);
     vi.mocked(useUpdateBuy).mockReturnValue(mutationMock() as never);
+    vi.mocked(useProductNames).mockReturnValue({
+      data: [
+        { name: 'Funda iPhone 15', uses: 3 },
+        { name: 'Funda iPhone 16', uses: 1 },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
   });
 
   it('valida el producto con las mismas reglas que el alta', async () => {
@@ -83,6 +98,34 @@ describe('BuyEditPage', () => {
 
     expect(await screen.findByText('El producto es obligatorio')).toBeInTheDocument();
     expect(update.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('ofrece los nombres de producto existentes y guarda el elegido', async () => {
+    const user = userEvent.setup();
+    const update = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(buyFixture),
+    });
+    vi.mocked(useUpdateBuy).mockReturnValue(update as never);
+
+    renderPage();
+
+    const productInput = await screen.findByLabelText('Producto *');
+    await user.clear(productInput);
+    await user.type(productInput, 'iphone 16');
+
+    const option = await screen.findByRole('option', { name: /Funda iPhone 16/ });
+    await user.click(option);
+
+    expect(productInput).toHaveValue('Funda iPhone 16');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(update.mutateAsync).toHaveBeenCalledWith({
+        id: buyFixture.id,
+        input: expect.objectContaining({ product_name: 'Funda iPhone 16' }),
+      });
+    });
   });
 
   it('guarda los cambios con los valores de la compra', async () => {

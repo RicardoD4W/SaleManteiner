@@ -1,9 +1,10 @@
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { ProductNameAutocomplete } from './ProductNameAutocomplete';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage } from '../../api/client';
@@ -21,6 +22,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     setError,
   } = useForm<BuyFormInput, unknown, BuyFormOutput>({
@@ -57,11 +59,17 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
   return (
     <Modal title="Nueva compra" onClose={onClose} initialFocusSelector="input">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
-        <Input
-          label="Producto *"
-          placeholder="Funda iPhone 15"
-          {...register('product_name')}
-          error={errors.product_name?.message}
+        <Controller
+          control={control}
+          name="product_name"
+          render={({ field, fieldState }) => (
+            <ProductNameAutocomplete
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+            />
+          )}
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
