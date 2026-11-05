@@ -49,3 +49,23 @@ Está pensada para **cualquier tipo de usuario**: un particular que compra y ven
 | D20 | **El filtro por rango de fechas va al servidor** (`from`/`to`), no se filtra en el cliente                                             | El server ya soportaba el rango por fecha: filtrar allí evita traer toda la lista y mantiene el mismo criterio de fecha en toda la app. El rango es cerrado y las filas sin fecha quedan fuera con un filtro activo.             |
 | D21 | **El recibo de una venta se imprime con el diálogo del navegador** (`window.print()`), sin librería de PDF                             | En el navegador y en la app de escritorio (WebView2) ese diálogo permite imprimir o guardar como PDF: añadir pdfkit o jspdf metería peso en el bundle y una decisión de packaging en la entrega sin ganar nada.                  |
 | D22 | **El recibo es un recibo, no una factura**, y no lleva ni notas ni gastos asociados                                                    | La app no guarda datos fiscales (IVA, NIF, número de factura), así que no puede emitir una factura legal. Las notas y los gastos asociados (envío, comisión) son información del vendedor: el documento es lo que ve el cliente. |
+| D23 | **No habrá devoluciones ni ventas a crédito**                                                                                          | Decisión del usuario (2026-11-05): _"no va a ver devoluciones"_. Evita además una migración en la base de datos del usuario: lo que se compró y lo que se vendió es lo que hay.                                                  |
+
+## 3. Huecos de la app: estado
+
+La app se revisó contra una lista de huecos pendientes (N1-N10). **Todos están cerrados**: no
+queda ninguna feature por hacer. La copia viva de esta tabla está en Engram
+(tema `salemanteiner/tabla-de-features`).
+
+| #   | Hueco                                      | Estado                                              |
+| --- | ------------------------------------------ | --------------------------------------------------- |
+| N1  | Gastos generales del negocio               | Hecho: tabla `expenses` + KPI "beneficio neto"      |
+| N2  | Ficha de cliente con deuda                 | Hecho: teléfono, dirección, notas y deuda           |
+| N3  | Copia de seguridad y restauración de la BD | Hecho: copia, descarga y restauración transaccional |
+| N4  | Margen % y comparativas                    | Hecho: pestaña "Métricas" del dashboard             |
+| N5  | Recibo imprimible de una venta             | Hecho: vista imprimible con los datos del cliente   |
+| N6  | Devoluciones y ventas a crédito            | Descartado (D23)                                    |
+| N7  | Catálogo de productos                      | Cerrado a la medida: autocompletado de nombres      |
+| N8  | Filtro por rango de fechas                 | Hecho: presets y rango a medida en ambas listas     |
+| N9  | Notas en compras y notas en cliente        | Hecho: icono + popover                              |
+| N10 | Objetivo mensual de beneficio              | Descartado por el usuario                           |
