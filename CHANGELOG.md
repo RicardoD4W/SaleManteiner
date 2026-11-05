@@ -40,6 +40,7 @@
 - **El filtro de fechas va en una sola línea**: los presets ("Todo", "Este mes"…) y la descripción del rango quedan a la izquierda; a la derecha, las dos fechas y el botón **"Quitar filtro"**, que ahora aparece siempre (y no hace nada cuando no hay filtro).
 - **El modal de copia de seguridad** tiene los botones **"Crear copia"** y **"Restaurar"**, centrados y con más separación entre ellos.
 - **La página ya no se mueve al cambiar de ruta ni al abrir un modal**: el hueco de la barra de scroll está siempre reservado (el contenido no se desplaza de lado al pasar de una lista larga a una ficha), al abrir un modal la página de fondo no se puede desplazar con la rueda y el modal ya no aumenta la altura de la página. Ese hueco reservado se pinta con **el mismo fondo que la app** y queda **a los dos lados**, para que el contenido siga centrado en la ventana. En dark mode, la barra de scroll se dibuja en oscuro: no se ve una franja de otro color ni una barra en claro sobre la app.
+- **La barra de scroll lleva los colores de la app**: es fina, con la pista transparente (el hueco reservado no se ve como una franja) y el tirador redondeado en gris claro, o en gris oscuro en el modo oscuro, y se aclara al pasar el ratón por encima.
 
 ### Migraciones
 

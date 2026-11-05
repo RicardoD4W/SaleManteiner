@@ -119,6 +119,30 @@ test('el hueco reservado tiene el mismo fondo que la app', async ({ page }) => {
   );
 });
 
+test('la barra de scroll usa los tonos de la app', async ({ page }) => {
+  await page.goto('/customers');
+  await page.waitForTimeout(300);
+
+  const thumb = () =>
+    page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--scrollbar-thumb').trim(),
+    );
+
+  const light = await thumb();
+
+  await page.evaluate(() => localStorage.setItem('salemanteiner-theme', 'dark'));
+  await page.reload();
+  await page.waitForTimeout(300);
+
+  const dark = await thumb();
+
+  expect(light, 'el pulgar de la barra de scroll tiene que tener un color').not.toBe('');
+  expect(light, 'el pulgar de la barra de scroll no puede ser transparente').not.toBe(
+    'transparent',
+  );
+  expect(dark, 'la barra de scroll tiene que cambiar con el tema de la app').not.toBe(light);
+});
+
 test('pasar de una lista larga a una ficha corta no cambia el ancho del contenido', async ({
   page,
   request,
