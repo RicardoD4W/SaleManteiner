@@ -95,7 +95,7 @@ export function ProductNameAutocomplete({
   const showNoMatches = isOpen && query.length > 0 && !isLoading && matches.length === 0;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="relative flex flex-col gap-1">
       {label ? (
         <label htmlFor={inputId} className="text-sm font-medium text-gray-800 dark:text-gray-200">
           {label}
