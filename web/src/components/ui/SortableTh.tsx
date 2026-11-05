@@ -14,6 +14,8 @@ interface SortableThProps {
   style?: CSSProperties;
 
   labelClassName?: string;
+
+  contentClassName?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export function SortableTh({
   className,
   style,
   labelClassName = 'min-w-0 truncate',
+  contentClassName,
 }: SortableThProps) {
   return (
     <th
@@ -44,7 +47,7 @@ export function SortableTh({
       style={style}
       aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'}
     >
-      <span className="flex items-center gap-1">
+      <span className={['flex items-center gap-1', contentClassName].filter(Boolean).join(' ')}>
         <span className={labelClassName}>{label}</span>
         <span className="inline-block w-3 shrink-0 text-center" aria-hidden="true">
           {sorted === 'asc' ? '▲' : sorted === 'desc' ? '▼' : ''}

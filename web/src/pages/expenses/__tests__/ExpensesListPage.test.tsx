@@ -52,6 +52,13 @@ const expensesFixture = [
   },
 ];
 
+function conceptOrder(): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[0].textContent ?? '');
+}
+
 describe('ExpensesListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,6 +76,81 @@ describe('ExpensesListPage', () => {
     expect(screen.getByText(euro(1200))).toBeInTheDocument();
     expect(screen.getByText(euro(150))).toBeInTheDocument();
     expect(screen.getByText('02/10/2026')).toBeInTheDocument();
+  });
+
+  it('ordena los gastos por importe y marca la cabecera', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+    const cabecera = screen.getByRole('columnheader', { name: /^Importe/ });
+
+    await user.click(cabecera);
+
+    expect(conceptOrder()).toEqual(['Papel de impresora', 'Alquiler de octubre']);
+    expect(cabecera).toHaveAttribute('aria-sort', 'ascending');
+
+    await user.click(cabecera);
+
+    expect(conceptOrder()).toEqual(['Alquiler de octubre', 'Papel de impresora']);
+    expect(cabecera).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it('ordena los gastos por concepto', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('columnheader', { name: /^Concepto/ }));
+
+    expect(conceptOrder()).toEqual(['Alquiler de octubre', 'Papel de impresora']);
+
+    await user.click(screen.getByRole('columnheader', { name: /^Concepto/ }));
+
+    expect(conceptOrder()).toEqual(['Papel de impresora', 'Alquiler de octubre']);
+  });
+
+  it('ordena los gastos por el nombre de la categoría', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('columnheader', { name: /^Categoría/ }));
+
+    expect(conceptOrder()).toEqual(['Alquiler de octubre', 'Papel de impresora']);
+
+    await user.click(screen.getByRole('columnheader', { name: /^Categoría/ }));
+
+    expect(conceptOrder()).toEqual(['Papel de impresora', 'Alquiler de octubre']);
+  });
+
+  it('ordena los gastos por fecha', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+    const cabecera = screen.getByRole('columnheader', { name: /^Fecha/ });
+
+    await user.click(cabecera);
+
+    expect(conceptOrder()).toEqual(['Alquiler de octubre', 'Papel de impresora']);
+
+    await user.click(cabecera);
+
+    expect(conceptOrder()).toEqual(['Papel de impresora', 'Alquiler de octubre']);
+  });
+
+  it('el total de la lista no cambia al ordenar', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('columnheader', { name: /^Importe/ }));
+
+    expect(screen.getByText(`Total: ${euro(1350)}`)).toBeInTheDocument();
   });
 
   it('el filtro por categoría pide solo los gastos de esa categoría', async () => {

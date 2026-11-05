@@ -106,14 +106,14 @@ export function BackupModal({ onClose }: BackupModalProps) {
             </p>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-12">
             <Button
               type="button"
               isLoading={createBackup.isPending}
               onClick={handleCreate}
               data-testid="backup-create"
             >
-              Crear copia ahora
+              Crear copia
             </Button>
             <Button
               type="button"
@@ -121,7 +121,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
               onClick={() => fileInputRef.current?.click()}
               data-testid="backup-restore-file"
             >
-              Restaurar desde un archivo…
+              Restaurar
             </Button>
             <input
               ref={fileInputRef}

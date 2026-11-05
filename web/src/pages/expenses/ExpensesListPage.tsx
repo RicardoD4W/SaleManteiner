@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useExpenseCategories } from '../../hooks/useExpenseCategories';
+import { useSortable } from '../../hooks/useSortable';
 import { Spinner } from '../../components/ui/Spinner';
 import { tableHeadClass } from '../../components/ui/tableStyles';
+import { SortableTableHead } from '../../components/ui/SortableTableHead';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { ExpenseFormModal } from '../../components/expenses/ExpenseFormModal';
 import { CategoryManagerModal } from '../../components/expenses/CategoryManagerModal';
@@ -11,6 +13,15 @@ import { formatDate, formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Expense } from '../../schemas/expenses';
 import { cn } from '../../lib/classNames';
+
+interface ExpenseRow {
+  id: number;
+  concept: string;
+  category: string;
+  amount: number;
+  expense_date: string;
+  expense: Expense;
+}
 
 export function ExpensesListPage() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -36,7 +47,20 @@ export function ExpensesListPage() {
     return names;
   }, [categories]);
 
-  const rows = useMemo<Expense[]>(() => expenses ?? [], [expenses]);
+  const rows = useMemo<ExpenseRow[]>(
+    () =>
+      (expenses ?? []).map((expense) => ({
+        id: expense.id,
+        concept: expense.concept,
+        category: categoryNames.get(expense.category_id) ?? '',
+        amount: expense.amount,
+        expense_date: expense.expense_date,
+        expense,
+      })),
+    [expenses, categoryNames],
+  );
+
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable<ExpenseRow>(rows);
 
   const total = useMemo(
     () => round2(rows.reduce((acc, expense) => acc + expense.amount, 0)),
@@ -125,50 +149,67 @@ export function ExpensesListPage() {
           <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-950">
               <tr>
-                <th scope="col" className={`${tableHeadClass} text-left`}>
-                  Concepto
-                </th>
-                <th scope="col" className={`${tableHeadClass} text-left`}>
-                  Categoría
-                </th>
-                <th scope="col" className={`${tableHeadClass} text-right`}>
-                  Importe
-                </th>
-                <th scope="col" className={`${tableHeadClass} text-left`}>
-                  Fecha
-                </th>
+                <SortableTableHead<ExpenseRow>
+                  label="Concepto"
+                  sortKey="concept"
+                  currentKey={sortKey}
+                  currentDir={sortDir}
+                  onSort={onSort}
+                />
+                <SortableTableHead<ExpenseRow>
+                  label="Categoría"
+                  sortKey="category"
+                  currentKey={sortKey}
+                  currentDir={sortDir}
+                  onSort={onSort}
+                />
+                <SortableTableHead<ExpenseRow>
+                  label="Importe"
+                  sortKey="amount"
+                  currentKey={sortKey}
+                  currentDir={sortDir}
+                  onSort={onSort}
+                  align="right"
+                />
+                <SortableTableHead<ExpenseRow>
+                  label="Fecha"
+                  sortKey="expense_date"
+                  currentKey={sortKey}
+                  currentDir={sortDir}
+                  onSort={onSort}
+                />
                 <th scope="col" className={`${tableHeadClass} text-left`}></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {rows.map((expense) => (
-                <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              {sortedItems.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
-                    {expense.concept}
+                    {row.concept}
                   </td>
                   <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                    {categoryNames.get(expense.category_id) ?? '—'}
+                    {row.category || '—'}
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">
-                    {formatEuro(expense.amount)}
+                    {formatEuro(row.amount)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                    {formatDate(expense.expense_date)}
+                    {formatDate(row.expense_date)}
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setEditing(expense)}
-                        aria-label={`Editar ${expense.concept}`}
+                        onClick={() => setEditing(row.expense)}
+                        aria-label={`Editar ${row.concept}`}
                         className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Editar
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeleting(expense)}
-                        aria-label={`Borrar ${expense.concept}`}
+                        onClick={() => setDeleting(row.expense)}
+                        aria-label={`Borrar ${row.concept}`}
                         className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
                       >
                         Borrar

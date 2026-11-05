@@ -16,7 +16,7 @@ export function AppVersion() {
         <button
           type="button"
           onClick={() => setIsBackupOpen(true)}
-          className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          className="cursor-pointer rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
         >
           Copia de seguridad
         </button>
