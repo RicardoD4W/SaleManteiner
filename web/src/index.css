@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 html {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
   color-scheme: light;
   background-color: var(--color-gray-50);
 }

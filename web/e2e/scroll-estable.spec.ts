@@ -87,7 +87,7 @@ test('la raíz reserva el hueco de la barra de scroll', async ({ page }) => {
   );
 
   expect(gutter, 'sin gutter reservado la barra de scroll desplaza el contenido al aparecer').toBe(
-    'stable',
+    'stable both-edges',
   );
 });
 
@@ -140,5 +140,5 @@ test('pasar de una lista larga a una ficha corta no cambia el ancho del contenid
   expect(
     await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter),
     'la ficha corta no puede quitar el hueco reservado a la barra de scroll',
-  ).toBe('stable');
+  ).toBe('stable both-edges');
 });
