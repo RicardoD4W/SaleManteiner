@@ -42,4 +42,24 @@ describe('banco de medición', () => {
     expect(report.dbBytes).toBeGreaterThan(0);
     expect(report.indexes.length).toBeGreaterThan(0);
   });
+
+  it('mide tambien el camino de escritura sin alterar el volumen sembrado', async () => {
+    const report = await runBench({ profile: 'tiny', iterations: 2, warmup: 1 });
+
+    expect(report.writes.map((write) => write.id)).toEqual([
+      'sold-1-item',
+      'sold-10-items',
+      'sold-50-items',
+      'buy-cascade',
+    ]);
+
+    for (const write of report.writes) {
+      expect(write.status).toBeLessThan(300);
+      expect(write.samples).toBe(2);
+      expect(write.statements).toBeGreaterThan(0);
+    }
+
+    expect(report.rows.buys).toBe(PROFILES.tiny.buys);
+    expect(report.rows.solds).toBe(PROFILES.tiny.solds);
+  });
 });

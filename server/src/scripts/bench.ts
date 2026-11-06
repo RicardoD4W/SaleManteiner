@@ -92,6 +92,22 @@ export interface EndpointResult {
   sqlMs: number;
 }
 
+export interface WriteResult {
+  id: string;
+  method: string;
+  path: string;
+  status: number;
+  samples: number;
+  min: number;
+  mean: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  max: number;
+  statements: number;
+  sqlMs: number;
+}
+
 export interface StatementStat {
   sql: string;
   count: number;
@@ -113,8 +129,10 @@ export interface BenchReport {
   rows: Record<string, number>;
   indexes: string[];
   endpoints: EndpointResult[];
+  writes: WriteResult[];
   statements: StatementStat[];
   endpointStatements: Record<string, StatementStat[]>;
+  writeStatements: Record<string, StatementStat[]>;
   plans: PlanInfo[];
   dbBytes: number;
   totalMs: number;
@@ -406,6 +424,156 @@ async function requestJson(
   return { status: response.status, bytes: text.length, ms };
 }
 
+const WRITE_ITEM_COUNTS = [1, 10, 50];
+
+function prepareWriteBuys(db: Database, count: number): number[] {
+  const insert = db.prepare(
+    `INSERT INTO buys (product_name, purchase_cost, quantity, associated_costs, purchase_date, created_at)
+     VALUES (?, 10, 100000, 0, ?, ?)`,
+  );
+  const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+  const ids: number[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const info = insert.run(`Compra de escritura ${i + 1}`, today, now);
+    ids.push(Number(info.lastInsertRowid));
+  }
+  return ids;
+}
+
+async function writeRequest(
+  baseUrl: string,
+  method: 'POST' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<{ status: number; bytes: number; ms: number }> {
+  const start = performance.now();
+  const response = await fetch(`${baseUrl}${path}`, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+  });
+  const text = await response.text();
+  const ms = performance.now() - start;
+  return { status: response.status, bytes: text.length, ms };
+}
+
+async function measureWrite(
+  id: string,
+  method: 'POST' | 'DELETE',
+  path: string,
+  samples: number,
+  collector: Collector,
+  operation: (index: number) => Promise<{ status: number; bytes: number; ms: number }>,
+): Promise<{ result: WriteResult; statements: StatementStat[] }> {
+  collector.events = [];
+  collector.collecting = true;
+  const timings: number[] = [];
+  let status = 0;
+  for (let i = 0; i < samples; i += 1) {
+    const result = await operation(i);
+    timings.push(result.ms);
+    status = result.status;
+  }
+  collector.collecting = false;
+
+  const perSql = new Map<string, StatementStat>();
+  for (const event of collector.events) {
+    const existing = perSql.get(event.sql) ?? {
+      sql: event.sql,
+      count: 0,
+      totalMs: 0,
+      endpoints: [id],
+    };
+    existing.count += 1;
+    existing.totalMs += event.ms;
+    perSql.set(event.sql, existing);
+  }
+
+  const sorted = [...timings].sort((a, b) => a - b);
+  const total = timings.reduce((acc, value) => acc + value, 0);
+  const sqlMs = [...perSql.values()].reduce((acc, stat) => acc + stat.totalMs, 0);
+
+  return {
+    result: {
+      id,
+      method,
+      path,
+      status,
+      samples: timings.length,
+      min: round2(sorted[0] ?? 0),
+      mean: round2(total / Math.max(1, timings.length)),
+      p50: round2(percentile(sorted, 50)),
+      p95: round2(percentile(sorted, 95)),
+      p99: round2(percentile(sorted, 99)),
+      max: round2(sorted[sorted.length - 1] ?? 0),
+      statements: collector.events.length / Math.max(1, samples),
+      sqlMs: round2(sqlMs / Math.max(1, samples)),
+    },
+    statements: [...perSql.values()]
+      .map((stat) => ({
+        sql: stat.sql,
+        count: Math.round(stat.count / Math.max(1, samples)),
+        totalMs: round2(stat.totalMs / Math.max(1, samples)),
+        endpoints: [id],
+      }))
+      .sort((a, b) => b.totalMs - a.totalMs),
+  };
+}
+
+async function runWriteBench(
+  baseUrl: string,
+  db: Database,
+  collector: Collector,
+  samples: number,
+): Promise<{ writes: WriteResult[]; writeStatements: Record<string, StatementStat[]> }> {
+  const writes: WriteResult[] = [];
+  const writeStatements: Record<string, StatementStat[]> = {};
+
+  const buyIds = prepareWriteBuys(db, Math.max(...WRITE_ITEM_COUNTS));
+
+  for (const itemCount of WRITE_ITEM_COUNTS) {
+    const id = itemCount === 1 ? 'sold-1-item' : `sold-${itemCount}-items`;
+    const body = {
+      customer_id: 1,
+      sale_price: 100,
+      items: buyIds.slice(0, itemCount).map((buy_id) => ({ buy_id, quantity: 1 })),
+    };
+    const { result, statements } = await measureWrite(
+      id,
+      'POST',
+      '/api/solds',
+      samples,
+      collector,
+      () => writeRequest(baseUrl, 'POST', '/api/solds', body),
+    );
+    writes.push(result);
+    writeStatements[id] = statements;
+  }
+
+  const cascadeBuyIds = prepareWriteBuys(db, samples);
+  for (const buyId of cascadeBuyIds) {
+    await writeRequest(baseUrl, 'POST', '/api/solds', {
+      customer_id: 1,
+      sale_price: 100,
+      items: [{ buy_id: buyId, quantity: 1 }],
+    });
+  }
+  const { result, statements } = await measureWrite(
+    'buy-cascade',
+    'DELETE',
+    '/api/buys/:id/cascade',
+    samples,
+    collector,
+    (index) => writeRequest(baseUrl, 'DELETE', `/api/buys/${cascadeBuyIds[index]}/cascade`),
+  );
+  writes.push(result);
+  writeStatements['buy-cascade'] = statements;
+
+  return { writes, writeStatements };
+}
+
 export async function runBench(options: BenchOptions = {}): Promise<BenchReport> {
   const profileName = options.profile ?? 'medium';
   const profile = PROFILES[profileName];
@@ -526,12 +694,18 @@ export async function runBench(options: BenchOptions = {}): Promise<BenchReport>
     }
   }
 
+  const seededRows = rowCounts(rawDb);
+  const seededDbBytes = dbSize(dbPath);
+
+  const { writes, writeStatements } = await runWriteBench(baseUrl, rawDb, collector, iterations);
+
   const report: BenchReport = {
     profile: profile.name,
     seed,
-    rows: rowCounts(rawDb),
+    rows: seededRows,
     indexes: indexInventory(rawDb),
     endpoints,
+    writes,
     statements: [...uniqueStatements.values()]
       .map((stat) => ({ ...stat, totalMs: round2(stat.totalMs) }))
       .sort((a, b) => b.totalMs - a.totalMs),
@@ -548,8 +722,9 @@ export async function runBench(options: BenchOptions = {}): Promise<BenchReport>
           .sort((a, b) => b.totalMs - a.totalMs),
       ]),
     ),
+    writeStatements,
     plans,
-    dbBytes: dbSize(dbPath),
+    dbBytes: seededDbBytes,
     totalMs: round2(performance.now() - totalStart),
   };
 
@@ -606,6 +781,42 @@ export function formatReport(report: BenchReport): string {
     );
   }
   lines.push('');
+
+  lines.push('## Escrituras (ms por operación)');
+  lines.push(
+    formatRow(
+      ['operación', 'método', 'p50', 'p95', 'p99', 'max', 'stmts', 'sql ms'],
+      [18, 8, 9, 9, 9, 9, 7, 9],
+    ),
+  );
+  for (const write of report.writes) {
+    lines.push(
+      formatRow(
+        [
+          write.id,
+          write.method,
+          String(write.p50),
+          String(write.p95),
+          String(write.p99),
+          String(write.max),
+          String(write.statements),
+          String(write.sqlMs),
+        ],
+        [18, 8, 9, 9, 9, 9, 7, 9],
+      ),
+    );
+  }
+  lines.push('');
+
+  lines.push('## Consultas por escritura');
+  for (const write of report.writes) {
+    const stats = report.writeStatements[write.id] ?? [];
+    lines.push(`### ${write.id} — ${write.statements} ejecuciones, ${write.sqlMs} ms de SQL`);
+    for (const stat of stats) {
+      lines.push(`- [${stat.count}x, ${stat.totalMs} ms] ${stat.sql.replace(/\s+/g, ' ').trim()}`);
+    }
+    lines.push('');
+  }
 
   lines.push('## Consultas por endpoint (veces por petición y ms de SQL por petición)');
   for (const endpoint of report.endpoints) {

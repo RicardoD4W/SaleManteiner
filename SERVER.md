@@ -303,7 +303,10 @@ Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (
 
 - **latencia p50/p95/p99** por endpoint, con peticiones HTTP reales;
 - **nº de consultas y ms de SQL por petición**, instrumentando `db.prepare`;
-- **`EXPLAIN QUERY PLAN`** de cada consulta que se ejecuta, para distinguir `SCAN` de `SEARCH`.
+- **`EXPLAIN QUERY PLAN`** de cada consulta que se ejecuta, para distinguir `SCAN` de `SEARCH`;
+- **el camino de escritura**, que las lecturas no cubren: crear una venta (`POST /api/solds`) con **1, 10 y 50 ítems** y el borrado en cascada de una compra (`DELETE /api/buys/:id/cascade`), con su latencia, su nº de consultas y su SQL.
+
+La fase de escritura usa compras aparte sembradas con existencias holgadas, así que el stock no interfiere, y se mide **después** de las lecturas: el volumen que reporta el informe (`rows`, `dbBytes`) es el sembrado, no el ya escrito.
 
 ```bash
 npm run bench -- --profile medium --iterations 30 --json odd/bench/baseline-medium.json
