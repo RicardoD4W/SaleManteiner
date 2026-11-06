@@ -10,10 +10,12 @@
     "build:app": "npm --prefix .. run build:web && npm --prefix .. run build:server && node scripts/pack-sidecar.mjs && tauri build",
     "icon": "tauri icon icon-source.png && node scripts/sync-favicon.mjs",
     "pack:sidecar": "node scripts/pack-sidecar.mjs",
+    "test": "vitest run",
     "publish:new-version": "node scripts/publish-new-version.mjs",
     "release": "node scripts/release.mjs"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.4"
+    "@tauri-apps/cli": "^2.12.4",
+    "vitest": "^5.0.5"
   }
 }

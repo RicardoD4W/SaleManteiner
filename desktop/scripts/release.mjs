@@ -46,6 +46,43 @@ export function readLocalVersion() {
   }
 }
 
+export function readChangelog() {
+  const changelogPath = path.join(DESKTOP, '..', 'CHANGELOG.md');
+  try {
+    return readFileSync(changelogPath, 'utf8');
+  } catch (err) {
+    throw new Error(`no puedo leer el changelog en ${changelogPath}: ${err.message}`);
+  }
+}
+
+export function extractChangelogSection(changelog, version) {
+  const lines = String(changelog).split(/\r?\n/);
+  const heading = `## [${version}]`;
+  const start = lines.indexOf(heading);
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (lines[index].startsWith('## ')) {
+      end = index;
+      break;
+    }
+  }
+  return lines
+    .slice(start + 1, end)
+    .join('\n')
+    .trim();
+}
+
+export function buildReleaseBody(changelog, version) {
+  const section = extractChangelogSection(changelog, version);
+  if (!section) return null;
+  return section
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== '**Sin publicar**')
+    .join('\n')
+    .trim();
+}
+
 export function buildLatestJson(version, signatureFile) {
   return {
     version,

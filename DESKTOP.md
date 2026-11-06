@@ -42,6 +42,7 @@ npm run build:desktop     # = desktop/ → build:app
 | `npm run release`             | arma el `latest.json` del updater                                           |
 | `npm run publish:new-version` | publica la release **solo si** la versión local difiere                     |
 | `npm run icon`                | regenera los íconos desde `icon-source.png` y sincroniza el favicon del web |
+| `npm run test`                | los tests de los scripts de release                                         |
 
 **Ojo**: un `tauri build` a secas empaqueta el **sidecar viejo** → siempre `build:app`.
 
@@ -52,6 +53,7 @@ npm run build:desktop     # = desktop/ → build:app
 - **El endpoint** apunta a las GitHub Releases (`releases/latest/download/latest.json`): cada release publica el instalador, su `.sig` y el `latest.json`. El repo es público → el updater del cliente lo lee sin credenciales.
 - **El flujo**: `npm run build:app` (con las variables de firma) → `node desktop/scripts/release.mjs` (arma el `latest.json`) → se publica la release en GitHub con los 3 archivos. El cliente abre la app → el shell hace `check_update()` → si hay versión nueva, un **diálogo nativo** pregunta → si acepta, descarga, **verifica la firma minisign** (si no calza, no instala) y reinicia la app. **Los datos no se tocan**: la BD vive en `%APPDATA%\SaleManteiner`, fuera de la carpeta que reemplaza el instalador.
 - **Publicar una versión nueva**: `npm run publish:new-version` (desde la raíz o desde `desktop/`). El script mira **qué versión está distribuida** (lee el `latest.json` del endpoint) y publica solo si la local es distinta, con comparación **semver**: si es igual → no hace nada; si es **menor** → se niega (un downgrade no sirve de nada). Exige: instalador **firmado**, el token de GitHub (ver abajo), el árbol de trabajo limpio y el commit **pusheado**. Después crea la release (tag `vX.Y.Z` sobre el commit actual) y sube los 3 archivos.
+- **El cuerpo de la release es el changelog**: `publish:new-version` lee la sección `[<versión>]` del `CHANGELOG.md` y la publica como notas de la release en GitHub. Si esa sección no existe, el script **se niega a publicar** (una release sin los cambios de la versión no sirve). El marcador "**Sin publicar**" se quita del cuerpo.
 - **Si no hay red o no hay release**, el check **falla en silencio** (solo un log): la app nunca se bloquea por no poder actualizarse.
 
 ### El token de GitHub

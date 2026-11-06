@@ -9,8 +9,10 @@ import {
   RELEASE_DIR,
   buildInstallerZip,
   buildLatestJson,
+  buildReleaseBody,
   installerName,
   installerZipName,
+  readChangelog,
   readLocalVersion,
 } from './release.mjs';
 
@@ -82,6 +84,14 @@ async function main() {
   const distributed = await fetchDistributed();
   log(`versión local:       ${localVersion}`);
   log(`versión distribuida: ${distributed.version ?? '(no hay ninguna release publicada)'}`);
+
+  const releaseBody = buildReleaseBody(readChangelog(), localVersion);
+  if (!releaseBody) {
+    fail(
+      `no hay ninguna entrada para la versión ${localVersion} en CHANGELOG.md: ` +
+        'la release se publica con los cambios del changelog, así que la entrada tiene que existir',
+    );
+  }
 
   const decision = decidePublish(localVersion, distributed.version);
   if (decision === 'up-to-date') {
@@ -171,7 +181,7 @@ async function main() {
       tag_name: tag,
       target_commitish: head,
       name: `SaleManteiner ${localVersion}`,
-      body: `SaleManteiner ${localVersion}`,
+      body: releaseBody,
       draft: false,
       prerelease: false,
     }),
