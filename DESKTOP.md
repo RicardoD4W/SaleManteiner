@@ -56,6 +56,24 @@ npm run build:desktop     # = desktop/ → build:app
 - **El cuerpo de la release es el changelog**: `publish:new-version` lee la sección `[<versión>]` del `CHANGELOG.md` y la publica como notas de la release en GitHub. Si esa sección no existe, el script **se niega a publicar** (una release sin los cambios de la versión no sirve). El marcador "**Sin publicar**" se quita del cuerpo.
 - **Si no hay red o no hay release**, el check **falla en silencio** (solo un log): la app nunca se bloquea por no poder actualizarse.
 
+### El ciclo de release
+
+Features en ramas `feature/*` → merge a `master` → se corta `release/<versión>` desde `master` → `master` sigue trabajando → la release se publica **desde la rama de release** → la rama se borra.
+
+```bash
+git branch release/1.0.0 && git push -u origin release/1.0.0
+git checkout release/1.0.0
+npm run build:app           # firmado
+npm run publish:new-version
+git checkout master
+git merge --no-ff release/1.0.0    # el changelog con la fecha vuelve a master
+git branch -d release/1.0.0 && git push origin --delete release/1.0.0
+```
+
+**La rama de release es una foto congelada del código**: nunca se le mergea `master` (metería el código de la versión siguiente dentro del instalador de la anterior) y el build se corre **en ella**, porque `build:app` compila el árbol en el que estás. Los docs que deban ir en esa versión se pasan con `git cherry-pick` de commits sueltos, nunca con un merge.
+
+**El número de versión vive en el árbol**: `desktop/tauri.conf.json` (la app, que es lo que compara el updater) y los tres `package.json`. La rama de release hereda la versión de `master` en el momento del corte, y el bump de la versión siguiente va en `master`.
+
 ### El token de GitHub
 
 El token se llama **`GH_TOKEN`** y el script lo lee de **`desktop/.env`** (con `process.loadEnvFile` de Node) o, si no está, del entorno:
