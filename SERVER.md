@@ -88,12 +88,23 @@ db.pragma('busy_timeout = 5000');
 | `002_purchase_date_and_manual_sold_at.sql` | fechas en el modelo legacy                                                                                  |
 | `003_buys_and_solds.sql`                   | **el modelo actual**: `buys`, `solds`, `sale_items`, `customers`                                            |
 | `004_vistas_cifras.sql`                    | vistas `v_item_costs` y `v_sold_costs` (la fuente de la verdad de las cifras)                               |
-| `005_indices_de_fecha.sql`                 | índices de fecha para las consultas de rango                                                                |
+| `005_indices_de_fecha.sql`                 | **elimina** los índices de fecha (`idx_buys_purchase_date`, `idx_solds_sold_at`) y `idx_customers_name`     |
 | `006_gastos_y_ficha_cliente.sql`           | **aditiva**: `customers.phone/address/notes`, `solds.paid_amount`, tablas `expenses` y `expense_categories` |
 | `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
 | `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
+| `009_indices_performance.sql`              | **aditiva**: recrea `idx_buys_purchase_date` e `idx_solds_sold_at`                                          |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
+
+### Índices y predicados sargables
+
+Índices que hay hoy: `idx_buys_purchase_date`, `idx_solds_sold_at`, `idx_solds_customer`, `idx_sale_items_buy`, `idx_expenses_date`, `idx_expenses_category`.
+
+**Por qué no hay índice en `customers.name`**: la búsqueda de clientes filtra con `LIKE '%texto%'` (el comodín inicial impide usar el índice) y el listado ordena con `ORDER BY c.name COLLATE NOCASE`, que necesita un índice con esa collation. Un índice BINARY sobre `name` no sirve para ninguno de los dos casos: solo añadiría coste de escritura.
+
+**Regla**: un índice de fecha solo se usa si el predicado compara la **columna cruda**. Filtrar por mes con `strftime('%Y-%m', sold_at) = ?` envuelve la columna y el índice no sirve; el predicado equivalente es un **rango**: `sold_at >= 'YYYY-MM-01' AND sold_at < 'YYYY-MM+1-01'` (ver `lib/months.ts`, `monthBounds`). Los agregados por mes de `metrics-repo.ts` y las series mensuales de `solds-repo.ts` usan rangos.
+
+El stock disponible se calcula con una **subconsulta correlacionada asistida por índice** (`idx_sale_items_buy`): una búsqueda por cada compra. Se midió contra la alternativa (agregar `sale_items` en bloque y unirlo con `LEFT JOIN`): la subconsulta **gana** (27,8 ms frente a 37,7 ms en el listado con volumen `large`), porque el planificador materializa el agregado y se inventa un índice automático. Se mantiene la forma original (ver el Log del documento de feature).
 
 El modelo de datos completo está en [ARCHITECTURE.md §3](ARCHITECTURE.md#3-modelo-de-datos).
 

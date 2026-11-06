@@ -42,7 +42,7 @@ describe('el planner usa los índices que valen', () => {
     expect(detalles.join(' | ')).toMatch(/USING INDEX idx_solds_customer/);
   });
 
-  it('el filtro por fecha no usa un índice (no hay rango que derivar) y no lo necesita', () => {
+  it('el filtro por fecha del listado no usa un índice (su predicado no es sargable)', () => {
     const detalles = plan(db, LIST_BY_DATE_SQL, [
       null,
       null,
@@ -56,14 +56,14 @@ describe('el planner usa los índices que valen', () => {
     expect(detalles.join(' | ')).not.toMatch(/idx_buys_purchase_date/);
   });
 
-  it('los índices de fecha ya no existen (se fueron a propósito)', () => {
+  it('los índices de fecha existen (migración 009) sin tocar el resto', () => {
     const indices = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'")
       .all() as Array<{ name: string }>;
     const nombres = indices.map((i) => i.name);
 
-    expect(nombres).not.toContain('idx_solds_sold_at');
-    expect(nombres).not.toContain('idx_buys_purchase_date');
+    expect(nombres).toContain('idx_solds_sold_at');
+    expect(nombres).toContain('idx_buys_purchase_date');
     expect(nombres).not.toContain('idx_sale_items_sold');
     expect(nombres).not.toContain('idx_customers_name');
     expect(nombres).toContain('idx_solds_customer');

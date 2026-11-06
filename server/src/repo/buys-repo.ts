@@ -111,8 +111,9 @@ export function createBuysRepo(db: Database): BuysRepo {
   `);
   const cascadeSoldIdsStmt = db.prepare(`SELECT DISTINCT sold_id FROM sale_items WHERE buy_id = ?`);
   const deleteItemStmt = db.prepare(`DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`);
-  const countItemsStmt = db.prepare(`SELECT COUNT(*) AS c FROM sale_items WHERE sold_id = ?`);
-  const deleteSoldStmt = db.prepare(`DELETE FROM solds WHERE id = ?`);
+  const deleteSoldIfEmptyStmt = db.prepare(
+    `DELETE FROM solds WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sale_items WHERE sold_id = ?)`,
+  );
 
   function create(input: CreateBuyInput): Buy {
     const now = new Date().toISOString();
@@ -207,8 +208,7 @@ export function createBuysRepo(db: Database): BuysRepo {
       const soldIds = cascadeSoldIdsStmt.all(id) as Array<{ sold_id: number }>;
       for (const { sold_id } of soldIds) {
         deleteItemStmt.run(sold_id, id);
-        const { c } = countItemsStmt.get(sold_id) as { c: number };
-        if (c === 0) deleteSoldStmt.run(sold_id);
+        deleteSoldIfEmptyStmt.run(sold_id, sold_id);
       }
       if (deleteStmt.run(id).changes === 0) return { ok: false, code: 'NOT_FOUND' };
       return { ok: true };
