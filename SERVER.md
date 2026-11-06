@@ -285,3 +285,26 @@ Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (
 | `backups-routes.test.ts`  | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |
 | `products.test.ts`        | el repo de nombres de producto: agrupación sin mayúsculas, grafía más reciente, orden por usos y conteo                                         |
 | `products-routes.test.ts` | el contrato HTTP de `GET /api/products`                                                                                                         |
+
+## 9. Banco de medición (`npm run bench`)
+
+`server/src/scripts/bench.ts` siembra una **BD temporal** (en el `tmp` del sistema; nunca la del usuario) con un volumen controlado y reproducible, levanta la app real (`createApp` + `listen`) y mide:
+
+- **latencia p50/p95/p99** por endpoint, con peticiones HTTP reales;
+- **nº de consultas y ms de SQL por petición**, instrumentando `db.prepare`;
+- **`EXPLAIN QUERY PLAN`** de cada consulta que se ejecuta, para distinguir `SCAN` de `SEARCH`.
+
+```bash
+npm run bench -- --profile medium --iterations 30 --json odd/bench/baseline-medium.json
+```
+
+| Perfil   | clientes | compras | ventas | ítems de venta | gastos | meses |
+| -------- | -------- | ------- | ------ | -------------- | ------ | ----- |
+| `tiny`   | 10       | 20      | 30     | ~45            | 20     | 6     |
+| `small`  | 100      | 500     | 1.000  | ~2.000         | 300    | 12    |
+| `medium` | 500      | 2.000   | 5.000  | ~10.000        | 1.000  | 24    |
+| `large`  | 2.000    | 10.000  | 25.000 | ~50.000        | 5.000  | 24    |
+
+Opciones: `--profile`, `--iterations`, `--warmup`, `--seed`, `--dir` (conserva la BD sembrada), `--keep`, `--json`.
+
+La siembra usa un PRNG con semilla fija (`--seed`), así que el volumen es reproducible; las fechas se reparten hacia atrás desde el día de ejecución, de modo que el mes en curso siempre tiene datos. El script **no se empaqueta** en la app de escritorio: `tsconfig.build.json` excluye `src/scripts/**`.
