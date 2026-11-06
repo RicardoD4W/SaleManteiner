@@ -1,6 +1,6 @@
 [package]
 name = "salemanteiner-desktop"
-version = "0.1.0"
+version = "1.0.0"
 description = "Shell de escritorio de SaleManteiner (Tauri 2)"
 authors = ["rickydev03"]
 edition = "2024"

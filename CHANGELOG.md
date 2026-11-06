@@ -10,7 +10,7 @@
 > `server/version.json` → la app las muestra en el pie y `GET /api/version` las
 > devuelve.
 
-## [0.2.0]
+## [1.0.0]
 
 **Sin publicar**
 
@@ -33,6 +33,10 @@
 - **Recibo imprimible de una venta**: desde el enlace **"Recibo"** de cada fila de la lista de ventas (o desde el botón "Recibo" de la página de editar la venta) se abre el recibo de esa venta: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad y el total. Con el botón **"Imprimir o guardar como PDF"** se imprime en papel o se guarda como PDF (el PDF lo pone el diálogo de impresión del navegador, no la app). En la hoja sale **solo el recibo**: ni la cabecera de la app ni los botones. Las **notas internas y los gastos asociados no aparecen** en el recibo: son información del vendedor.
 
 ### Cambiado
+
+- **El subtítulo del encabezado** de la app deja de ser la lista de módulos ("compras, ventas y clientes") y pasa a ser una frase: "Tu gestor personal para llevar tus cuentas al día".
+
+- **Nuevo icono de la app**: el logo de la gráfica ascendente con la flecha verde sustituye al símbolo del euro. Los íconos de la app de escritorio (instalador, acceso directo, barra de tareas) y el favicon del web salen ahora **de una única fuente**: `desktop/icon-source.png` (PNG 1024x1024). Con `npm run icon` (en `desktop/`) se regeneran los íconos de escritorio y se sincroniza el favicon del web.
 
 - **El color de un KPI es el mismo que el de su línea en la gráfica**: la línea de gastos del flujo de caja ya no es morada, es el ámbar de la cajita de "Gastos"; la de compras es el rojo de "Compras totales" y la de beneficio, el verde de "Beneficio". Cada métrica tiene un único color (token `--color-metric-*`), así que el número y su línea no pueden divergir. Como consecuencia cambian de color los KPIs que se confundían con otro: **la deuda y los clientes con deuda** pasan del ámbar al gris azulado (el ámbar ya es de los gastos), **el stock pendiente y su valor** al azul, **el resultado del mes** de la gráfica al violeta (el naranja de marca era demasiado parecido al ámbar de los gastos) y **las ventas totales** quedan en neutro, porque el verde es del beneficio. El cero de un beneficio deja de pintarse en naranja y queda en gris: un 0 no es un aviso.
 
@@ -95,6 +99,6 @@ La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y ta
 - **Búsqueda que entiende**: texto, precios, cantidades (`x3`), fechas (`12/03/2025`) y pérdidas (`-30`), combinables.
 - **100% local**: sin cuentas, sin nube, sin telemetría y sin peticiones a terceros.
 
-[0.2.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.2.0
+[1.0.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v1.0.0
 [0.1.1]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.0
