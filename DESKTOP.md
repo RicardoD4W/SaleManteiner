@@ -72,6 +72,8 @@ git branch -d release/1.0.0 && git push origin --delete release/1.0.0
 
 **La rama de release es una foto congelada del código**: nunca se le mergea `master` (metería el código de la versión siguiente dentro del instalador de la anterior) y el build se corre **en ella**, porque `build:app` compila el árbol en el que estás. Los docs que deban ir en esa versión se pasan con `git cherry-pick` de commits sueltos, nunca con un merge.
 
+**Antes de publicar**: la entrada de la versión en `CHANGELOG.md` pasa de "**Sin publicar**" a "**Publicada el &lt;fecha&gt;**" (un commit en la rama de release: el tag `vX.Y.Z` incluye la fecha) y la rama está pusheada (el script se niega a publicar si el commit no está en `origin/<rama>`).
+
 **El número de versión vive en el árbol**: `desktop/tauri.conf.json` (la app, que es lo que compara el updater) y los tres `package.json`. La rama de release hereda la versión de `master` en el momento del corte, y el bump de la versión siguiente va en `master`.
 
 ### El token de GitHub
