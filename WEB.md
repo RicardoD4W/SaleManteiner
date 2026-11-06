@@ -25,7 +25,7 @@ web/
 ├── vite.config.ts              ← proxy /api → API_TARGET, alias @, build a web/dist
 ├── vitest.config.ts            ← pool 'vmThreads' + maxWorkers 5
 ├── playwright.config.ts        ← e2e: server en :4100, web en :5174, BD temporal
-├── public/favicon.svg          ← ícono de la app (origen de los íconos de escritorio)
+├── public/favicon.png          ← ícono de la app (generado desde `desktop/icon-source.png` con `npm run icon` en `desktop/`)
 ├── e2e/                        ← specs de Playwright
 └── src/
     ├── main.tsx                ← root + QueryClientProvider + AppToaster

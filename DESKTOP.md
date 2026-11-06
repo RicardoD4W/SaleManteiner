@@ -34,14 +34,14 @@ npm run build:desktop     # = desktop/ → build:app
 
 `build:app` (en `desktop/`) hace: `build:web` → `build:server` → `node scripts/pack-sidecar.mjs` → `tauri build`.
 
-| Comando (en `desktop/`)       | Qué hace                                                        |
-| ----------------------------- | --------------------------------------------------------------- |
-| `npm run dev`                 | el shell en modo desarrollo                                     |
-| `npm run build:app`           | front + back + sidecar + instalador (**el de entrega**)         |
-| `npm run pack:sidecar`        | solo re-empaqueta el runtime (node + server + web)              |
-| `npm run release`             | arma el `latest.json` del updater                               |
-| `npm run publish:new-version` | publica la release **solo si** la versión local difiere         |
-| `npm run icon`                | regenera los íconos desde el favicon (`web/public/favicon.svg`) |
+| Comando (en `desktop/`)       | Qué hace                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| `npm run dev`                 | el shell en modo desarrollo                                                 |
+| `npm run build:app`           | front + back + sidecar + instalador (**el de entrega**)                     |
+| `npm run pack:sidecar`        | solo re-empaqueta el runtime (node + server + web)                          |
+| `npm run release`             | arma el `latest.json` del updater                                           |
+| `npm run publish:new-version` | publica la release **solo si** la versión local difiere                     |
+| `npm run icon`                | regenera los íconos desde `icon-source.png` y sincroniza el favicon del web |
 
 **Ojo**: un `tauri build` a secas empaqueta el **sidecar viejo** → siempre `build:app`.
 
@@ -109,5 +109,5 @@ El server expone `GET /api/version` → `{ app, front, back }` (la del back sale
 - `cargo build` → `desktop/target/debug/salemanteiner-desktop.exe` ✓.
 - **Instalador firmado 0.1.0**: 36,62 MiB (Node + server + web adentro) + `.sig` minisign ✓.
 - **Instalado en un sandbox** (`%TEMP%\sm-e2e\app`): arranca, levanta el sidecar, sirve el web y la BD cae en el directorio temporal (`dbSource: explicit-dir`) → la BD real del usuario no se toca ✓. Captura revisada: dashboard en dark, 4 tabs, KPIs, chart y el footer con las versiones ✓.
-- Los íconos salen del favicon del repo (`web/public/favicon.svg` → `tauri icon`).
+- Los íconos salen de una única fuente: `desktop/icon-source.png` (PNG 1024x1024). `npm run icon` regenera `desktop/icons/**` con `tauri icon` y sincroniza `web/public/favicon.png`.
 - El smoke en frío (L11 del feature doc): la app instalada abre, guarda datos y el sidecar muere con la ventana.
