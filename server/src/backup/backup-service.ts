@@ -125,17 +125,19 @@ function columnExists(db: DatabaseType, table: string, column: string): boolean 
   return rows.some((row) => row.name === column);
 }
 
-function appliedSchemaVersion(backup: DatabaseType): number {
-  if (!tableExists(backup, '_migrations')) return 0;
-  const row = backup.prepare('SELECT MAX(version) AS version FROM _migrations').get() as
-    { version: number | null } | undefined;
-  return row?.version ?? 0;
+function appliedMigration(backup: DatabaseType, version: number): boolean {
+  if (!tableExists(backup, '_migrations')) return false;
+  const row = backup
+    .prepare('SELECT COUNT(*) AS c FROM _migrations WHERE version = ?')
+    .get(version) as {
+    c: number;
+  };
+  return row.c > 0;
 }
 
 function soldsSelect(backup: DatabaseType): string {
-  const version = appliedSchemaVersion(backup);
-  if (version >= DEBT_DEFAULT_SCHEMA_VERSION) return SELECT_SOLDS_CURRENT;
-  if (version >= COLLECTED_AMOUNT_SCHEMA_VERSION) return SELECT_SOLDS_OLD_DEBT;
+  if (appliedMigration(backup, DEBT_DEFAULT_SCHEMA_VERSION)) return SELECT_SOLDS_CURRENT;
+  if (appliedMigration(backup, COLLECTED_AMOUNT_SCHEMA_VERSION)) return SELECT_SOLDS_OLD_DEBT;
   if (columnExists(backup, 'solds', 'paid_amount')) return SELECT_SOLDS_OLD_DEBT;
   return SELECT_SOLDS_WITHOUT_COLLECTED_AMOUNT;
 }
