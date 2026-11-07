@@ -107,19 +107,19 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### `components/ui/` — la base
 
-| Componente                                                      | Para qué                                                                                                                                                    |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado)                    |
-| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                              |
-| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                    |
-| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                           |
-| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                    |
-| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                            |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                          |
-| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                          |
-| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
-| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
-| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                   |
+| Componente                                                      | Para qué                                                                                                                                                           |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado; **clic fuera no cierra**) |
+| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                                     |
+| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                           |
+| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                                  |
+| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                           |
+| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                                   |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                                 |
+| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                 |
+| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                       |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)        |
+| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                          |
 
 ### El modal y el scroll de la página
 
@@ -128,6 +128,10 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 - **Portal a `document.body`**: el modal se monta fuera del contenedor de la página. Si se montara dentro, heredaría sus márgenes (`space-y-*` da `margin-bottom` a todos los hijos menos el último) y **el documento crecería 16 px** al abrirlo → aparecería la barra de scroll y el contenido se desplazaría de lado.
 - **Scroll de fondo bloqueado** (`useScrollLock`): con el modal abierto, la raíz tiene `overflow: hidden`, así que la rueda del ratón no mueve la página que queda detrás. La posición del scroll se conserva y se restaura al cerrar; las aperturas anidadas se cuentan, para que cerrar el modal de encima no desbloquee el de abajo.
 - **Barra de scroll reservada** (`scrollbar-gutter: stable both-edges` en `html`, `web/src/index.css`): el hueco de la barra de scroll vertical está siempre reservado, así que el ancho del contenido no depende de si la página se puede desplazar (si no, al pasar de una lista larga a una ficha corta el contenido se iría de lado). Con `both-edges` el hueco se reserva **a los dos lados**: el contenido queda centrado en la ventana en vez de pegado al borde izquierdo. El hueco se pinta con el **fondo de la raíz** (`html`), que lleva el mismo color que la app (`gray-50` / `dark:gray-950`) y `color-scheme` según el tema: si no, se vería una franja de otro color cuando la página no tiene scroll.
+
+### Cómo se cierra el modal
+
+`Modal` se cierra con el botón **"Cerrar"** (la aspa de la cabecera) o con la tecla `Escape`. **Hacer clic fuera del diálogo no lo cierra**: el clic en el fondo no descarta lo que se ha escrito, por decisión explícita del usuario. El fondo (`role="presentation"`) se sigue pintando como velo, pero no tiene manejador de clic.
 
 ### El recibo de una venta
 

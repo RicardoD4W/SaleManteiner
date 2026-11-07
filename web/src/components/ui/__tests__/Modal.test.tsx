@@ -67,7 +67,7 @@ describe('Modal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('el click en el backdrop cierra el diálogo', async () => {
+  it('el click en el backdrop no cierra el diálogo', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderWithProviders(
@@ -78,7 +78,7 @@ describe('Modal', () => {
 
     const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
     await user.click(backdrop);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('el backdrop no cierra mientras isPending', async () => {

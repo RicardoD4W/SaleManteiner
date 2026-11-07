@@ -70,12 +70,8 @@ export function Modal({
 
   useScrollLock();
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !isPending) onClose();
-  };
-
   return createPortal(
-    <div className={backdropClass} role="presentation" onClick={handleBackdropClick}>
+    <div className={backdropClass} role="presentation">
       <div
         ref={dialogRef}
         role="dialog"
