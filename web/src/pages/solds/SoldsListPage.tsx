@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import type { QueryClient } from '@tanstack/react-query';
 import { useSolds } from '../../hooks/useSolds';
 import { useSortable } from '../../hooks/useSortable';
 import { useCustomers } from '../../hooks/useCustomers';
@@ -8,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
 import {
+  ArmedRowContext,
   ArmedRowProvider,
   RowActions,
   TravellingCell,
@@ -21,11 +23,13 @@ import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
 import { isRangeActive, type DateRange } from '../../lib/dateRange';
 import type { SaleItemOutput } from '../../schemas/solds';
 import type { SoldWithItems } from '../../schemas/solds';
+import type { CustomerWithMetrics } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Button } from '../../components/ui/Button';
 import { NotesPopover } from '../../components/ui/NotesPopover';
+import { ReceiptIcon } from '../../components/ui/icons';
 
 const columnHelper = createColumnHelper<SoldRow>();
 
@@ -35,6 +39,7 @@ function toSoldDetail(sold: SoldWithCustomer): SoldWithItems {
     customer_id: sold.customer_id,
     sale_price: sold.sale_price,
     associated_costs: sold.associated_costs,
+    paid_amount: sold.paid_amount,
     sold_at: sold.sold_at,
     notes: sold.notes,
     created_at: sold.created_at,
@@ -47,6 +52,24 @@ interface SoldRow extends SoldWithCustomer {
   firstProduct: string;
 }
 
+function SoldReceiptLink({ row }: { row: SoldRow }) {
+  const { armRow } = useContext(ArmedRowContext);
+  return (
+    <Link
+      to={`/solds/${row.id}/receipt`}
+      viewTransition
+      state={{ armedRowId: row.id, armedTarget: 'receipt' }}
+      onMouseEnter={() => armRow(row, 'receipt')}
+      onFocus={() => armRow(row, 'receipt')}
+      onPointerDown={() => armRow(row, 'receipt')}
+      aria-label={`Recibo de la venta #${row.id}`}
+      className="inline-flex cursor-pointer rounded text-brand-600 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:hover:text-brand-300 dark:focus-visible:ring-offset-gray-900"
+    >
+      <ReceiptIcon />
+    </Link>
+  );
+}
+
 export function SoldsListPage() {
   const [range, setRange] = useState<DateRange>({});
   const { data: solds, isLoading, isError, error, refetch } = useSolds(range);
@@ -57,26 +80,35 @@ export function SoldsListPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
 
+  const customerById = useMemo(() => {
+    const map = new Map<number, CustomerWithMetrics>();
+    (customers ?? []).forEach((c) => map.set(c.id, c));
+    return map;
+  }, [customers]);
+
+  const primeCustomer = useCallback(
+    (row: SoldRow, queryClient: QueryClient) => {
+      const customer = customerById.get(row.customer_id);
+      if (customer) queryClient.setQueryData(['customers', customer.id], customer);
+    },
+    [customerById],
+  );
+
   const { contextValue } = useArmedRow({
     transitionPrefix: 'sold',
     detailKey: 'solds',
     toDetail: toSoldDetail,
+    prime: primeCustomer,
   });
-
-  const customerMap = useMemo(() => {
-    const map = new Map<number, string>();
-    (customers ?? []).forEach((c) => map.set(c.id, c.name));
-    return map;
-  }, [customers]);
 
   const soldsWithCustomer: SoldRow[] = useMemo(
     () =>
       (solds ?? []).map((s) => ({
         ...s,
-        customerName: customerMap.get(s.customer_id) ?? `Cliente #${s.customer_id}`,
+        customerName: customerById.get(s.customer_id)?.name ?? `Cliente #${s.customer_id}`,
         firstProduct: s.items[0]?.product_name ?? '',
       })),
-    [solds, customerMap],
+    [solds, customerById],
   );
 
   const filteredSolds = useMemo(
@@ -130,9 +162,13 @@ export function SoldsListPage() {
                   key={item.buy_id}
                   className="flex w-full items-baseline gap-1.5 text-sm leading-tight"
                 >
-                  <span className="text-gray-800 w-[85%] dark:text-gray-200">
+                  <TravellingCell
+                    row={info.row.original}
+                    field={`item-${item.buy_id}-name`}
+                    className="text-gray-800 w-[85%] dark:text-gray-200"
+                  >
                     {item.product_name}
-                  </span>
+                  </TravellingCell>
                   <span className="text-xs w-[15%]  text-gray-500 dark:text-gray-400">
                     × {item.quantity}
                   </span>
@@ -162,6 +198,7 @@ export function SoldsListPage() {
           <TravellingCell
             row={info.row.original}
             field="associated"
+            targets={['edit']}
             className="tabular-nums text-gray-700 dark:text-gray-300"
           >
             {formatEuro(info.getValue())}
@@ -201,23 +238,22 @@ export function SoldsListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        size: 155,
+        size: 90,
         cell: (info) => (
           <RowActions
             row={info.row.original}
             editBasePath="/solds"
+            editAriaLabel={`Editar venta #${info.row.original.id}`}
             deleteAriaLabel={`Borrar venta #${info.row.original.id}`}
             onDelete={(row) => setDeleteTarget({ kind: 'sale', id: row.id })}
-            extraAction={
-              <Link
-                to={`/solds/${info.row.original.id}/receipt`}
-                className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-              >
-                Recibo
-              </Link>
-            }
           />
         ),
+      }),
+      columnHelper.display({
+        id: 'receipt',
+        header: '',
+        size: 72,
+        cell: (info) => <SoldReceiptLink row={info.row.original} />,
       }),
     ],
     [],

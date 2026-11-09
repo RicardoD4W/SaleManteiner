@@ -3,8 +3,10 @@ import { useSold } from '../../hooks/useSold';
 import { useCustomer } from '../../hooks/useCustomer';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { TravellingField } from '../../components/ui/armedRow';
 import { formatEuro, formatPhone } from '../../lib/format';
 import { receiptDate, receiptLines, receiptTotals } from '../../lib/receipt';
+import { soldItemVtName, soldVtName } from '../../lib/viewTransition';
 
 export function SoldReceiptPage() {
   const { id } = useParams();
@@ -18,6 +20,8 @@ export function SoldReceiptPage() {
         <p className="text-sm text-red-700 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
           ← Volver
@@ -42,6 +46,8 @@ export function SoldReceiptPage() {
         </p>
         <Link
           to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
           ← Volver
@@ -61,7 +67,12 @@ export function SoldReceiptPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
         <Button onClick={() => window.print()}>Imprimir o guardar como PDF</Button>
-        <Link to="/solds" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link
+          to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
+          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+        >
           ← Volver
         </Link>
       </div>
@@ -73,13 +84,20 @@ export function SoldReceiptPage() {
             <p className="text-sm text-gray-500">Nº {sold.id}</p>
           </div>
           <p className="text-sm text-gray-600">
-            Fecha: {receiptDate(sold.sold_at, sold.created_at)}
+            Fecha:{' '}
+            <TravellingField name={soldVtName('date', soldId)}>
+              {receiptDate(sold.sold_at, sold.created_at)}
+            </TravellingField>
           </p>
         </header>
 
         <section className="mt-6">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</h3>
-          <p className="mt-1 font-medium">{sold.customer_name}</p>
+          <p className="mt-1 font-medium">
+            <TravellingField name={soldVtName('client', soldId)}>
+              {sold.customer_name}
+            </TravellingField>
+          </p>
           {phone ? <p className="text-sm text-gray-600">{phone}</p> : null}
           {address ? <p className="text-sm whitespace-pre-line text-gray-600">{address}</p> : null}
         </section>
@@ -100,7 +118,11 @@ export function SoldReceiptPage() {
             <tbody>
               {lines.map((line) => (
                 <tr key={line.key} className="border-b border-gray-200">
-                  <td className="py-1.5">{line.productName}</td>
+                  <td className="py-1.5">
+                    <TravellingField name={soldItemVtName(line.buyId, soldId)}>
+                      {line.productName}
+                    </TravellingField>
+                  </td>
                   <td className="py-1.5 text-right tabular-nums">{line.quantity}</td>
                 </tr>
               ))}
@@ -111,7 +133,11 @@ export function SoldReceiptPage() {
         <section className="mt-6 ml-auto w-56 space-y-1 text-sm">
           <div className="flex justify-between gap-4">
             <span>Total</span>
-            <span className="font-semibold tabular-nums">{formatEuro(totals.total)}</span>
+            <span className="font-semibold tabular-nums">
+              <TravellingField name={soldVtName('price', soldId)}>
+                {formatEuro(totals.total)}
+              </TravellingField>
+            </span>
           </div>
           {totals.paid !== null ? (
             <>

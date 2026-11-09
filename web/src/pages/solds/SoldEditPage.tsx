@@ -11,6 +11,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { useSold } from '../../hooks/useSold';
 import { useUpdateSold } from '../../hooks/useUpdateSold';
 import { formatDate } from '../../lib/format';
+import { soldVtName } from '../../lib/viewTransition';
 import { apiErrorMessage } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
 import { cn } from '../../lib/classNames';
@@ -35,10 +36,13 @@ export function SoldEditPage() {
         ? { id: sold.customer_id, name: sold.customer_name, created_at: '' }
         : null;
 
-  const transitionName = (field: string) => `sold-${field}-${soldId}`;
+  const transitionName = (field: string) => soldVtName(field, soldId);
 
   const backToList = () =>
-    navigate('/solds', { viewTransition: true, state: { armedRowId: soldId } });
+    navigate('/solds', {
+      viewTransition: true,
+      state: { armedRowId: soldId, armedTarget: 'edit' },
+    });
 
   const {
     register,
@@ -88,7 +92,7 @@ export function SoldEditPage() {
         <p className="text-sm text-red-700 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
-          state={{ armedRowId: soldId }}
+          state={{ armedRowId: soldId, armedTarget: 'edit' }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -114,7 +118,7 @@ export function SoldEditPage() {
         </p>
         <Link
           to="/solds"
-          state={{ armedRowId: soldId }}
+          state={{ armedRowId: soldId, armedTarget: 'edit' }}
           viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
@@ -133,13 +137,14 @@ export function SoldEditPage() {
         <div className="flex items-baseline gap-3">
           <Link
             to={`/solds/${soldId}/receipt`}
+            viewTransition
             className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Recibo
           </Link>
           <Link
             to="/solds"
-            state={{ armedRowId: soldId }}
+            state={{ armedRowId: soldId, armedTarget: 'edit' }}
             viewTransition
             className="text-sm text-gray-500 hover:underline dark:text-gray-400"
           >

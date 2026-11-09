@@ -62,7 +62,10 @@ test('/solds: el recibo de una venta se abre desde la lista y muestra el cliente
   });
 
   await page.goto('/solds');
-  await page.getByRole('link', { name: 'Recibo' }).first().click();
+  await page
+    .getByRole('link', { name: /^Recibo de la venta/ })
+    .first()
+    .click();
 
   await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
   await expect(page.getByText('Ana García')).toBeVisible();
@@ -121,7 +124,10 @@ test('/solds: al imprimir solo sale el recibo, sin la cabecera de la app ni los 
   });
 
   await page.goto('/solds');
-  await page.getByRole('link', { name: 'Recibo' }).first().click();
+  await page
+    .getByRole('link', { name: /^Recibo de la venta/ })
+    .first()
+    .click();
   await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
 
   await page.emulateMedia({ media: 'print' });

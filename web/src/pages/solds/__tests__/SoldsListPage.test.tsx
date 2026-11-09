@@ -146,4 +146,33 @@ describe('SoldsListPage', () => {
 
     expect(screen.getByText('No hay ventas en este período.')).toBeInTheDocument();
   });
+
+  it('el recibo va en su propia columna, con icono', () => {
+    renderWithProviders(<SoldsListPage />);
+
+    const recibo = screen.getAllByRole('link', { name: /Recibo de la venta #1/ })[0];
+    expect(recibo).toHaveAttribute('href', '/solds/1/receipt');
+    expect(recibo.querySelector('svg')).toBeInTheDocument();
+    expect(recibo).not.toHaveTextContent('Recibo');
+  });
+
+  it('el recibo es la última columna y su cabecera va vacía', () => {
+    renderWithProviders(<SoldsListPage />);
+
+    const headers = screen.getAllByRole('columnheader');
+    expect(headers[headers.length - 1]).toHaveTextContent('');
+    expect(headers[headers.length - 2]).toHaveTextContent('');
+  });
+
+  it('las acciones de editar y borrar de la fila son iconos', () => {
+    renderWithProviders(<SoldsListPage />);
+
+    const editar = screen.getByRole('link', { name: 'Editar venta #1' });
+    const borrar = screen.getByRole('button', { name: 'Borrar venta #1' });
+
+    expect(editar.querySelector('svg')).toBeInTheDocument();
+    expect(borrar.querySelector('svg')).toBeInTheDocument();
+    expect(editar).not.toHaveTextContent('Editar');
+    expect(borrar).not.toHaveTextContent('Borrar');
+  });
 });

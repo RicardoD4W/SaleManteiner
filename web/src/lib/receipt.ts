@@ -4,6 +4,7 @@ import type { SaleItemOutput } from '../schemas/solds.js';
 
 export interface ReceiptLine {
   key: string;
+  buyId: number;
   productName: string;
   quantity: number;
 }
@@ -17,6 +18,7 @@ export interface ReceiptTotals {
 export function receiptLines(items: SaleItemOutput[]): ReceiptLine[] {
   return items.map((item) => ({
     key: String(item.buy_id),
+    buyId: item.buy_id,
     productName: item.product_name,
     quantity: item.quantity,
   }));

@@ -102,6 +102,15 @@ describe('SoldReceiptPage', () => {
     expect(screen.queryByText('12,50 €')).not.toBeInTheDocument();
   });
 
+  it('nombra los datos que viajan entre la tabla y el recibo', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Ana García')).toHaveAttribute('data-vt-name', 'sold-client-1');
+    expect(screen.getByText('05/10/2026')).toHaveAttribute('data-vt-name', 'sold-date-1');
+    expect(screen.getByText('120,00 €')).toHaveAttribute('data-vt-name', 'sold-price-1');
+    expect(screen.getByText('iPhone 15')).toHaveAttribute('data-vt-name', 'sold-item-10-name-1');
+  });
+
   it('el botón de imprimir llama a window.print', async () => {
     const user = userEvent.setup();
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});

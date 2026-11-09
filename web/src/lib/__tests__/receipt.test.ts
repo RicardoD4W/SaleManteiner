@@ -22,8 +22,8 @@ const items: SaleItemOutput[] = [
 describe('receiptLines', () => {
   it('devuelve una línea por producto vendido', () => {
     expect(receiptLines(items)).toEqual<ReceiptLine[]>([
-      { key: '10', productName: 'iPhone 15', quantity: 2 },
-      { key: '11', productName: 'Funda', quantity: 1 },
+      { key: '10', buyId: 10, productName: 'iPhone 15', quantity: 2 },
+      { key: '11', buyId: 11, productName: 'Funda', quantity: 1 },
     ]);
   });
 

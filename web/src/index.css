@@ -78,7 +78,8 @@ html.dark {
 
 ::view-transition-old(.cell),
 ::view-transition-old(.box),
-::view-transition-new(.cell) {
+::view-transition-new(.cell),
+::view-transition-new(.box) {
   inline-size: auto;
   block-size: auto;
   max-inline-size: 100%;

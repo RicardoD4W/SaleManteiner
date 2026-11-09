@@ -115,11 +115,11 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                                  |
 | `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                           |
 | `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                                   |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                                 |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (el dato que viaja en la tabla) + `TravellingField` (el dato con nombre en la ficha)                                           |
 | `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                 |
 | `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                       |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)        |
-| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`                          |
+| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`, `ReceiptIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`           |
 | `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                          |
 
 ### El modal y el scroll de la página
@@ -136,12 +136,29 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### El recibo de una venta
 
-`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el enlace **"Recibo"** de cada fila de la lista de ventas y desde el botón **"Recibo"** de la página de editar la venta.
+`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el **icono de recibo** de la **última columna** de la lista de ventas (columna sin cabecera, como la de acciones) y desde el botón **"Recibo"** de la página de editar la venta.
 
 - **Imprimir**: el botón **"Imprimir o guardar como PDF"** llama a `window.print()` → el diálogo de impresión del navegador (o del WebView2 en la app de escritorio) permite imprimir en papel o **guardar como PDF**. No hay librería de PDF: el PDF lo pone el propio diálogo.
 - **En la hoja solo sale el recibo**: la cabecera de la app y el pie con la versión se ocultan al imprimir (`print:hidden`), y el documento se imprime en A4 con márgenes de 15 mm (`@page` en `index.css`).
 - **El recibo no lleva datos internos**: ni las notas ni los gastos asociados (envío, comisión). Son cosas del vendedor, no del cliente.
 - Los helpers (líneas, total, pendiente, fecha) están en `web/src/lib/receipt.ts`; el cliente se pide con `useCustomer`.
+- **El recibo se abre con los datos viajando**: desde la tabla, el cliente, la fecha, el total y los productos salen de su celda y aterrizan en el recibo (y vuelven a su celda al pulsar "← Volver"). Ver "El viaje de los datos" más abajo.
+
+### El viaje de los datos (View Transitions)
+
+Editar una venta (o abrir su recibo) no cambia la página de golpe: **el dato que estás tocando viaja** desde la tabla hasta su sitio en la ficha. Se apoya en la **View Transitions API** (`document.startViewTransition`), que el router envuelve en la navegación cuando el enlace (o `navigate`) pide `viewTransition`.
+
+Tres piezas, en `web/src/components/ui/armedRow.tsx`:
+
+- **`useArmedRow`**: al pasar el ratón (o el foco, o el dedo) por el enlace de una fila, **arma** esa fila: guarda su id, precarga la caché de TanStack Query (`['solds', id]`) para que la ficha se pinte con datos en el primer fotograma y expone el contexto. La vuelta a la lista la deja armada otra vez: el enlace de "Volver" lleva `state={{ armedRowId, armedTarget }}`.
+- **`TravellingCell`**: la celda de la fila armada es la que lleva `view-transition-name`. Solo viaja una fila a la vez, así que el nombre es único.
+- **`TravellingField`**: el mismo nombre, en la página destino (el input del formulario, el total del recibo). Si el nombre no coincide en los dos lados, el navegador no "viaja" nada: solo hace un fundido.
+
+El nombre lo fija un **contrato** (`web/src/lib/viewTransition.ts`): `sold-<campo>-<id>` para los datos de la venta y `sold-item-<buy_id>-name-<id>` para cada producto. La fila se arma para un destino (`armedTarget: 'edit'` o `'receipt'`): el recibo no lleva gastos asociados, así que esa celda solo viaja al editar (`targets={['edit']}`).
+
+**Entrar y salir**: el icono de recibo de la fila es un `Link` con `viewTransition` que arma la fila → al abrirlo, el cliente, la fecha, el total y los productos viajan de la tabla al recibo; el "← Volver" del recibo hace el camino inverso. El botón de atrás del navegador **no** lleva transición: React Router solo envuelve en `startViewTransition` las navegaciones que lo piden explícitamente.
+
+En `index.css` están las clases de la animación (`.vt-cell` y `.vt-box`, respetando `prefers-reduced-motion`) y el fundido de página (`::view-transition-old(root)` / `new(root)`).
 
 ### `components/sales/` — el dominio
 
@@ -194,7 +211,7 @@ Modal con el listado de las copias guardadas (nombre, fecha y tamaño) y sus acc
 
 - **Crear copia ahora** → `POST /api/backups` (toast "Copia creada").
 - **Descargar** → enlace a `GET /api/backups/:name/download` (el archivo se descarga al disco del usuario).
-- **Eliminar** → `DELETE /api/backups/:name`, con **modal de confirmación** (toast "Copia eliminada").
+- **Eliminar** → `DELETE /api/backups/:name`, con **modal de confirmación** (toast "Copia eliminada"). Es un **icono de papelera** (`aria-label="Eliminar <nombre de la copia>"`).
 - **Restaurar** desde una copia guardada o **desde un archivo del disco del usuario** (input de fichero `.db`, subida binaria a `POST /api/backups/restore`).
 
 Restaurar **reescribe la base de datos del usuario**, así que exige una **confirmación explícita** en un segundo modal: dice qué archivo se va a restaurar y recuerda que antes se guardará una copia del estado actual. Tras restaurar se invalidan las queries de datos (`backups`, `stats`, `buys`, `solds`, `customers`, `expenses`, `expense-categories`) y se avisa con el resumen de lo restaurado.
