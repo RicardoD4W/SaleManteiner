@@ -9,6 +9,7 @@ import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
 import { formatEuro } from '../../lib/format';
 import { ApiError, apiErrorMessage } from '../../api/client';
+import type { ApiAssociatedExpense } from '../../api/expenses';
 import {
   useCreateExpenseCategory,
   useDeleteExpenseCategory,
@@ -17,13 +18,27 @@ import {
 } from '../../hooks/useExpenseCategories';
 import type { ExpenseCategory } from '../../schemas/expenses';
 
-interface CategoryManagerModalProps {
-  onClose: () => void;
+export interface ExpenseCategoryCascadeRequest {
+  category: ExpenseCategory;
+  expenses: ApiAssociatedExpense[];
 }
 
-const CATEGORY_IN_USE_MESSAGE = 'No se puede borrar la categoría porque tiene gastos asociados.';
+interface CategoryManagerModalProps {
+  onClose: () => void;
+  onCascadeRequired: (request: ExpenseCategoryCascadeRequest) => void;
+}
 
-export function CategoryManagerModal({ onClose }: CategoryManagerModalProps) {
+type CascadeConflict = ApiError & {
+  body: { error: string; associated_expenses: ApiAssociatedExpense[] };
+};
+
+function isCascadeConflict(err: unknown): err is CascadeConflict {
+  if (!(err instanceof ApiError) || err.status !== 409) return false;
+  const body = err.body as { associated_expenses?: ApiAssociatedExpense[] };
+  return Array.isArray(body.associated_expenses) && body.associated_expenses.length > 0;
+}
+
+export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryManagerModalProps) {
   const { data: categories, isLoading, isError, error, refetch } = useExpenseCategories();
   const createCategory = useCreateExpenseCategory();
   const updateCategory = useUpdateExpenseCategory();
@@ -80,11 +95,11 @@ export function CategoryManagerModal({ onClose }: CategoryManagerModalProps) {
       await deleteCategory.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
     } catch (err) {
-      setDeleteError(
-        err instanceof ApiError && err.status === 409
-          ? CATEGORY_IN_USE_MESSAGE
-          : apiErrorMessage(err, 'No se pudo eliminar la categoría'),
-      );
+      if (isCascadeConflict(err)) {
+        onCascadeRequired({ category: deleteTarget, expenses: err.body.associated_expenses });
+        return;
+      }
+      setDeleteError(apiErrorMessage(err, 'No se pudo eliminar la categoría'));
     }
   };
 
