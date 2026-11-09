@@ -166,7 +166,7 @@ export function BuyEditPage() {
                 min="0"
                 {...register('purchase_cost', { valueAsNumber: true })}
                 error={errors.purchase_cost?.message}
-                hint="Total pagado por el lote"
+                hint="Precio por unidad"
                 className="vt-box"
                 style={{ viewTransitionName: transitionName('cost') }}
               />
