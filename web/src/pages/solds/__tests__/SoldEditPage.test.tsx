@@ -72,6 +72,13 @@ describe('SoldEditPage', () => {
     vi.mocked(useUpdateSold).mockReturnValue(mutationMock() as never);
   });
 
+  it('la página de editar la venta no enlaza al recibo', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Precio total de venta (€) *');
+    expect(screen.queryByRole('link', { name: 'Recibo' })).not.toBeInTheDocument();
+  });
+
   it('no enfoca ningún campo al abrir el formulario', async () => {
     renderPage();
 

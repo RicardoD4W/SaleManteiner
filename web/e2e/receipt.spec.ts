@@ -75,6 +75,41 @@ test('/solds: el recibo de una venta se abre desde la lista y muestra el cliente
   await expect(page.getByText('120,00 €')).toBeVisible();
 });
 
+test('/solds: el recibo se abre desde la lista y la edición de la venta no lo enlaza', async ({
+  page,
+  request,
+}) => {
+  const customerId = await createCustomerViaApi(request, { name: 'Luis Prado' });
+  const buyId = await createBuyViaApi(request, {
+    product_name: 'Cargador',
+    purchase_cost: 20,
+    quantity: 1,
+    purchase_date: '2026-10-01',
+  });
+  await createSoldViaApi(request, {
+    customer_id: customerId,
+    sale_price: 35,
+    sold_at: '2026-10-06',
+    items: [{ buy_id: buyId, quantity: 1 }],
+  });
+
+  await page.goto('/solds');
+  await page
+    .getByRole('link', { name: /^Recibo de la venta/ })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
+  await expect(page.getByText('Luis Prado')).toBeVisible();
+
+  await page.goBack();
+  await page
+    .getByRole('link', { name: /^Editar/ })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Editar venta' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Recibo' })).toHaveCount(0);
+});
+
 test('/solds: al imprimir solo sale el recibo, sin la cabecera de la app ni los botones', async ({
   page,
   request,

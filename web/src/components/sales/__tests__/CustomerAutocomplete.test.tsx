@@ -97,17 +97,20 @@ describe('CustomerAutocomplete', () => {
     });
   });
 
-  it('ArrowDown despliega la lista de sugerencias', async () => {
+  it('ArrowDown despliega la lista con sus opciones', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
 
     const input = screen.getByRole('combobox');
     input.focus();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
     await user.keyboard('{ArrowDown}');
 
     await waitFor(() => {
-      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(screen.getByRole('listbox', { name: 'Clientes' })).toBeInTheDocument();
     });
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
   });
 
   it('al hacer click en un cliente llama a onChange', async () => {
