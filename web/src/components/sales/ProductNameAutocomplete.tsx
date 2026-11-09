@@ -21,8 +21,6 @@ interface ProductNameAutocompleteProps {
 
   className?: string;
 
-  autoFocus?: boolean;
-
   style?: CSSProperties;
 }
 
@@ -34,7 +32,6 @@ export function ProductNameAutocomplete({
   error,
   placeholder = 'Funda iPhone 15',
   className,
-  autoFocus,
   style,
 }: ProductNameAutocompleteProps) {
   const { data: products, isLoading } = useProductNames();
@@ -114,7 +111,6 @@ export function ProductNameAutocomplete({
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${listboxId}-error` : undefined}
           autoComplete="off"
-          autoFocus={autoFocus}
           value={currentValue}
           onChange={(e) => {
             onChange(e.target.value);

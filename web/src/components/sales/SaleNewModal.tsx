@@ -253,7 +253,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               value === '' || value === null || value === undefined ? null : Number(value),
           })}
           error={(errors.paid_amount as { message?: string } | undefined)?.message}
-          hint="Vacío se asume que te ha pagado el precio entero"
+          hint="Vacío, se asume que te ha pagado el precio entero"
         />
 
         <Input
@@ -261,7 +261,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           type="date"
           {...register('sold_at')}
           error={(errors.sold_at as { message?: string } | undefined)?.message}
-          hint="Día de la venta"
+          hint="Día de la venta (default hoy)"
         />
 
         <Textarea
