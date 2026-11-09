@@ -21,7 +21,7 @@ Está pensada para **cualquier tipo de usuario**: un particular que compra y ven
 - **Copias de seguridad y restauración desde la app**: botón junto a la versión, en el pie. Crea un archivo con fecha, lo deja en la carpeta `backups` y permite descargarlo, eliminarlo o **restaurar** desde una copia guardada o desde un archivo del disco. Antes de restaurar se guarda siempre una copia del estado actual, y un archivo que no sea una base de datos válida se rechaza sin tocar nada.
 - **Autocompletado del nombre de producto** en el alta y la edición de compra: al escribir, la app sugiere los nombres que ya tenés en tus compras y elegís uno con un clic o con el teclado. Solo rellena el nombre del producto: el resto del formulario se sigue escribiendo a mano, y un producto nuevo se puede escribir tal cual.
 - **Filtro por rango de fechas** en las listas de compras y ventas: los presets "Este mes", "Último trimestre" y "Este año", o un rango a medida con dos fechas (desde y hasta). El filtro lo resuelve el servidor, no la lista; en compras mira la fecha de compra y en ventas la fecha de venta.
-- **Recibo imprimible de una venta**: una vista con los datos del cliente (nombre, teléfono y dirección), los productos vendidos y el total, que se imprime en papel o se guarda como PDF desde el diálogo de impresión. Se entra desde el enlace "Recibo" de cada fila de la lista de ventas y desde el botón "Recibo" de la página de editar la venta.
+- **Recibo imprimible de una venta**: una vista con los datos del cliente (nombre, teléfono y dirección), los productos vendidos y el total, que se imprime en papel o se guarda como PDF desde el diálogo de impresión. Se entra desde el enlace "Recibo" de cada fila de la lista de ventas.
 
 ## 2. Decisiones de producto vigentes
 
