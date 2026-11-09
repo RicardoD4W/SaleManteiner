@@ -136,13 +136,6 @@ export function SoldEditPage() {
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar venta</h2>
         <div className="flex items-baseline gap-3">
           <Link
-            to={`/solds/${soldId}/receipt`}
-            viewTransition
-            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Recibo
-          </Link>
-          <Link
             to="/solds"
             state={{ armedRowId: soldId, armedTarget: 'edit' }}
             viewTransition
@@ -244,7 +237,7 @@ export function SoldEditPage() {
                   value === '' || value === null || value === undefined ? null : Number(value),
               })}
               error={(errors.paid_amount as { message?: string } | undefined)?.message}
-              hint="Vacío = se asume que te ha pagado el precio entero"
+              hint="Vacío, se asume que te ha pagado el precio entero"
             />
 
             <Input
