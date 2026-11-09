@@ -20,7 +20,7 @@ async function snapshot(page: Page): Promise<ScrollSnapshot> {
 async function seedBuys(request: import('@playwright/test').APIRequestContext, count: number) {
   for (let i = 0; i < count; i += 1) {
     const res = await request.post('/api/buys', {
-      data: { product_name: `Producto ${i}`, purchase_cost: 100, quantity: 20 },
+      data: { product_name: `Producto ${i}`, purchase_cost: 5, quantity: 20 },
     });
     expect(res.ok(), `POST /api/buys falló: ${res.status()}`).toBe(true);
   }

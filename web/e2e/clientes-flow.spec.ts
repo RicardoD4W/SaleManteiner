@@ -70,7 +70,7 @@ test('borrar un cliente con ventas: 409 → modal de cascada → borra cliente y
   const customerId = await createCustomer(request, name);
   const buyId = await createBuy(request, {
     product_name: 'Cargador GaN 65W',
-    purchase_cost: 22,
+    purchase_cost: 2.2,
     quantity: 10,
   });
   const sale = await request.post('/api/solds', {

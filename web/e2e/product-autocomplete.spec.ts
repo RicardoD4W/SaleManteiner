@@ -10,7 +10,7 @@ test('el alta de compra sugiere los nombres existentes y guarda el elegido', asy
   request,
 }) => {
   const seed = await request.post('/api/buys', {
-    data: { product_name: 'Funda iPhone 15', purchase_cost: 45.5, quantity: 20 },
+    data: { product_name: 'Funda iPhone 15', purchase_cost: 2.28, quantity: 20 },
   });
   expect(seed.ok(), `POST /api/buys (seed) falló: ${seed.status()}`).toBe(true);
 
@@ -30,7 +30,7 @@ test('el alta de compra sugiere los nombres existentes y guarda el elegido', asy
 
   await expect(productInput).toHaveValue('Funda iPhone 15');
 
-  await modal.getByLabel('Coste (€) *').fill('45.5');
+  await modal.getByLabel('Precio unidad (€) *').fill('45.5');
   await modal.getByRole('button', { name: 'Crear compra' }).click();
 
   await expect(modal).toBeHidden();
@@ -42,7 +42,7 @@ test('el alta de compra sugiere los nombres existentes y guarda el elegido', asy
 
 test('la sugerencia ignora mayúsculas y acentos', async ({ page, request }) => {
   const seed = await request.post('/api/buys', {
-    data: { product_name: 'Cámara réflex', purchase_cost: 80, quantity: 5 },
+    data: { product_name: 'Cámara réflex', purchase_cost: 16, quantity: 5 },
   });
   expect(seed.ok(), `POST /api/buys (seed) falló: ${seed.status()}`).toBe(true);
 

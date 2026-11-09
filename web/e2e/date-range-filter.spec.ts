@@ -41,13 +41,13 @@ test.beforeEach(async ({ request }) => {
 test('/buys: el filtro de fechas deja solo las compras del período', async ({ page, request }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda de abril',
-    purchase_cost: 10,
+    purchase_cost: 2,
     quantity: 5,
     purchase_date: '2026-04-10',
   });
   await createBuyViaApi(request, {
     product_name: 'Cargador de mayo',
-    purchase_cost: 20,
+    purchase_cost: 4,
     quantity: 5,
     purchase_date: '2026-05-20',
   });
@@ -76,13 +76,13 @@ test('/solds: el filtro de fechas deja solo las ventas del período', async ({ p
   const customerId = await createCustomerViaApi(request, 'Lucía Fernández');
   const buyAbril = await createBuyViaApi(request, {
     product_name: 'Funda de abril',
-    purchase_cost: 10,
+    purchase_cost: 2,
     quantity: 5,
     purchase_date: '2026-04-10',
   });
   const buyMayo = await createBuyViaApi(request, {
     product_name: 'Cargador de mayo',
-    purchase_cost: 20,
+    purchase_cost: 4,
     quantity: 5,
     purchase_date: '2026-05-20',
   });
@@ -121,7 +121,7 @@ test('/buys: sin compras en el período se avisa y se puede quitar el filtro', a
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda de abril',
-    purchase_cost: 10,
+    purchase_cost: 2,
     quantity: 5,
     purchase_date: '2026-04-10',
   });
