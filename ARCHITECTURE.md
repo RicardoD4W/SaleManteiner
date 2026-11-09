@@ -50,18 +50,20 @@ Lo que **no** depende del workspace (modelo de datos, reglas del repo, convencio
 
 Las migraciones `006` (gastos + ficha de cliente) y `007` (notas en compras) son **aditivas**: solo añaden columnas con valor por defecto y tablas nuevas; no reescriben ni borran datos de la BD del usuario.
 
+La migración `010` reescribe **solo las vistas** (`v_item_costs`, `v_sold_costs`): el `unit_cost` pasa a ser el precio por unidad guardado. **No toca los datos de las compras** → la conversión de las compras existentes (del total pagado al precio por unidad) la hace el usuario a mano.
+
 ### `buys` (compras de producto)
 
-| Campo              | Tipo             | Notas                                                                                 |
-| ------------------ | ---------------- | ------------------------------------------------------------------------------------- |
-| `id`               | INTEGER PK       | autoincrement                                                                         |
-| `product_name`     | TEXT NOT NULL    | nombre del producto                                                                   |
-| `purchase_cost`    | REAL             | coste TOTAL pagado en euros decimales (se prorratea por unidad al calcular beneficio) |
-| `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                                     |
-| `associated_costs` | REAL             | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)           |
-| `purchase_date`    | TEXT             | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                        |
-| `notes`            | TEXT NULL        | notas libres (migración 007)                                                          |
-| `created_at`       | TEXT NOT NULL    | ISO 8601, automático (set en INSERT)                                                  |
+| Campo              | Tipo             | Notas                                                                                          |
+| ------------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `id`               | INTEGER PK       | autoincrement                                                                                  |
+| `product_name`     | TEXT NOT NULL    | nombre del producto                                                                            |
+| `purchase_cost`    | REAL             | precio POR UNIDAD en euros decimales (el total del lote se deriva: `purchase_cost * quantity`) |
+| `quantity`         | INTEGER NOT NULL | unidades compradas (default UX 1)                                                              |
+| `associated_costs` | REAL             | gastos envío/embalaje TOTALES en euros decimales (se prorratean por unidad)                    |
+| `purchase_date`    | TEXT             | `YYYY-MM-DD`, día local. Default hoy. Editable por el cliente.                                 |
+| `notes`            | TEXT NULL        | notas libres (migración 007)                                                                   |
+| `created_at`       | TEXT NOT NULL    | ISO 8601, automático (set en INSERT)                                                           |
 
 Índice: `idx_buys_purchase_date`.
 
@@ -129,14 +131,14 @@ PK compuesta `(sold_id, buy_id)`. Una venta puede tener N items (pack multi-prod
 
 Índices: `idx_sale_items_buy` (lookup de "¿ya vendido?", el más frecuente: lo usa la modal en cada apertura), `idx_sale_items_sold` (detalle de venta).
 
-### Vistas SQL (migración 004) — la fuente de la verdad de las cifras
+### Vistas SQL (migraciones 004 y 010) — la fuente de la verdad de las cifras
 
-| Vista          | Qué calcula                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| `v_item_costs` | coste de compra prorrateado por unidad: `ROUND(coste_compra / cantidad, 2) * cantidad`   |
-| `v_sold_costs` | beneficio de la venta: `sale_price - associated_costs - cogs_purchase - cogs_associated` |
+| Vista          | Qué calcula                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| `v_item_costs` | coste de compra por unidad: `purchase_cost` (precio por unidad) y `associated_costs / cantidad` |
+| `v_sold_costs` | beneficio de la venta: `sale_price - associated_costs - cogs_purchase - cogs_associated`        |
 
-El dashboard **no** recalcula cifras en JS: lee estas vistas. Ojo: usan el `ROUND` de **SQLite**, no el `round2` de JS → en un empate exacto de 3 decimales (p. ej. 0,70 € entre 4 unidades) puede diferir **1 céntimo**. Es el comportamiento pineado en `server/src/__tests__/vistas-cifras.test.ts`.
+El dashboard **no** recalcula cifras en JS: lee estas vistas. Ojo: el prorrateo de los gastos asociados usa el `ROUND` de **SQLite**, no el `round2` de JS → en un empate exacto de 3 decimales (p. ej. 0,70 € entre 4 unidades) puede diferir **1 céntimo**. Es el comportamiento pineado en `server/src/__tests__/vistas-cifras.test.ts`.
 
 ## 4. La ruta de la BD (la decide el server)
 
@@ -157,7 +159,7 @@ En Windows la canónica **nunca** cae en `%LOCALAPPDATA%\SaleManteiner` (la carp
 
 - **Importes en euros decimales** (SQLite REAL). Validación Zod: `z.number().nonnegative().multipleOf(0.01)` (`EuroMoney` en `server/src/schemas/common.ts`). Nada de céntimos.
 - **`round2()`** (`server/src/lib/round.ts` y `web/src/lib/round.ts`) en toda suma/resta/multiplicación de importes: mitiga el error IEEE 754.
-- **Coste de compra = TOTAL pagado**: el form pide el total; el backend guarda `purchase_cost` total + `quantity` y calcula el unitario con `round2(buy.purchase_cost / buy.quantity)` cuando hace falta.
+- **Coste de compra = PRECIO POR UNIDAD**: el form pide el precio de una unidad; el backend guarda `purchase_cost` (unitario) + `quantity` y deriva el total del lote con `round2(purchase_cost * quantity)`. `associated_costs` sigue siendo el total de gastos del lote (se prorratea por unidad al calcular el beneficio).
 - **Validación de stock transaccional**: `POST /api/solds` corre dentro de `db.transaction()`. Lee el stock disponible de cada `buy_id`, valida cobertura, inserta la venta y sus items. Si no cubre → rollback + **422** con `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }`.
 - **`created_at`** se setea en el INSERT (no se acepta del cliente).
 - **`purchase_date` y `sold_at` los gestiona el cliente**: si el cliente los manda, el server pisa; si no, conserva el valor existente; `null` explícito borra.

@@ -52,7 +52,7 @@ npm run typecheck && npm run lint && npm run format:check && npm run test
 
 - **Importes en euros decimales** (SQLite REAL), nunca en céntimos. Validación: `EuroMoney = z.number().nonnegative().multipleOf(0.01)`.
 - **`round2()`** en toda aritmética de importes (mitiga el error IEEE 754).
-- **El coste de compra es el TOTAL pagado** (+ cantidad); el unitario se calcula con `round2(cost / quantity)` cuando hace falta. **Ojo**: el hint del campo ya dice "Precio por unidad" (decisión D25 de `PRODUCT.md`), pero el modelo sigue siendo "total pagado" hasta que se implemente el plan `odd/tasks/feature-precio-por-unidad.md`: no escribas código ni datos que asuman la semántica por unidad.
+- **El coste de compra es el PRECIO POR UNIDAD**: `buys.purchase_cost` guarda lo que pagaste por **una** unidad; el total del lote se deriva (`round2(purchase_cost * quantity)`) y la API lo devuelve en `total_cost`. `associated_costs` sigue siendo el **total** de gastos del lote. La migración `010` **no** reescribe los datos: la conversión de las compras existentes la hace el usuario a mano, y no hay conversión automática al restaurar copias de seguridad.
 - **El beneficio sale de las vistas SQL** (`v_item_costs`, `v_sold_costs`): son la única fuente de la verdad de las cifras, no la fórmula repetida en JS.
 - **`POST /api/solds` es transaccional**: valida stock y hace rollback con **422** si no cubre.
 - **`created_at` lo pone el INSERT**; **`purchase_date` y `sold_at` los gestiona el cliente** (si viene, pisa; si no, conserva; `null` borra).

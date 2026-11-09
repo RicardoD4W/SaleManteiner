@@ -232,7 +232,7 @@ Restaurar **reescribe la base de datos del usuario**, así que exige una **confi
 | Token          | Tipo     | Matchea                                          |
 | -------------- | -------- | ------------------------------------------------ |
 | `ipad`         | texto    | producto o cliente (sin acentos, sin mayúsculas) |
-| `25` / `25,50` | número   | precio, coste, cantidad o disponibles            |
+| `25` / `25,50` | número   | precio unidad, coste, cantidad o disponibles     |
 | `x3`           | cantidad | filas con 3 unidades                             |
 | `12/03/2025`   | fecha    | fecha de compra o de venta (o ISO `2025-03-12`)  |
 | `-30`          | signo    | ventas con pérdida de 30 €                       |

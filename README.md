@@ -26,8 +26,9 @@ Compras, vendes y quieress saber cómo van tus números. SaleManteiner es el cua
 | Campo           | Qué es                                                   |
 | --------------- | -------------------------------------------------------- |
 | Producto        | el nombre del artículo                                   |
-| Coste           | lo que pagaste **en total** por ese lote                 |
+| Precio unidad   | lo que pagaste por **una** unidad                        |
 | Cantidad        | cuántas unidades compraste                               |
+| Coste           | el total del lote (precio unidad × cantidad)             |
 | Asociados       | gastos de envío, embalaje, comisiones (totales del lote) |
 | Fecha de compra | editable (por defecto, hoy)                              |
 | Notas           | texto libre (se ve con un icono en la tabla)             |

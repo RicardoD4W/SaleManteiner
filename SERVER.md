@@ -93,6 +93,7 @@ db.pragma('busy_timeout = 5000');
 | `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
 | `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
 | `009_indices_performance.sql`              | **aditiva**: recrea `idx_buys_purchase_date` e `idx_solds_sold_at`                                          |
+| `010_precio_compra_por_unidad.sql`         | **vistas**: `v_item_costs` y `v_sold_costs` con el precio por unidad (no reescribe datos)                   |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
@@ -147,7 +148,7 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | ------------------------------------ | ------------------------------------------------------------------------------ | ------------------- |
 | `GET /api/health`                    | estado + versión del server                                                    | —                   |
 | `GET /api/version`                   | `{ app, front, back }`                                                         | —                   |
-| `GET /api/buys`                      | lista de compras con `disponibles`                                             | —                   |
+| `GET /api/buys`                      | lista de compras con `disponibles` y `total_cost` (derivado)                   | —                   |
 | `GET /api/buys/stock`                | stock por compra                                                               | —                   |
 | `GET /api/buys/:id`                  | una compra                                                                     | 404                 |
 | `POST /api/buys`                     | alta                                                                           | 400                 |
@@ -241,7 +242,7 @@ Ruta propia (`server/src/routes/metrics.ts` + `server/src/repo/metrics-repo.ts`)
 - **Sin base de comparación**: si el mes anterior no tuvo actividad (ni ventas ni gastos), `variaciones` es **`null`** (no "0 %": no hay con qué comparar). Dentro de `variaciones`, cada campo es `null` cuando su valor del mes anterior fue 0.
 - **La variación del margen va en puntos porcentuales**: `margen_puntos` = `margen_pct` actual − `margen_pct` anterior (de 20 % a 25 % son **+5 puntos**, no +25 %).
 - El mes se calcula por mes natural (`strftime('%Y-%m', …)`) sobre `sold_at` y `expense_date`.
-- El valor del stock pendiente usa el **coste de compra prorrateado** por unidad (`(purchase_cost + associated_costs) / quantity`), coherente con `v_item_costs`.
+- El valor del stock pendiente usa el **precio por unidad** de compra más los gastos asociados prorrateados (`purchase_cost + associated_costs / quantity`), coherente con `v_item_costs`.
 - Todos los importes y porcentajes salen con `round2()`.
 
 La pestaña "Métricas" del web **no cambia el significado de los KPIs del resumen**: `beneficio_total_eur` sigue siendo el mismo.
