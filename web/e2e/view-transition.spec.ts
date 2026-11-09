@@ -123,7 +123,7 @@ test('editar una compra: la celda de producto viaja al input del formulario', as
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   const name = `buy-product-${buyId}`;
@@ -182,7 +182,7 @@ test('editar una compra: también viajan el coste, la cantidad, los asociados y 
     { suffix: 'date', text: '02/10/2026', label: 'Fecha de compra' },
   ];
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   for (const campo of FIELDS) {
@@ -221,7 +221,7 @@ test('volver a la lista desde el formulario deja armada la fila de la compra', a
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
   await editar.click();
   await expect(page).toHaveURL(new RegExp(`/buys/${buyId}$`));
@@ -266,7 +266,7 @@ test('editar una venta: la celda de cliente viaja al input del cliente', async (
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   const name = `sold-client-${soldId}`;

@@ -153,7 +153,10 @@ test('pasar de una lista larga a una ficha corta no cambia el ancho del contenid
   await page.waitForSelector('table');
   const listWidth = (await snapshot(page)).clientWidth;
 
-  await page.getByRole('link', { name: 'Editar' }).first().click();
+  await page
+    .getByRole('link', { name: /^Editar/ })
+    .first()
+    .click();
   await page.waitForURL(/\/buys\/\d+$/);
   await page.waitForSelector('form');
   await page.waitForTimeout(300);

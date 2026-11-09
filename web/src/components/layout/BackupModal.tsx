@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { ErrorState } from '../ui/ErrorState';
+import { TrashIcon } from '../ui/icons';
 import {
   useBackups,
   useCreateBackup,
@@ -179,9 +180,11 @@ export function BackupModal({ onClose }: BackupModalProps) {
                     <button
                       type="button"
                       onClick={() => setPendingDelete(backup.name)}
-                      className="rounded-md px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                      aria-label={`Eliminar ${backup.name}`}
+                      title="Eliminar"
+                      className="cursor-pointer rounded-md p-1.5 text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-400 dark:hover:bg-red-950"
                     >
-                      Eliminar
+                      <TrashIcon className="size-5" />
                     </button>
                   </div>
                 </li>

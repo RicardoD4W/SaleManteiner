@@ -34,6 +34,8 @@
 
 ### Cambiado
 
+- **Las acciones de las filas son iconos, no palabras**: editar, borrar y renombrar ya no se escriben ("Editar", "Borrar", "Renombrar") sino que se muestran como iconos (lápiz, papelera). El nombre accesible se mantiene: el botón o enlace sigue teniendo su `aria-label` ("Editar Juan Pérez", "Borrar Funda iPhone 15"), así que los lectores de pantalla y el teclado no pierden nada. Aplica a compras, ventas, clientes, gastos, categorías de gasto y copias de seguridad.
+
 - **El subtítulo del encabezado** de la app deja de ser la lista de módulos ("compras, ventas y clientes") y pasa a ser una frase: "Tu gestor personal para llevar tus cuentas al día".
 
 - **Nuevo icono de la app**: el logo de la gráfica ascendente con la flecha verde sustituye al símbolo del euro. Los íconos de la app de escritorio (instalador, acceso directo, barra de tareas) y el favicon del web salen ahora **de una única fuente**: `desktop/icon-source.png` (PNG 1024x1024). Con `npm run icon` (en `desktop/`) se regeneran los íconos de escritorio y se sincroniza el favicon del web.

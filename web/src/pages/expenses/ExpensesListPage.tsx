@@ -13,6 +13,7 @@ import { formatDate, formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Expense } from '../../schemas/expenses';
 import { cn } from '../../lib/classNames';
+import { PencilIcon, TrashIcon } from '../../components/ui/icons';
 
 interface ExpenseRow {
   id: number;
@@ -202,17 +203,17 @@ export function ExpensesListPage() {
                         type="button"
                         onClick={() => setEditing(row.expense)}
                         aria-label={`Editar ${row.concept}`}
-                        className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer rounded text-brand-600 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:hover:text-brand-300 dark:focus-visible:ring-offset-gray-900"
                       >
-                        Editar
+                        <PencilIcon />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleting(row.expense)}
                         aria-label={`Borrar ${row.concept}`}
-                        className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer rounded text-red-700 transition-colors hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300 dark:focus-visible:ring-offset-gray-900"
                       >
-                        Borrar
+                        <TrashIcon />
                       </button>
                     </div>
                   </td>

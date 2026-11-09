@@ -119,6 +119,7 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 | `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                 |
 | `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                       |
 | `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)        |
+| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`                          |
 | `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                          |
 
 ### El modal y el scroll de la página

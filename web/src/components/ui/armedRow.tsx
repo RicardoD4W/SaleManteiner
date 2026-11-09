@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { PencilIcon, TrashIcon } from './icons';
 
 export interface ArmedRow {
   id: number;
@@ -106,6 +107,7 @@ export function TravellingCell({
 export function RowActions<T extends ArmedRow>({
   row,
   editBasePath,
+  editAriaLabel = 'Editar',
   deleteAriaLabel,
   onDelete,
   extraAction,
@@ -113,6 +115,8 @@ export function RowActions<T extends ArmedRow>({
   row: T;
 
   editBasePath: string;
+
+  editAriaLabel?: string;
 
   deleteAriaLabel: string;
 
@@ -129,18 +133,19 @@ export function RowActions<T extends ArmedRow>({
         onMouseEnter={() => armRow(row)}
         onFocus={() => armRow(row)}
         onPointerDown={() => armRow(row)}
-        className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+        aria-label={editAriaLabel}
+        className="cursor-pointer rounded text-brand-600 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:hover:text-brand-300 dark:focus-visible:ring-offset-gray-900"
       >
-        Editar
+        <PencilIcon />
       </Link>
       {extraAction}
       <button
         type="button"
         onClick={() => onDelete(row)}
         aria-label={deleteAriaLabel}
-        className="cursor-pointer text-sm font-medium text-red-700 hover:underline dark:text-red-400"
+        className="cursor-pointer rounded text-red-700 transition-colors hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300 dark:focus-visible:ring-offset-gray-900"
       >
-        Borrar
+        <TrashIcon />
       </button>
     </div>
   );

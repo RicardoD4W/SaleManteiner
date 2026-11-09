@@ -91,7 +91,10 @@ test('/solds: el recibo también se abre desde la página de editar la venta', a
   });
 
   await page.goto('/solds');
-  await page.getByRole('link', { name: 'Editar' }).first().click();
+  await page
+    .getByRole('link', { name: /^Editar/ })
+    .first()
+    .click();
   await page.getByRole('link', { name: 'Recibo' }).click();
 
   await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();

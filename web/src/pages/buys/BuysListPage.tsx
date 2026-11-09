@@ -154,11 +154,12 @@ export function BuysListPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        size: 140,
+        size: 90,
         cell: (info) => (
           <RowActions
             row={info.row.original}
             editBasePath="/buys"
+            editAriaLabel={`Editar ${info.row.original.product_name}`}
             deleteAriaLabel={`Borrar ${info.row.original.product_name}`}
             onDelete={(row) => setDeleteTarget({ kind: 'buy', id: row.id, name: row.product_name })}
           />
