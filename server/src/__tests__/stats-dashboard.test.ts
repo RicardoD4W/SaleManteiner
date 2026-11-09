@@ -180,11 +180,15 @@ describe('statsDashboard (nuevo modelo)', () => {
   });
 
   it('compras_total_eur suma purchase_cost * quantity + associated_costs de buys', () => {
-    buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 100, associated_costs: 10 }));
-    buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 50, associated_costs: 5 }));
+    buysRepo.create(
+      validBuy({ product_name: 'A', purchase_cost: 100, quantity: 2, associated_costs: 10 }),
+    );
+    buysRepo.create(
+      validBuy({ product_name: 'B', purchase_cost: 50, quantity: 3, associated_costs: 5 }),
+    );
 
     const stats = soldsRepo.statsDashboard();
-    expect(stats.kpis.compras_total_eur).toBe(165);
+    expect(stats.kpis.compras_total_eur).toBe(365);
   });
 
   it('compras_total_eur incluye también los costes asociados de las ventas', () => {
