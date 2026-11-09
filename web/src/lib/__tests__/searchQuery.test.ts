@@ -22,6 +22,7 @@ const buyA: BuyWithStock = {
   associated_costs: 5,
   purchase_date: '2026-09-28',
   notes: null,
+  tag: null,
   created_at: '2026-10-01T10:00:00.000Z',
   disponibles: 8,
 };
@@ -35,6 +36,7 @@ const buyB: BuyWithStock = {
   associated_costs: 0,
   purchase_date: '2026-10-05',
   notes: null,
+  tag: null,
   created_at: '2026-10-05T09:00:00.000Z',
   disponibles: 3,
 };

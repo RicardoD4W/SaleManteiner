@@ -1,10 +1,30 @@
 import type { DateRange } from '../lib/dateRange.js';
 
-export function dateRangeQuery(range?: DateRange): string {
-  const params = new URLSearchParams();
-  if (range?.from) params.set('from', range.from);
-  if (range?.to) params.set('to', range.to);
+export type QueryParams = Record<string, string | undefined>;
 
-  const query = params.toString();
-  return query ? `?${query}` : '';
+export interface TagFilter {
+  tagIds?: number[];
+  sinTag?: boolean;
+}
+
+export function buildQuery(params: QueryParams): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+  }
+
+  return parts.length > 0 ? `?${parts.join('&')}` : '';
+}
+
+export function dateRangeQuery(range?: DateRange): string {
+  return buildQuery({ from: range?.from, to: range?.to });
+}
+
+export function tagFilterParams(filter?: TagFilter): QueryParams {
+  const tagIds = filter?.tagIds ?? [];
+  return {
+    tag_ids: tagIds.length > 0 ? tagIds.join(',') : undefined,
+    sin_tag: filter?.sinTag ? 'true' : undefined,
+  };
 }

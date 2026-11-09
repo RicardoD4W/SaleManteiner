@@ -43,6 +43,7 @@ const buyFixture: Buy = {
   associated_costs: 5.0,
   purchase_date: '2026-10-01',
   notes: null,
+  tag: null,
   created_at: '2026-10-01T10:00:00.000Z',
 };
 

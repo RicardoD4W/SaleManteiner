@@ -37,6 +37,7 @@ function toBuyDetail(buy: BuyWithStock): Buy {
     associated_costs: buy.associated_costs,
     purchase_date: buy.purchase_date,
     notes: buy.notes,
+    tag: buy.tag,
     created_at: buy.created_at,
   };
 }

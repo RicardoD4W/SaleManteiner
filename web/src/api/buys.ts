@@ -1,8 +1,7 @@
 import { apiFetch } from './client.js';
-import { dateRangeQuery } from './queryString.js';
+import { buildQuery, tagFilterParams, type TagFilter } from './queryString.js';
 import type { DateRange } from '../lib/dateRange.js';
-import type { Buy } from '../schemas/buys.js';
-import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
+import type { Buy, CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
 export interface BuyWithStock extends Buy {
   disponibles: number;
@@ -19,8 +18,14 @@ interface StockResponse {
 }
 
 export const buysApi = {
-  list: (range?: DateRange) =>
-    apiFetch<ListResponse>(`/api/buys${dateRangeQuery(range)}`).then((r) => r.data),
+  list: (range?: DateRange, filter?: TagFilter) =>
+    apiFetch<ListResponse>(
+      `/api/buys${buildQuery({
+        from: range?.from,
+        to: range?.to,
+        ...tagFilterParams(filter),
+      })}`,
+    ).then((r) => r.data),
 
   getById: (id: number) => apiFetch<ItemResponse>(`/api/buys/${id}`).then((r) => r.data),
 

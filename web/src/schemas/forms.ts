@@ -17,6 +17,7 @@ export const BuyFormSchema = z.object({
   associated_costs: EuroMoneyField,
   purchase_date: FormDateField,
   notes: NotesField,
+  tag_id: z.number().int().positive().nullable().optional(),
 });
 
 export type BuyFormInput = z.input<typeof BuyFormSchema>;
