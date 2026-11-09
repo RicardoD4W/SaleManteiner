@@ -35,6 +35,7 @@ const buysFixture: BuyWithStock[] = [
     associated_costs: 3.2,
     purchase_date: '2026-10-02',
     notes: null,
+    tag: null,
     created_at: '2026-10-02T10:00:00.000Z',
     disponibles: 17,
   },
@@ -54,7 +55,38 @@ describe('useBuys', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(buysApi.list).toHaveBeenCalledWith(undefined);
+    expect(buysApi.list).toHaveBeenCalledWith(undefined, undefined);
+  });
+
+  it('manda el filtro de tags a la api', async () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBuys(undefined, { tagIds: [3, 7], sinTag: false }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(buysApi.list).toHaveBeenCalledWith(undefined, { tagIds: [3, 7], sinTag: false });
+  });
+
+  it('un filtro de tags distinto es otra consulta', async () => {
+    const { Wrapper } = makeWrapper();
+    const { rerender } = renderHook(
+      ({ filter }: { filter?: { tagIds?: number[] } }) => useBuys(undefined, filter),
+      { wrapper: Wrapper, initialProps: { filter: { tagIds: [3] } } },
+    );
+
+    await waitFor(() => {
+      expect(buysApi.list).toHaveBeenCalledTimes(1);
+    });
+
+    rerender({ filter: { tagIds: [7] } });
+
+    await waitFor(() => {
+      expect(buysApi.list).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('manda el rango a la api', async () => {
@@ -67,7 +99,7 @@ describe('useBuys', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(buysApi.list).toHaveBeenCalledWith({ from: '2026-01-01', to: '2026-06-30' });
+    expect(buysApi.list).toHaveBeenCalledWith({ from: '2026-01-01', to: '2026-06-30' }, undefined);
   });
 
   it('dos rangos distintos son dos consultas distintas', async () => {
