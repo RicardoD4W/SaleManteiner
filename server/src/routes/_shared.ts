@@ -18,6 +18,11 @@ export const SalesListQuery = DateRangeQuery.extend({
   customerId: z.coerce.number().int().positive().optional(),
 });
 
+export const BuysListQuery = DateRangeQuery.extend({
+  tag_ids: z.string().optional(),
+  sin_tag: z.enum(['true', 'false']).optional(),
+});
+
 export const CustomersSearchQuery = z.object({ name: z.string().min(1).optional() }).strict();
 
 export const ExpensesListQuery = z
@@ -36,4 +41,15 @@ export function asyncHandler(
 
 export function respondBadRequest(res: Response, error: string, issues: unknown): Response {
   return res.status(400).json({ error, issues });
+}
+
+export function parseTagIdsParam(raw: string | undefined): number[] | null {
+  if (raw === undefined) return [];
+  const parts = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  const ids = parts.map((part) => Number(part));
+  if (ids.some((id) => !Number.isInteger(id) || id <= 0)) return null;
+  return ids;
 }

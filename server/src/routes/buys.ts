@@ -1,9 +1,16 @@
 import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { BuysRepo } from '../repo/buys-repo.js';
+import { UnknownTagError } from '../repo/tags-repo.js';
 import type { CascadeResult } from '../repo/types.js';
 import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
-import { DateRangeQuery, IdParam, asyncHandler, respondBadRequest } from './_shared.js';
+import {
+  BuysListQuery,
+  IdParam,
+  asyncHandler,
+  parseTagIdsParam,
+  respondBadRequest,
+} from './_shared.js';
 
 export interface BuysRouterDeps {
   repo: BuysRepo;
@@ -24,14 +31,22 @@ export function buysRouter(deps: BuysRouterDeps): Router {
   router.get(
     '/',
     asyncHandler(async (req, res) => {
-      const parsed = DateRangeQuery.safeParse(req.query);
+      const parsed = BuysListQuery.safeParse(req.query);
       if (!parsed.success) {
         return respondBadRequest(res, 'Parámetros inválidos', parsed.error.flatten());
       }
-      const filters =
-        parsed.data.from || parsed.data.to
-          ? { dateRange: { from: parsed.data.from, to: parsed.data.to } }
-          : undefined;
+      const tagIds = parseTagIdsParam(parsed.data.tag_ids);
+      if (tagIds === null) {
+        return respondBadRequest(res, 'Parámetros inválidos', { tag_ids: 'Ids de tag inválidos' });
+      }
+      const filters = {
+        dateRange:
+          parsed.data.from || parsed.data.to
+            ? { from: parsed.data.from, to: parsed.data.to }
+            : undefined,
+        tagIds,
+        sinTag: parsed.data.sin_tag === 'true',
+      };
       const data = repo.listWithStock(filters);
       res.json({ data });
     }),
@@ -59,7 +74,15 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       if (!parsed.success) {
         return respondBadRequest(res, 'Datos de compra inválidos', parsed.error.flatten());
       }
-      const data = repo.create(parsed.data);
+      let data;
+      try {
+        data = repo.create(parsed.data);
+      } catch (err) {
+        if (err instanceof UnknownTagError) {
+          return res.status(422).json({ error: err.error });
+        }
+        throw err;
+      }
       res.status(201).json({ data });
     }),
   );
@@ -75,7 +98,15 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       if (!body.success) {
         return respondBadRequest(res, 'Datos de actualización inválidos', body.error.flatten());
       }
-      const data = repo.update(params.data.id, body.data);
+      let data;
+      try {
+        data = repo.update(params.data.id, body.data);
+      } catch (err) {
+        if (err instanceof UnknownTagError) {
+          return res.status(422).json({ error: err.error });
+        }
+        throw err;
+      }
       if (!data) {
         return res.status(404).json({ error: 'Compra no encontrada', id: params.data.id });
       }

@@ -2,6 +2,7 @@ import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
 import { definedOnly } from '../lib/defined-only.js';
 import type { AssociatedSale, CascadeResult, DateRange } from './types.js';
+import { UnknownTagError } from './tags-repo.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 
@@ -13,6 +14,9 @@ interface BuyRow {
   associated_costs: number;
   purchase_date: string | null;
   notes: string | null;
+  tag_id: number | null;
+  tag_name: string | null;
+  tag_color: string | null;
   created_at: string;
 }
 
@@ -26,12 +30,18 @@ function rowToBuy(row: BuyRow): Buy {
     associated_costs: row.associated_costs,
     purchase_date: row.purchase_date,
     notes: row.notes,
+    tag:
+      row.tag_id !== null && row.tag_name !== null && row.tag_color !== null
+        ? { id: row.tag_id, name: row.tag_name, color: row.tag_color }
+        : null,
     created_at: row.created_at,
   };
 }
 
 export interface BuyListFilters {
   dateRange?: DateRange;
+  tagIds?: number[];
+  sinTag?: boolean;
 }
 
 export interface BuyWithStock extends Buy {
@@ -62,10 +72,15 @@ export interface BuysRepo {
 
 export function createBuysRepo(db: Database): BuysRepo {
   const insertStmt = db.prepare(`
-    INSERT INTO buys (product_name, purchase_cost, quantity, associated_costs, purchase_date, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO buys (product_name, purchase_cost, quantity, associated_costs, purchase_date, notes, tag_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const getStmt = db.prepare('SELECT * FROM buys WHERE id = ?');
+  const getStmt = db.prepare(`
+    SELECT b.*, t.name AS tag_name, t.color AS tag_color
+    FROM buys b
+    LEFT JOIN tags t ON t.id = b.tag_id
+    WHERE b.id = ?
+  `);
   const deleteStmt = db.prepare('DELETE FROM buys WHERE id = ?');
   const updateStmt = db.prepare(`
     UPDATE buys SET
@@ -74,13 +89,20 @@ export function createBuysRepo(db: Database): BuysRepo {
       quantity = ?,
       associated_costs = ?,
       purchase_date = ?,
-      notes = ?
+      notes = ?,
+      tag_id = ?
     WHERE id = ?
   `);
-  const listWithStockStmt = db.prepare(`
+  const listWithStockSelect = `
     SELECT b.*,
-      (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
+      (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles,
+      t.name AS tag_name,
+      t.color AS tag_color
     FROM buys b
+    LEFT JOIN tags t ON t.id = b.tag_id
+  `;
+  const listWithStockStmt = db.prepare(`
+    ${listWithStockSelect}
     WHERE (? IS NULL OR b.purchase_date >= ?)
       AND (? IS NULL OR b.purchase_date <= ?)
     ORDER BY b.id DESC
@@ -116,7 +138,14 @@ export function createBuysRepo(db: Database): BuysRepo {
     `DELETE FROM solds WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sale_items WHERE sold_id = ?)`,
   );
 
+  function assertTagExists(tagId: number | null | undefined): void {
+    if (tagId === null || tagId === undefined) return;
+    const row = db.prepare('SELECT id FROM tags WHERE id = ? AND scope = ?').get(tagId, 'buy');
+    if (!row) throw new UnknownTagError();
+  }
+
   function create(input: CreateBuyInput): Buy {
+    assertTagExists(input.tag_id);
     const now = new Date().toISOString();
     const result = insertStmt.run(
       input.product_name,
@@ -125,6 +154,7 @@ export function createBuysRepo(db: Database): BuysRepo {
       round2(input.associated_costs),
       input.purchase_date ?? null,
       input.notes ?? null,
+      input.tag_id ?? null,
       now,
     );
     const id = Number(result.lastInsertRowid);
@@ -139,7 +169,28 @@ export function createBuysRepo(db: Database): BuysRepo {
   function listWithStock(filters?: BuyListFilters): BuyWithStock[] {
     const from = filters?.dateRange?.from || null;
     const to = filters?.dateRange?.to || null;
-    const rows = listWithStockStmt.all(from, from, to, to) as (BuyRow & { disponibles: number })[];
+    const tagIds = filters?.tagIds ?? [];
+    const sinTag = filters?.sinTag === true;
+
+    if (!sinTag && tagIds.length === 0) {
+      const rows = listWithStockStmt.all(from, from, to, to) as (BuyRow & {
+        disponibles: number;
+      })[];
+      return rows.map((row) => ({ ...rowToBuy(row), disponibles: row.disponibles }));
+    }
+
+    const tagClause = sinTag
+      ? 'b.tag_id IS NULL'
+      : `b.tag_id IN (${tagIds.map(() => '?').join(', ')})`;
+    const params: unknown[] = [from, from, to, to, ...(sinTag ? [] : tagIds)];
+    const stmt = db.prepare(`
+      ${listWithStockSelect}
+      WHERE (? IS NULL OR b.purchase_date >= ?)
+        AND (? IS NULL OR b.purchase_date <= ?)
+        AND ${tagClause}
+      ORDER BY b.id DESC
+    `);
+    const rows = stmt.all(...params) as (BuyRow & { disponibles: number })[];
     return rows.map((row) => ({ ...rowToBuy(row), disponibles: row.disponibles }));
   }
 
@@ -154,6 +205,7 @@ export function createBuysRepo(db: Database): BuysRepo {
 
     const definedPatch = definedOnly(input);
     if (Object.keys(definedPatch).length === 0) return existing;
+    assertTagExists(definedPatch.tag_id);
 
     const next = {
       ...existing,
@@ -163,6 +215,8 @@ export function createBuysRepo(db: Database): BuysRepo {
       id: existing.id,
       created_at: existing.created_at,
     };
+    const nextTagId =
+      definedPatch.tag_id !== undefined ? definedPatch.tag_id : (existing.tag?.id ?? null);
 
     updateStmt.run(
       next.product_name,
@@ -171,6 +225,7 @@ export function createBuysRepo(db: Database): BuysRepo {
       next.associated_costs,
       next.purchase_date ?? null,
       next.notes ?? null,
+      nextTagId,
       id,
     );
 

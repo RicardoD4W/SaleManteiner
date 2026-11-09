@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { EuroMoney, LocalDate, LongText, Quantity, RowId, ShortText } from './common.js';
+import { TagColor } from './tags.js';
+
+export const BuyTag = z.object({ id: RowId, name: ShortText, color: TagColor });
+export type BuyTag = z.infer<typeof BuyTag>;
 
 export const CreateBuyInput = z
   .object({
@@ -9,6 +13,7 @@ export const CreateBuyInput = z
     associated_costs: EuroMoney.optional().default(0),
     purchase_date: LocalDate.optional(),
     notes: LongText.nullable().optional(),
+    tag_id: RowId.nullable().optional(),
   })
   .strict();
 
@@ -20,6 +25,7 @@ export const UpdateBuyInput = z
     associated_costs: EuroMoney.optional(),
     purchase_date: LocalDate.nullable().optional(),
     notes: LongText.nullable().optional(),
+    tag_id: RowId.nullable().optional(),
   })
   .strict();
 
@@ -32,6 +38,7 @@ export const Buy = z.object({
   associated_costs: EuroMoney,
   purchase_date: LocalDate.nullable(),
   notes: LongText.nullable(),
+  tag: BuyTag.nullable(),
   created_at: z.string(),
 });
 
