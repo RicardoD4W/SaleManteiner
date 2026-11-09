@@ -22,19 +22,7 @@ export function SoldReceiptPage() {
     const previousTitle = document.title;
     document.title = receiptTitle;
 
-    const hideTitleForPrint = () => {
-      document.title = '';
-    };
-    const restoreTitleAfterPrint = () => {
-      document.title = receiptTitle;
-    };
-
-    window.addEventListener('beforeprint', hideTitleForPrint);
-    window.addEventListener('afterprint', restoreTitleAfterPrint);
-
     return () => {
-      window.removeEventListener('beforeprint', hideTitleForPrint);
-      window.removeEventListener('afterprint', restoreTitleAfterPrint);
       document.title = previousTitle;
     };
   }, [receiptTitle]);

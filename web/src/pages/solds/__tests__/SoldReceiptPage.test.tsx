@@ -118,17 +118,17 @@ describe('SoldReceiptPage', () => {
     expect(screen.queryByText(/^Nº /)).not.toBeInTheDocument();
   });
 
-  it('vacía el título del documento al imprimir y lo restaura al terminar', async () => {
+  it('mantiene el título del documento al imprimir para nombrar el PDF', async () => {
     renderPage();
 
     await screen.findByRole('heading', { level: 2, name: 'Recibo de venta' });
-    expect(document.title).toBe('Factura Nº1 - 05-10-2026');
+    expect(document.title).toBe('Factura Nº1 _ 05-10-2026');
 
     window.dispatchEvent(new Event('beforeprint'));
-    expect(document.title).toBe('');
+    expect(document.title).toBe('Factura Nº1 _ 05-10-2026');
 
     window.dispatchEvent(new Event('afterprint'));
-    expect(document.title).toBe('Factura Nº1 - 05-10-2026');
+    expect(document.title).toBe('Factura Nº1 _ 05-10-2026');
   });
 
   it('el botón de imprimir llama a window.print', async () => {

@@ -65,12 +65,12 @@ describe('receiptDate', () => {
 describe('receiptFileName', () => {
   it('usa el número de venta y la fecha de venta', () => {
     expect(receiptFileName(3, '2026-11-05', '2026-11-01T10:00:00.000Z')).toBe(
-      'Factura Nº3 - 05-11-2026',
+      'Factura Nº3 _ 05-11-2026',
     );
   });
 
   it('usa la fecha de registro cuando la venta no tiene fecha', () => {
-    expect(receiptFileName(3, null, '2026-11-01T10:00:00.000Z')).toBe('Factura Nº3 - 01-11-2026');
+    expect(receiptFileName(3, null, '2026-11-01T10:00:00.000Z')).toBe('Factura Nº3 _ 01-11-2026');
   });
 
   it('evita la barra que Windows no admite en nombres de archivo', () => {

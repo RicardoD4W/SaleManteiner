@@ -45,5 +45,5 @@ export function receiptFileName(
   soldAt: string | null | undefined,
   createdAt: string,
 ): string {
-  return `Factura Nº${soldId} - ${receiptDate(soldAt, createdAt).replace(/\//g, '-')}`;
+  return `Factura Nº${soldId} _ ${receiptDate(soldAt, createdAt).replace(/\//g, '-')}`;
 }
