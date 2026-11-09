@@ -39,3 +39,11 @@ export function receiptTotals(
 export function receiptDate(soldAt: string | null | undefined, createdAt: string): string {
   return formatDate(soldAt ?? createdAt);
 }
+
+export function receiptFileName(
+  soldId: number,
+  soldAt: string | null | undefined,
+  createdAt: string,
+): string {
+  return `Factura Nº${soldId} - ${receiptDate(soldAt, createdAt).replace(/\//g, '-')}`;
+}

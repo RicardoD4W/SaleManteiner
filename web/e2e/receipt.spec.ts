@@ -136,4 +136,5 @@ test('/solds: al imprimir solo sale el recibo, sin la cabecera de la app ni los 
   await expect(page.getByRole('navigation', { name: 'Principal' })).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
   await expect(page.getByText('120,00 €')).toBeVisible();
+  await expect(page.getByText(/^Nº /)).toHaveCount(0);
 });

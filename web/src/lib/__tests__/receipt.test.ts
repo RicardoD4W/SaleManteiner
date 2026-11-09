@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { receiptDate, receiptLines, receiptTotals, type ReceiptLine } from '@/lib/receipt';
+import {
+  receiptDate,
+  receiptFileName,
+  receiptLines,
+  receiptTotals,
+  type ReceiptLine,
+} from '@/lib/receipt';
 import type { SaleItemOutput } from '@/schemas/solds';
 
 const items: SaleItemOutput[] = [
@@ -53,5 +59,21 @@ describe('receiptDate', () => {
 
   it('usa la fecha de registro cuando la venta no tiene fecha', () => {
     expect(receiptDate(null, '2026-11-01T10:00:00.000Z')).toBe('01/11/2026');
+  });
+});
+
+describe('receiptFileName', () => {
+  it('usa el número de venta y la fecha de venta', () => {
+    expect(receiptFileName(3, '2026-11-05', '2026-11-01T10:00:00.000Z')).toBe(
+      'Factura Nº3 - 05-11-2026',
+    );
+  });
+
+  it('usa la fecha de registro cuando la venta no tiene fecha', () => {
+    expect(receiptFileName(3, null, '2026-11-01T10:00:00.000Z')).toBe('Factura Nº3 - 01-11-2026');
+  });
+
+  it('evita la barra que Windows no admite en nombres de archivo', () => {
+    expect(receiptFileName(3, '2026-11-05', '2026-11-01T10:00:00.000Z')).not.toContain('/');
   });
 });

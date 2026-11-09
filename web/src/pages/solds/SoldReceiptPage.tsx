@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSold } from '../../hooks/useSold';
 import { useCustomer } from '../../hooks/useCustomer';
@@ -5,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { TravellingField } from '../../components/ui/armedRow';
 import { formatEuro, formatPhone } from '../../lib/format';
-import { receiptDate, receiptLines, receiptTotals } from '../../lib/receipt';
+import { receiptDate, receiptFileName, receiptLines, receiptTotals } from '../../lib/receipt';
 import { soldItemVtName, soldVtName } from '../../lib/viewTransition';
 
 export function SoldReceiptPage() {
@@ -13,6 +14,30 @@ export function SoldReceiptPage() {
   const soldId = Number(id);
   const { data: sold, isLoading, isError, error } = useSold(soldId);
   const { data: customer } = useCustomer(sold?.customer_id ?? 0);
+
+  const receiptTitle = sold ? receiptFileName(sold.id, sold.sold_at, sold.created_at) : null;
+
+  useEffect(() => {
+    if (!receiptTitle) return;
+    const previousTitle = document.title;
+    document.title = receiptTitle;
+
+    const hideTitleForPrint = () => {
+      document.title = '';
+    };
+    const restoreTitleAfterPrint = () => {
+      document.title = receiptTitle;
+    };
+
+    window.addEventListener('beforeprint', hideTitleForPrint);
+    window.addEventListener('afterprint', restoreTitleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', hideTitleForPrint);
+      window.removeEventListener('afterprint', restoreTitleAfterPrint);
+      document.title = previousTitle;
+    };
+  }, [receiptTitle]);
 
   if (!Number.isFinite(soldId) || soldId <= 0) {
     return (
@@ -79,10 +104,7 @@ export function SoldReceiptPage() {
 
       <article className="rounded-md border border-gray-200 bg-white p-8 text-gray-900 shadow-sm print:border-0 print:p-0 print:shadow-none dark:border-gray-300 dark:bg-gray-50">
         <header className="flex items-start justify-between gap-4 border-b border-gray-200 pb-4 dark:border-gray-300">
-          <div>
-            <h2 className="text-xl font-bold">Recibo de venta</h2>
-            <p className="text-sm text-gray-500">Nº {sold.id}</p>
-          </div>
+          <h2 className="text-xl font-bold">Recibo de venta</h2>
           <p className="text-sm text-gray-600">
             Fecha:{' '}
             <TravellingField name={soldVtName('date', soldId)}>
@@ -92,7 +114,7 @@ export function SoldReceiptPage() {
         </header>
 
         <section className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</h3>
+          <h3 className="text-sm font-semibold tracking-wide text-gray-500">Cliente</h3>
           <p className="mt-1 font-medium">
             <TravellingField name={soldVtName('client', soldId)}>
               {sold.customer_name}
@@ -103,8 +125,7 @@ export function SoldReceiptPage() {
         </section>
 
         <section className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Productos</h3>
-          <table className="mt-2 w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-300 text-left">
                 <th scope="col" className="py-1 font-medium">
