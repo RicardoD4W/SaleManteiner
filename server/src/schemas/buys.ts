@@ -28,6 +28,7 @@ export const Buy = z.object({
   product_name: ShortText,
   purchase_cost: EuroMoney,
   quantity: Quantity,
+  total_cost: EuroMoney,
   associated_costs: EuroMoney,
   purchase_date: LocalDate.nullable(),
   notes: LongText.nullable(),

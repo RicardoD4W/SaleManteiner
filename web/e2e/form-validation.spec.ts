@@ -25,7 +25,7 @@ test('un importe con más de 2 decimales muestra el error del schema', async ({ 
 
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Producto *').fill('Funda iPhone 15');
-  await dialog.getByLabel('Coste (€) *').fill('10.005');
+  await dialog.getByLabel('Precio unidad (€) *').fill('10.005');
   await dialog.getByRole('button', { name: 'Crear compra' }).click();
 
   await expect(dialog.getByText('Máximo 2 decimales')).toBeVisible();

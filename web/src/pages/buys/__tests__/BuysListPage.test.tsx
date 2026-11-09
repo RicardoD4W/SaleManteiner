@@ -31,6 +31,7 @@ const buysFixture = [
     product_name: 'Funda iPhone 15',
     purchase_cost: 45.5,
     quantity: 20,
+    total_cost: 910,
     associated_costs: 3.2,
     purchase_date: '2026-10-02',
     notes: null,
@@ -55,6 +56,17 @@ describe('BuysListPage', () => {
       error: null,
       refetch: vi.fn(),
     } as never);
+  });
+
+  it('muestra el coste del lote y el precio por unidad en columnas separadas', () => {
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.getByRole('columnheader', { name: 'Coste (€)' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Precio unidad (€)' })).toBeInTheDocument();
+
+    const fila = screen.getByText('Funda iPhone 15').closest('tr') as HTMLElement;
+    expect(within(fila).getByText('910,00 €')).toBeInTheDocument();
+    expect(within(fila).getByText('45,50 €')).toBeInTheDocument();
   });
 
   it('el botón "Borrar" de la fila muestra el cursor de puntero', () => {

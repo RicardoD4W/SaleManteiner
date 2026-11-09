@@ -48,7 +48,7 @@ web/
 | -------------------- | ------------------- | ----------------------------------------------------------------------------- |
 | `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas          |
 | `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)                        |
-| `/buys`              | `BuysListPage`      | tabla de compras + alta + borrado                                             |
+| `/buys`              | `BuysListPage`      | tabla de compras (precio unidad y total del lote) + alta + borrado            |
 | `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                         |
 | `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                              |
 | `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                          |
@@ -172,6 +172,16 @@ En `index.css` están las clases de la animación (`.vt-cell` y `.vt-box`, respe
 
 El campo **"Cobrado (€)"** de una venta **empieza vacío** y es opcional: vacío = se asume que te ha pagado el precio entero (deuda 0); con un importe, ese importe es lo que te pagó y la deuda es lo que falta. Un `0` explícito significa "no me ha pagado nada".
 
+### La compra: precio por unidad
+
+El campo de compra es el **precio por unidad** ("Precio unidad (€) *", hint "Lo que pagaste por una unidad"), no el total del lote. El total del lote **se deriva**: `total_cost = round2(purchase_cost * quantity)`, y el servidor lo devuelve ya calculado en las lecturas de compras (campo aditivo `total_cost` en `schemas/buys.ts`).
+
+- **La tabla de `/buys`** muestra las dos cifras: la columna **"Coste (€)"** es el total del lote (`total_cost`) y la columna **"Precio unidad (€)"** es `purchase_cost`.
+- **El formulario** (alta y edición) muestra el **"Total del lote"** derivado, en vivo, con `BuyLotTotal` (`components/sales/BuyLotTotal.tsx`): el usuario escribe el precio de una unidad y ve el total que sale, para poder cuadrarlo con lo que pagó. En la edición ese total es además el destino del viaje de datos de la columna "Coste (€)" (`buy-totalCost-<id>`).
+- **La búsqueda numérica** matchea el precio unitario **y** el total del lote (`lib/searchQuery.ts` indexa `purchase_cost` y `total_cost`).
+
+Las compras que ya tuvieras antes del cambio conservan el total pagado en el campo: la app **no convierte los datos** (migración `010` sin reescribir `buys`), así que hay que corregirlas a mano. Ver [CHANGELOG.md](CHANGELOG.md).
+
 ### `components/expenses/` — los gastos
 
 `ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
@@ -229,13 +239,13 @@ Restaurar **reescribe la base de datos del usuario**, así que exige una **confi
 
 **Búsqueda** (`lib/searchQuery.ts`): el campo de búsqueda **parsea la query**:
 
-| Token          | Tipo     | Matchea                                          |
-| -------------- | -------- | ------------------------------------------------ |
-| `ipad`         | texto    | producto o cliente (sin acentos, sin mayúsculas) |
-| `25` / `25,50` | número   | precio, coste, cantidad o disponibles            |
-| `x3`           | cantidad | filas con 3 unidades                             |
-| `12/03/2025`   | fecha    | fecha de compra o de venta (o ISO `2025-03-12`)  |
-| `-30`          | signo    | ventas con pérdida de 30 €                       |
+| Token          | Tipo     | Matchea                                               |
+| -------------- | -------- | ----------------------------------------------------- |
+| `ipad`         | texto    | producto o cliente (sin acentos, sin mayúsculas)      |
+| `25` / `25,50` | número   | precio unidad, coste del lote, cantidad o disponibles |
+| `x3`           | cantidad | filas con 3 unidades                                  |
+| `12/03/2025`   | fecha    | fecha de compra o de venta (o ISO `2025-03-12`)       |
+| `-30`          | signo    | ventas con pérdida de 30 €                            |
 
 Los tokens se combinan con AND: varias palabras = todas las condiciones.
 

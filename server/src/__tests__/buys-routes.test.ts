@@ -394,4 +394,20 @@ describe('contrato HTTP del borrado de compras', () => {
       expect(empty.status).toBe(400);
     });
   });
+
+  describe('el total del lote por HTTP', () => {
+    it('GET /api/buys devuelve total_cost derivado del precio unitario', async () => {
+      repos.buys.create({
+        product_name: 'Camiseta',
+        purchase_cost: 5,
+        quantity: 4,
+        associated_costs: 0,
+      });
+
+      const res = await api('GET', '/api/buys');
+      expect(res.status).toBe(200);
+      const data = res.body?.data as Array<{ purchase_cost: number; total_cost: number }>;
+      expect(data[0]).toMatchObject({ purchase_cost: 5, total_cost: 20 });
+    });
+  });
 });

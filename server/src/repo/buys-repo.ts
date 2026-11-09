@@ -22,6 +22,7 @@ function rowToBuy(row: BuyRow): Buy {
     product_name: row.product_name,
     purchase_cost: row.purchase_cost,
     quantity: row.quantity,
+    total_cost: round2(row.purchase_cost * row.quantity),
     associated_costs: row.associated_costs,
     purchase_date: row.purchase_date,
     notes: row.notes,

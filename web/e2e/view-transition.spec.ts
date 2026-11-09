@@ -82,7 +82,7 @@ async function createBuy(
   product_name: string,
 ): Promise<number> {
   const res = await request.post('/api/buys', {
-    data: { product_name, purchase_cost: 100, quantity: 20, purchase_date: '2026-10-02' },
+    data: { product_name, purchase_cost: 5, quantity: 20, purchase_date: '2026-10-02' },
   });
   expect(res.ok(), `POST /api/buys falló: ${res.status()}`).toBe(true);
   const body = (await res.json()) as { data: { id: number } };
@@ -190,7 +190,7 @@ test('editar una compra: también viajan el coste, la cantidad, los asociados y 
 
   const FIELDS = [
     { suffix: 'product', text: 'Funda iPhone 15', label: 'Producto *' },
-    { suffix: 'cost', text: '100,00 €', label: 'Coste (€) *' },
+    { suffix: 'cost', text: '5,00 €', label: 'Precio unidad (€) *' },
     { suffix: 'qty', text: '20', label: 'Cantidad *' },
     { suffix: 'associated', text: '0,00 €', label: 'Costes asociados (€)' },
     { suffix: 'date', text: '02/10/2026', label: 'Fecha de compra' },

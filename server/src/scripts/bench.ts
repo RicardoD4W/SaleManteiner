@@ -274,7 +274,7 @@ function seedDatabase(db: Database, profile: BenchProfile, seed: number): void {
       const soldUnits = soldUnitsPerBuy.get(buyId) ?? 0;
       const quantity = soldUnits + 1 + Math.floor(rand() * 6);
       const unitPrice = round2(5 + rand() * 195);
-      const purchaseCost = round2(unitPrice * quantity);
+      const purchaseCost = unitPrice;
       const associated = round2(rand() * 40);
       insertBuy.run(
         PRODUCT_NAMES[buyId % PRODUCT_NAMES.length],

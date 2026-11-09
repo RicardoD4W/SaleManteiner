@@ -50,7 +50,7 @@ test('/solds: el recibo de una venta se abre desde la lista y muestra el cliente
   });
   const buyId = await createBuyViaApi(request, {
     product_name: 'iPhone 15',
-    purchase_cost: 400,
+    purchase_cost: 200,
     quantity: 2,
     purchase_date: '2026-10-01',
   });
@@ -117,7 +117,7 @@ test('/solds: al imprimir solo sale el recibo, sin la cabecera de la app ni los 
   const customerId = await createCustomerViaApi(request, { name: 'Ana García' });
   const buyId = await createBuyViaApi(request, {
     product_name: 'iPhone 15',
-    purchase_cost: 400,
+    purchase_cost: 200,
     quantity: 2,
     purchase_date: '2026-10-01',
   });

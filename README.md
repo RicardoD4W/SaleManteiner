@@ -26,13 +26,16 @@ Compras, vendes y quieress saber cómo van tus números. SaleManteiner es el cua
 | Campo           | Qué es                                                   |
 | --------------- | -------------------------------------------------------- |
 | Producto        | el nombre del artículo                                   |
-| Coste           | lo que pagaste **en total** por ese lote                 |
+| Coste           | el total del lote (precio unidad × cantidad)             |
+| Precio unidad   | lo que pagaste por **una** unidad                        |
 | Cantidad        | cuántas unidades compraste                               |
 | Asociados       | gastos de envío, embalaje, comisiones (totales del lote) |
 | Fecha de compra | editable (por defecto, hoy)                              |
 | Notas           | texto libre (se ve con un icono en la tabla)             |
 
 La tabla te muestra, además, **cuántas unidades te quedan disponibles** de cada compra. Editas y borras desde la propia tabla.
+
+**Ojo con las compras que ya tenías**: el campo es el precio de **una** unidad, pero la app **no convierte** los datos que ya estaban guardados (migrancia `010` sin reescribir `buys`). Revisa cada compra y guarda en ella el precio por unidad; el **total del lote** sale derivado (columna "Coste"), así que ves si cuadra con lo que pagaste.
 
 ### 🧾 Ventas — packs, compradores y beneficio
 

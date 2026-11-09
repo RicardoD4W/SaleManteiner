@@ -20,6 +20,7 @@ vi.mock('@/lib/toast', () => ({ toastCreated }));
 import { buysApi } from '@/api/buys';
 import { useCreateBuy } from '@/hooks/useCreateBuy';
 import { CreateBuyInput } from '@/schemas/buys';
+import type { Buy } from '@/schemas/buys';
 
 function makeWrapper() {
   const qc = new QueryClient({
@@ -33,13 +34,15 @@ function makeWrapper() {
   };
 }
 
-const buyFixture = {
+const buyFixture: Buy = {
   id: 1,
   product_name: 'Funda iPhone',
   purchase_cost: 50.0,
   quantity: 10,
+  total_cost: 500,
   associated_costs: 5.0,
   purchase_date: '2026-10-01',
+  notes: null,
   created_at: '2026-10-01T10:00:00.000Z',
 };
 

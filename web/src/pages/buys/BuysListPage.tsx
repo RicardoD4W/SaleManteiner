@@ -33,6 +33,7 @@ function toBuyDetail(buy: BuyWithStock): Buy {
     product_name: buy.product_name,
     purchase_cost: buy.purchase_cost,
     quantity: buy.quantity,
+    total_cost: buy.total_cost,
     associated_costs: buy.associated_costs,
     purchase_date: buy.purchase_date,
     notes: buy.notes,
@@ -65,16 +66,29 @@ export function BuysListPage() {
     () => [
       columnHelper.accessor('product_name', {
         header: 'Producto',
-        size: 220,
+        size: 190,
         cell: (info) => (
           <TravellingCell row={info.row.original} field="product" className="font-medium">
             {info.row.original.product_name}
           </TravellingCell>
         ),
       }),
-      columnHelper.accessor('purchase_cost', {
+      columnHelper.accessor('total_cost', {
         header: 'Coste (€)',
-        size: 120,
+        size: 110,
+        cell: (info) => (
+          <TravellingCell
+            row={info.row.original}
+            field="totalCost"
+            className="tabular-nums text-gray-700 dark:text-gray-300"
+          >
+            {formatEuro(info.getValue())}
+          </TravellingCell>
+        ),
+      }),
+      columnHelper.accessor('purchase_cost', {
+        header: 'Precio unidad (€)',
+        size: 130,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -87,7 +101,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('quantity', {
         header: 'Cantidad',
-        size: 110,
+        size: 95,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -100,7 +114,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('associated_costs', {
         header: 'Asociados (€)',
-        size: 140,
+        size: 115,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -113,7 +127,7 @@ export function BuysListPage() {
       }),
       columnHelper.accessor('purchase_date', {
         header: 'Fecha compra',
-        size: 150,
+        size: 135,
         cell: (info) => (
           <TravellingCell
             row={info.row.original}
@@ -127,7 +141,7 @@ export function BuysListPage() {
       columnHelper.accessor((row) => row.disponibles, {
         id: 'disponibles',
         header: 'Disponibles',
-        size: 130,
+        size: 105,
         cell: (info) => {
           const disponibles = info.getValue() as number;
           return (
@@ -238,7 +252,7 @@ export function BuysListPage() {
             onChange={handleQueryChange}
             label="Buscar compras"
             landmarkLabel="Filtro de compras"
-            placeholder="Producto, coste, cantidad, fecha…"
+            placeholder="Producto, precio, cantidad, fecha…"
           />
         </div>
         <Button onClick={() => setIsModalOpen(true)}>+ Nueva compra</Button>

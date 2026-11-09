@@ -140,7 +140,7 @@ describe('solds repo', () => {
 
     it('devuelve venta con items y nombre del cliente', () => {
       const customer = makeCustomer(customersRepo, 'Pedro');
-      const buy = makeBuy(buysRepo, { product_name: 'Funda', purchase_cost: 50, quantity: 5 });
+      const buy = makeBuy(buysRepo, { product_name: 'Funda', purchase_cost: 10, quantity: 5 });
 
       const created = soldsRepo.createManyWithStockCheck(
         validSold(customer.id, buy.id, {
@@ -168,7 +168,7 @@ describe('solds repo', () => {
       const c = makeCustomer(customersRepo, 'Pepe');
       const b1 = makeBuy(buysRepo, {
         product_name: 'sobre pokemon',
-        purchase_cost: 10,
+        purchase_cost: 1,
         quantity: 10,
       });
       const b2 = makeBuy(buysRepo, { product_name: 'carta magic', purchase_cost: 5, quantity: 3 });
@@ -204,7 +204,7 @@ describe('solds repo', () => {
 
     it('mantiene profit calculado aunque items sea []', () => {
       const c = makeCustomer(customersRepo);
-      const b = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 5 });
+      const b = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 2, quantity: 5 });
       const s = soldsRepo.createManyWithStockCheck(
         validSold(c.id, b.id, {
           sale_price: 100,

@@ -93,6 +93,7 @@ db.pragma('busy_timeout = 5000');
 | `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
 | `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
 | `009_indices_performance.sql`              | **aditiva**: recrea `idx_buys_purchase_date` e `idx_solds_sold_at`                                          |
+| `010_precio_compra_por_unidad.sql`         | **vistas**: `v_item_costs` y `v_sold_costs` con el precio por unidad (no reescribe datos)                   |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
@@ -147,9 +148,9 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 | ------------------------------------ | ------------------------------------------------------------------------------ | ------------------- |
 | `GET /api/health`                    | estado + versión del server                                                    | —                   |
 | `GET /api/version`                   | `{ app, front, back }`                                                         | —                   |
-| `GET /api/buys`                      | lista de compras con `disponibles`                                             | —                   |
-| `GET /api/buys/stock`                | stock por compra                                                               | —                   |
-| `GET /api/buys/:id`                  | una compra                                                                     | 404                 |
+| `GET /api/buys`                      | lista de compras con `disponibles` y `total_cost` (derivado)                   | —                   |
+| `GET /api/buys/stock`                | stock por compra (con `total_cost` derivado)                                   | —                   |
+| `GET /api/buys/:id`                  | una compra (con `total_cost` derivado)                                         | 404                 |
 | `POST /api/buys`                     | alta                                                                           | 400                 |
 | `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)                          | 400/404             |
 | `DELETE /api/buys/:id`               | borra la compra                                                                | 409 si tiene ventas |
@@ -241,7 +242,7 @@ Ruta propia (`server/src/routes/metrics.ts` + `server/src/repo/metrics-repo.ts`)
 - **Sin base de comparación**: si el mes anterior no tuvo actividad (ni ventas ni gastos), `variaciones` es **`null`** (no "0 %": no hay con qué comparar). Dentro de `variaciones`, cada campo es `null` cuando su valor del mes anterior fue 0.
 - **La variación del margen va en puntos porcentuales**: `margen_puntos` = `margen_pct` actual − `margen_pct` anterior (de 20 % a 25 % son **+5 puntos**, no +25 %).
 - El mes se calcula por mes natural (`strftime('%Y-%m', …)`) sobre `sold_at` y `expense_date`.
-- El valor del stock pendiente usa el **coste de compra prorrateado** por unidad (`(purchase_cost + associated_costs) / quantity`), coherente con `v_item_costs`.
+- El valor del stock pendiente usa el **precio por unidad** de compra más los gastos asociados prorrateados (`purchase_cost + ROUND(associated_costs / quantity, 2)`), con el mismo redondeo que `v_item_costs`.
 - Todos los importes y porcentajes salen con `round2()`.
 
 La pestaña "Métricas" del web **no cambia el significado de los KPIs del resumen**: `beneficio_total_eur` sigue siendo el mismo.
@@ -269,6 +270,8 @@ Si el nombre ya existe se le añade un sufijo (`-1`, `-2`, …). El nombre de la
 4. **Migraciones**: al terminar se vuelve a ejecutar `runMigrations(db)`, así una copia de una versión anterior del esquema queda al día. Las copias anteriores a la migración `008` (las que guardaban el importe cobrado en `0` porque era el valor por defecto) se restauran con las ventas **pagadas íntegras**, sin deuda. El esquema de la copia se deduce de **qué migraciones aparecen en su `_migrations`** (la `006` y la `008`), no del número más alto: si a una copia anterior se le añade después una migración nueva, la copia sigue siendo "anterior a la `008`" y no resucita la deuda.
 
 Restaurar **reemplaza** el contenido actual de la base de datos por el de la copia (no se fusiona). El resumen devuelto (`{ customers, buys, solds, sale_items, expenses, expense_categories, safety_backup }`) dice qué se restauró y cómo se llama la copia de seguridad previa.
+
+**Ojo con las copias anteriores a la migración `010`**: la copia guarda `buys.purchase_cost` **tal cual** y la app **no convierte nada** al restaurar. Una copia anterior a la `010` vuelve con el **total pagado** en la columna del precio por unidad (las vistas de esta versión siguen activas, porque restaurar solo restaura filas, no vistas): esas compras hay que **corregirlas a mano**. Para volver del todo al comportamiento anterior hay que **reemplazar el archivo de la base de datos** por una copia previa a la `010`.
 
 **Subida de un archivo**: `POST /api/backups/restore` recibe el **cuerpo binario** (`Content-Type: application/octet-stream`, límite 512 MB) y el nombre original en la cabecera **`X-Filename`**. El archivo se escribe temporalmente en la carpeta de copias, se restaura y se borra. No hace falta `multipart` (ni `multer`).
 

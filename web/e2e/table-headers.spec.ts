@@ -72,7 +72,7 @@ test('el indicador de orden se queda en la misma línea que la cabecera', async 
   const buy = await request.post('/api/buys', {
     data: {
       product_name: 'Funda iPhone',
-      purchase_cost: 100,
+      purchase_cost: 5,
       quantity: 20,
       associated_costs: 5,
     },

@@ -43,7 +43,7 @@ test('compra con cantidad 20 aparece en el ProductPickerModal con "20 disponible
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
   expect(buyId).toBeGreaterThan(0);
@@ -63,7 +63,7 @@ test('crear venta desde la UI: seleccionar compra, cliente, precio y submit', as
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
 
@@ -99,7 +99,7 @@ test('"+ Nueva venta": cancelar el picker inicial cierra la venta (no deja el fo
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda Cancelable',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
 
@@ -124,7 +124,7 @@ test('"+ Cambiar productos": conserva lo elegido, la cantidad se escribe fácil 
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda Test',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 15,
   });
 
@@ -161,7 +161,7 @@ test('después de vender 5 unidades, la compra sigue apareciendo en /buys', asyn
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Juan' });
@@ -196,7 +196,7 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Juan' });
@@ -228,12 +228,12 @@ test('dashboard refleja la venta: ventas_total y beneficio coherentes', async ({
 test('pack multi-producto: venta con 2 items de A + 1 de B', async ({ page, request }) => {
   const buyA = await createBuyViaApi(request, {
     product_name: 'Producto A',
-    purchase_cost: 10,
+    purchase_cost: 2,
     quantity: 5,
   });
   const buyB = await createBuyViaApi(request, {
     product_name: 'Producto B',
-    purchase_cost: 6,
+    purchase_cost: 1.2,
     quantity: 5,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Comprador Pack' });
@@ -269,7 +269,7 @@ test('error de stock insuficiente: vender más unidades de las disponibles → 4
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Cargador',
-    purchase_cost: 30,
+    purchase_cost: 10,
     quantity: 3,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Comprador' });
@@ -304,11 +304,11 @@ test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', asy
   const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
   await expect(modal.getByLabel('Producto *')).toBeVisible();
-  await expect(modal.getByLabel('Coste (€) *')).toBeVisible();
+  await expect(modal.getByLabel('Precio unidad (€) *')).toBeVisible();
   await expect(modal.getByLabel('Cantidad *')).toBeVisible();
 
   await modal.getByLabel('Producto *').fill('Funda Test');
-  await modal.getByLabel('Coste (€) *').fill('50');
+  await modal.getByLabel('Precio unidad (€) *').fill('50');
   await modal.getByLabel('Cantidad *').fill('3');
   await modal.getByRole('button', { name: /Crear compra/ }).click();
 
@@ -320,7 +320,7 @@ test('crear compra desde el modal: /buys "+ Nueva compra" abre BuyNewModal', asy
 test('editar compra: cambiar coste en /buys/:id refleja en la lista', async ({ page, request }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
 
@@ -331,9 +331,9 @@ test('editar compra: cambiar coste en /buys/:id refleja en la lista', async ({ p
   await page.goto(`/buys/${buyId}`);
   await expect(page.getByRole('heading', { name: /Editar compra/ })).toBeVisible();
 
-  const costInput = page.getByLabel('Coste (€) *');
-  await expect(costInput).toHaveValue('100');
-  await costInput.fill('150');
+  const costInput = page.getByLabel('Precio unidad (€) *');
+  await expect(costInput).toHaveValue('5');
+  await costInput.fill('7.5');
   await page.getByRole('button', { name: /Guardar cambios/ }).click();
 
   await expect(page).toHaveURL(/\/buys$/);
@@ -346,7 +346,7 @@ test('editar venta: cambiar precio en /solds/:id refleja en la lista', async ({
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone',
-    purchase_cost: 100,
+    purchase_cost: 5,
     quantity: 20,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Comprador Edit' });
@@ -384,7 +384,7 @@ test('borrar compra: desde la tabla de /buys la confirmación la quita de la lis
 }) => {
   await createBuyViaApi(request, {
     product_name: 'Para Borrar',
-    purchase_cost: 50,
+    purchase_cost: 10,
     quantity: 5,
   });
 
@@ -406,7 +406,7 @@ test('borrar venta: desde la tabla de /solds la confirmación libera el stock de
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Con Stock',
-    purchase_cost: 100,
+    purchase_cost: 10,
     quantity: 10,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Comprador Delete' });
@@ -470,7 +470,7 @@ test('tabs del dashboard navegan entre Resumen / Ingresos / Productos', async ({
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Para Dashboard',
-    purchase_cost: 50,
+    purchase_cost: 16.67,
     quantity: 3,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Cliente Dashboard' });
@@ -503,7 +503,7 @@ test('borrar compra con ventas asociadas: 409 → modal de cascada → borra com
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Cascade E2E',
-    purchase_cost: 50,
+    purchase_cost: 10,
     quantity: 5,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Cliente Cascade' });
@@ -545,7 +545,7 @@ test('cashflow-chart: ventas negativas (profit < 0) no rompen el render', async 
 
   const buyId = await createBuyViaApi(request, {
     product_name: 'Caro',
-    purchase_cost: 100,
+    purchase_cost: 20,
     quantity: 5,
     purchase_date: today,
   });
@@ -599,7 +599,7 @@ test('la tabla entra en el viewport: la columna Acciones se ve completa (sin scr
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone 15',
-    purchase_cost: 45.5,
+    purchase_cost: 2.28,
     quantity: 20,
   });
   const customerId = await createCustomerViaApi(request, { name: 'Lucía Fernández' });

@@ -95,7 +95,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Funda',
-        purchase_cost: 5,
+        purchase_cost: 0.5,
         quantity: 10,
         purchase_date: todayLocalDate(),
       }),
@@ -141,7 +141,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Funda',
-        purchase_cost: 5,
+        purchase_cost: 0.5,
         quantity: 10,
         purchase_date: todayLocalDate(),
       }),
@@ -179,17 +179,21 @@ describe('statsDashboard (nuevo modelo)', () => {
     });
   });
 
-  it('compras_total_eur suma purchase_cost + associated_costs de buys', () => {
-    buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 100, associated_costs: 10 }));
-    buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 50, associated_costs: 5 }));
+  it('compras_total_eur suma purchase_cost * quantity + associated_costs de buys', () => {
+    buysRepo.create(
+      validBuy({ product_name: 'A', purchase_cost: 100, quantity: 2, associated_costs: 10 }),
+    );
+    buysRepo.create(
+      validBuy({ product_name: 'B', purchase_cost: 50, quantity: 3, associated_costs: 5 }),
+    );
 
     const stats = soldsRepo.statsDashboard();
-    expect(stats.kpis.compras_total_eur).toBe(165);
+    expect(stats.kpis.compras_total_eur).toBe(365);
   });
 
   it('compras_total_eur incluye también los costes asociados de las ventas', () => {
     const buy = buysRepo.create(
-      validBuy({ product_name: 'A', purchase_cost: 100, associated_costs: 10, quantity: 10 }),
+      validBuy({ product_name: 'A', purchase_cost: 10, associated_costs: 10, quantity: 10 }),
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
@@ -324,7 +328,7 @@ describe('statsDashboard (nuevo modelo)', () => {
 
   it('beneficio_total_eur: NO resta el coste de compras sin vender (solo COGS)', () => {
     const buy = buysRepo.create(
-      validBuy({ product_name: 'Funda', purchase_cost: 100, quantity: 20 }),
+      validBuy({ product_name: 'Funda', purchase_cost: 5, quantity: 20 }),
     );
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
@@ -344,8 +348,8 @@ describe('statsDashboard (nuevo modelo)', () => {
   });
 
   it('topProducts con pack multi-item: prorratea revenue por unidad entre los items', () => {
-    const buyA = buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 10, quantity: 5 }));
-    const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 6, quantity: 5 }));
+    const buyA = buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 2, quantity: 5 }));
+    const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 1.2, quantity: 5 }));
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
     soldsRepo.createManyWithStockCheck(
@@ -371,8 +375,8 @@ describe('statsDashboard (nuevo modelo)', () => {
   });
 
   it('beneficio_total_eur con pack multi-item: suma beneficio de cada venta', () => {
-    const buyA = buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 10, quantity: 5 }));
-    const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 6, quantity: 5 }));
+    const buyA = buysRepo.create(validBuy({ product_name: 'A', purchase_cost: 2, quantity: 5 }));
+    const buyB = buysRepo.create(validBuy({ product_name: 'B', purchase_cost: 1.2, quantity: 5 }));
     const customer = customersRepo.create(validCustomer({ name: 'C' }));
 
     soldsRepo.createManyWithStockCheck(
@@ -413,7 +417,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Lote',
-        purchase_cost: 50,
+        purchase_cost: 10,
         quantity: 5,
         purchase_date: dateMonthsAgo(2),
       }),
@@ -442,7 +446,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Prod',
-        purchase_cost: 30,
+        purchase_cost: 3,
         quantity: 10,
         associated_costs: 5,
         purchase_date: todayLocalDate(),
@@ -472,7 +476,7 @@ describe('statsDashboard (nuevo modelo)', () => {
     const buy = buysRepo.create(
       validBuy({
         product_name: 'Prod',
-        purchase_cost: 30,
+        purchase_cost: 3,
         quantity: 10,
         associated_costs: 5,
         purchase_date: todayLocalDate(),

@@ -9,10 +9,10 @@ import { CreateBuyInput } from '../schemas/buys.js';
 import { CreateSoldInput } from '../schemas/solds.js';
 import { CreateCustomerInput } from '../schemas/customers.js';
 
-const OLD_PROFIT_SQL = `
+const UNIT_PROFIT_SQL = `
   SELECT s.id AS sold_id,
          s.sale_price - s.associated_costs
-           - COALESCE(SUM(si.quantity * ROUND(b.purchase_cost / b.quantity, 2)), 0)
+           - COALESCE(SUM(si.quantity * b.purchase_cost), 0)
            - COALESCE(SUM(si.quantity * ROUND(b.associated_costs / b.quantity, 2)), 0) AS profit
   FROM solds s
   LEFT JOIN sale_items si ON si.sold_id = s.id
@@ -78,10 +78,10 @@ describe('las vistas de las cifras (la fuente de la verdad)', () => {
     );
   }
 
-  it('el beneficio de la vista es el mismo que daba la fórmula de antes', () => {
+  it('el beneficio de la vista es el mismo que da la fórmula por precio unitario', () => {
     sembrar();
 
-    const antes = db.prepare(OLD_PROFIT_SQL).all() as Array<{ sold_id: number; profit: number }>;
+    const antes = db.prepare(UNIT_PROFIT_SQL).all() as Array<{ sold_id: number; profit: number }>;
     const vista = db
       .prepare('SELECT sold_id, profit FROM v_sold_costs ORDER BY sold_id')
       .all() as Array<{
@@ -123,7 +123,7 @@ describe('las vistas de las cifras (la fuente de la verdad)', () => {
     expect(stats.kpis.beneficio_total_eur).toBeCloseTo(total.total, 10);
   });
 
-  it('la vista prorratea el coste de compra por unidad con el ROUND de SQLite', () => {
+  it('la vista expone el precio por unidad sin dividirlo y prorratea los gastos asociados', () => {
     sembrar();
 
     const items = db
@@ -140,7 +140,7 @@ describe('las vistas de las cifras (la fuente de la verdad)', () => {
 
     const baseline = db.prepare(
       `SELECT b.id AS buy_id,
-              ROUND(b.purchase_cost / b.quantity, 2) AS unit_cost,
+              b.purchase_cost AS unit_cost,
               ROUND(b.associated_costs / b.quantity, 2) AS unit_assoc
        FROM buys b
        WHERE b.id = ?`,

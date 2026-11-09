@@ -54,7 +54,7 @@ describe('métricas del dashboard', () => {
     const widget = buys.create(
       CreateBuyInput.parse({
         product_name: 'Widget',
-        purchase_cost: 100,
+        purchase_cost: 50,
         quantity: 2,
         purchase_date: dateInMonth(0),
       }),
@@ -62,7 +62,7 @@ describe('métricas del dashboard', () => {
     buys.create(
       CreateBuyInput.parse({
         product_name: 'Zapatillas',
-        purchase_cost: 30,
+        purchase_cost: 10,
         quantity: 3,
         purchase_date: dateInMonth(0),
       }),

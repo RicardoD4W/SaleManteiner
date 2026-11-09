@@ -5,6 +5,7 @@ import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { ProductNameAutocomplete } from './ProductNameAutocomplete';
+import { BuyLotTotal } from './BuyLotTotal';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage } from '../../api/client';
@@ -74,13 +75,13 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Coste (€) *"
+            label="Precio unidad (€) *"
             type="number"
             step="0.01"
             min="0"
             {...register('purchase_cost', { valueAsNumber: true })}
             error={errors.purchase_cost?.message}
-            hint="Precio por unidad"
+            hint="Lo que pagaste por una unidad"
           />
           <Input
             label="Cantidad *"
@@ -92,6 +93,8 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
             hint="Unidades del lote"
           />
         </div>
+
+        <BuyLotTotal control={control} />
 
         <Input
           label="Costes asociados (€)"

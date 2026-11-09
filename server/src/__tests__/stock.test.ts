@@ -244,8 +244,8 @@ describe('prorrateo por unidad (S3, S13)', () => {
     db.close();
   });
 
-  it('unit_cost = round2(purchase_cost / quantity)', () => {
-    const buy = makeBuy(buysRepo, { product_name: 'Pack 3', purchase_cost: 90, quantity: 3 });
+  it('unit_cost = el precio por unidad guardado', () => {
+    const buy = makeBuy(buysRepo, { product_name: 'Pack 3', purchase_cost: 30, quantity: 3 });
     const customer = makeCustomer(customersRepo);
 
     const sold = soldsRepo.createManyWithStockCheck(
@@ -260,20 +260,23 @@ describe('prorrateo por unidad (S3, S13)', () => {
     expect(detail.items[0].unit_cost).toBe(30);
   });
 
-  it('unit_cost redondeado con round2 mitiga IEEE 754', () => {
-    const buy = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 10, quantity: 3 });
+  it('el precio unitario se usa tal cual, sin dividirlo por la cantidad', () => {
+    const buy = makeBuy(buysRepo, { product_name: 'X', purchase_cost: 3.33, quantity: 3 });
     const customer = makeCustomer(customersRepo);
 
     const sold = soldsRepo.createManyWithStockCheck(
       CreateSoldSchema.parse({
         customer_id: customer.id,
         sale_price: 12,
-        items: [{ buy_id: buy.id, quantity: 1 }],
+        items: [{ buy_id: buy.id, quantity: 3 }],
       }),
     );
 
     const detail = soldsRepo.getByIdWithItems(sold.id)!;
     expect(detail.items[0].unit_cost).toBe(3.33);
+
+    const conBeneficio = soldsRepo.listWithProfit().find((s) => s.id === sold.id)!;
+    expect(conBeneficio.profit).toBeCloseTo(round2(12 - 3 * 3.33), 10);
   });
 
   it('associated_costs prorrateados = round2(associated_costs / quantity)', () => {
@@ -300,7 +303,7 @@ describe('prorrateo por unidad (S3, S13)', () => {
   it('beneficio por venta = round2(sale_price - associated_costs - sum(qty * unit_cost) - sum(qty * unit_assoc))', () => {
     const buy = makeBuy(buysRepo, {
       product_name: 'Pack',
-      purchase_cost: 99,
+      purchase_cost: 33,
       associated_costs: 9,
       quantity: 3,
     });

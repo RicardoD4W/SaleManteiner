@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ProductNameAutocomplete } from '../../components/sales/ProductNameAutocomplete';
+import { BuyLotTotal } from '../../components/sales/BuyLotTotal';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
 import { apiErrorMessage } from '../../api/client';
@@ -160,13 +161,13 @@ export function BuyEditPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Coste (€) *"
+                label="Precio unidad (€) *"
                 type="number"
                 step="0.01"
                 min="0"
                 {...register('purchase_cost', { valueAsNumber: true })}
                 error={errors.purchase_cost?.message}
-                hint="Precio por unidad"
+                hint="Lo que pagaste por una unidad"
                 className="vt-box"
                 style={{ viewTransitionName: transitionName('cost') }}
               />
@@ -182,6 +183,12 @@ export function BuyEditPage() {
                 style={{ viewTransitionName: transitionName('qty') }}
               />
             </div>
+
+            <BuyLotTotal
+              control={control}
+              valueClassName="vt-box font-medium tabular-nums text-gray-800 dark:text-gray-200"
+              style={{ viewTransitionName: transitionName('totalCost') }}
+            />
 
             <Input
               label="Costes asociados (€)"

@@ -94,11 +94,22 @@ describe('BuyNewModal', () => {
     renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '10.005' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '10.005' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 
     expect(await screen.findByText('Máximo 2 decimales')).toBeInTheDocument();
     expect(create.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('muestra el total del lote derivado del precio unidad y la cantidad', async () => {
+    vi.mocked(useCreateBuy).mockReturnValue(mutationMock() as never);
+
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Cantidad *'), { target: { value: '20' } });
+
+    expect(await screen.findByText('910,00 €')).toBeInTheDocument();
   });
 
   it('ofrece los nombres de producto existentes y guarda el elegido', async () => {
@@ -116,7 +127,7 @@ describe('BuyNewModal', () => {
 
     expect(screen.getByLabelText('Producto *')).toHaveValue('Funda iPhone 15');
 
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 
     await waitFor(() => {
@@ -137,7 +148,7 @@ describe('BuyNewModal', () => {
     renderWithProviders(<BuyNewModal onClose={onClose} />);
 
     await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
     fireEvent.change(screen.getByLabelText('Fecha de compra'), { target: { value: '' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 

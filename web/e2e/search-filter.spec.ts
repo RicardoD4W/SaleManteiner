@@ -50,13 +50,13 @@ test.beforeEach(async ({ request }) => {
 test('/buys: filtra por nombre de producto y actualiza el contador', async ({ page, request }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 50,
+    purchase_cost: 5,
     quantity: 10,
     purchase_date: '2026-04-10',
   });
   await createBuyViaApi(request, {
     product_name: 'Cargador USB-C',
-    purchase_cost: 30,
+    purchase_cost: 10,
     quantity: 3,
     purchase_date: '2026-05-20',
   });
@@ -83,13 +83,13 @@ test('/buys: filtra por nombre de producto y actualiza el contador', async ({ pa
 test('/buys: filtra por cantidad (x3) y por fecha de compra', async ({ page, request }) => {
   await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 50,
+    purchase_cost: 5,
     quantity: 10,
     purchase_date: '2026-04-10',
   });
   await createBuyViaApi(request, {
     product_name: 'Cargador USB-C',
-    purchase_cost: 30,
+    purchase_cost: 10,
     quantity: 3,
     purchase_date: '2026-05-20',
   });
@@ -107,13 +107,13 @@ test('/buys: filtra por cantidad (x3) y por fecha de compra', async ({ page, req
   await expect(page.getByText('Cargador USB-C')).not.toBeVisible();
 });
 
-test('/buys: filtra por coste, asociados y disponibles (columnas numéricas)', async ({
+test('/buys: filtra por precio unidad, asociados y disponibles (columnas numéricas)', async ({
   page,
   request,
 }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 50,
+    purchase_cost: 12.5,
     quantity: 4,
     associated_costs: 5,
     purchase_date: '2026-04-10',
@@ -128,7 +128,7 @@ test('/buys: filtra por coste, asociados y disponibles (columnas numéricas)', a
 
   await createBuyViaApi(request, {
     product_name: 'Cargador USB-C',
-    purchase_cost: 30,
+    purchase_cost: 4.29,
     quantity: 7,
     purchase_date: '2026-05-20',
   });
@@ -136,7 +136,7 @@ test('/buys: filtra por coste, asociados y disponibles (columnas numéricas)', a
   await page.goto('/buys');
   const search = page.getByRole('searchbox', { name: 'Buscar compras' });
 
-  await search.fill('50');
+  await search.fill('12.5');
   await expect(page.getByText('Funda iPhone 12')).toBeVisible();
   await expect(page.getByText('Cargador USB-C')).not.toBeVisible();
 
@@ -215,7 +215,7 @@ test('/solds: filtra por cliente, cantidad, fecha y beneficio con signo', async 
 }) => {
   const buyJose = await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 100,
+    purchase_cost: 10,
     quantity: 10,
   });
   const customerJose = await createCustomerViaApi(request, 'Filtro Jose Perez');
@@ -279,7 +279,7 @@ test('/solds: filtra por cliente, cantidad, fecha y beneficio con signo', async 
 test('/solds: un número simple también matchea la columna Beneficio', async ({ page, request }) => {
   const buyId = await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 100,
+    purchase_cost: 10,
     quantity: 10,
   });
   const customer = await createCustomerViaApi(request, 'Filtro Beneficio');
@@ -306,7 +306,7 @@ test('/solds: un número simple también matchea la columna Beneficio', async ({
 test('/solds: filtra por precio con formato español (1.234,56)', async ({ page, request }) => {
   const buy = await createBuyViaApi(request, {
     product_name: 'Funda iPhone 12',
-    purchase_cost: 100,
+    purchase_cost: 10,
     quantity: 10,
   });
   const customer = await createCustomerViaApi(request, 'Filtro Precio');

@@ -35,6 +35,7 @@
 
 ### Cambiado
 
+- **El coste de compra es ahora el precio por unidad**: el campo de las compras (antes "Coste (€)") se llama **"Precio unidad (€)"** y guarda lo que pagaste por **una** unidad; el total del lote se deriva (precio unidad × cantidad) y la tabla de compras muestra las dos cifras: **"Coste (€)"** (el total del lote) y **"Precio unidad (€)"**. El formulario de alta y de edición muestra el **"Total del lote"** derivado, en vivo. La búsqueda por número busca por el precio unitario y por el total del lote. **Tus compras existentes no se convierten solas**: la app no reescribe tus datos, así que revisa cada compra y guarda en ella el precio por unidad (el total del lote se ve derivado en la fila, para que puedas ajustarlo hasta que cuadre con lo que pagaste).
 - **Al editar una compra o una venta, el formulario ya no enfoca ningún campo**: al abrir la edición de una compra (`/buys/:id`) o de una venta (`/solds/:id`), el cursor **no** se queda metido en un campo. Se puede empezar a escribir o a leer el formulario sin que el foco salte a un input.
 - **Al abrir "Nueva venta", el foco cae en el campo Cliente y la lista de clientes no se despliega**: el foco va al primer campo del formulario (Cliente) y la lista de clientes **no** se abre al entrar: se despliega al empezar a escribir (o con `↑ ↓` para recorrerla).
 - **El recibo de una venta se abre desde la lista de ventas**: el enlace **"Recibo"** de cada fila sigue siendo la forma de abrirlo; la página de editar la venta ya no lleva ese enlace.
@@ -71,8 +72,9 @@
 - `006`: tabla `expenses`, tabla `expense_categories`, `customers.phone/address/notes` y `solds.paid_amount`.
 - `007`: `buys.notes`.
 - `008`: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras, sin deuda).
+- `010`: las vistas `v_item_costs` y `v_sold_costs` pasan a usar el precio por unidad de la compra.
 
-La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente. La `008` es una migración de **datos**: reescribe el importe cobrado de las ventas que nunca se informó (de `0` a su precio de venta) y no toca ninguna otra columna.
+La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente. La `008` es una migración de **datos**: reescribe el importe cobrado de las ventas que nunca se informó (de `0` a su precio de venta) y no toca ninguna otra columna. La `010` **no reescribe datos**: solo cambia las vistas de las cifras, así que las compras que ya tenías conservan el total pagado en el campo y hay que corregirlas a mano (por eso el cambio de la columna "Coste (€)" a "Precio unidad (€)"). Si restaurás desde la app una copia de seguridad anterior a esta versión, sus compras vuelven con su valor anterior (la app **no** las convierte) y las vistas de esta versión siguen activas: revisa los precios de compra de esa copia. Para volver del todo al comportamiento anterior hay que **reemplazar el archivo de la base de datos** por una copia previa a la `010` (el botón "Restaurar" de la app solo restaura las filas, no las vistas).
 
 ## [0.1.1]
 

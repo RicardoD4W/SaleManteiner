@@ -211,7 +211,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
   const customerNameStmt = db.prepare('SELECT name AS customer_name FROM customers WHERE id = ?');
   const buysTotalsStmt = db.prepare(
     `SELECT
-       COALESCE(SUM(purchase_cost), 0) AS compras_total,
+       COALESCE(SUM(purchase_cost * quantity), 0) AS compras_total,
        COALESCE(SUM(associated_costs), 0) AS gastos_asociados_total
      FROM buys`,
   );
@@ -240,7 +240,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
             COALESCE(SUM(asociados_de_solds), 0) AS asociados_de_solds
      FROM (
        SELECT strftime('%Y-%m', purchase_date) AS month,
-              purchase_cost + associated_costs AS compras_de_buys,
+              purchase_cost * quantity + associated_costs AS compras_de_buys,
               0 AS asociados_de_solds
        FROM buys
        WHERE purchase_date IS NOT NULL AND purchase_date >= ? AND purchase_date < ?
