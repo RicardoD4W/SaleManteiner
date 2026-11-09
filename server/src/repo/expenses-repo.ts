@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { definedOnly } from '../lib/defined-only.js';
 import { round2 } from '../lib/round.js';
+import type { AssociatedExpense, CascadeResult } from './types.js';
 import type {
   CreateExpenseCategoryInput,
   CreateExpenseInput,
@@ -57,7 +58,7 @@ export class DuplicateExpenseCategoryError extends Error {
 export type RemoveExpenseCategoryResult =
   | { ok: true }
   | { ok: false; code: 'NOT_FOUND' }
-  | { ok: false; code: 'HAS_EXPENSES'; expenses_count: number };
+  | { ok: false; code: 'HAS_EXPENSES'; expenses_count: number; expenses: AssociatedExpense[] };
 
 export interface ExpensesRepo {
   create(input: CreateExpenseInput): ExpenseWithCategory;
@@ -74,6 +75,8 @@ export interface ExpenseCategoriesRepo {
   list(): ExpenseCategoryWithMetrics[];
   update(id: number, input: UpdateExpenseCategoryInput): ExpenseCategory | null;
   remove(id: number): RemoveExpenseCategoryResult;
+  listAssociatedExpenses(id: number): AssociatedExpense[];
+  removeWithCascade(id: number): CascadeResult;
 }
 
 function rowToExpense(row: ExpenseRow): ExpenseWithCategory {
@@ -252,6 +255,13 @@ export function createExpenseCategoriesRepo(db: Database): ExpenseCategoriesRepo
   const countExpensesStmt = db.prepare(
     'SELECT COUNT(*) AS cnt FROM expenses WHERE category_id = ?',
   );
+  const listAssociatedExpensesStmt = db.prepare(`
+    SELECT id, concept, amount, expense_date
+    FROM expenses
+    WHERE category_id = ?
+    ORDER BY id DESC
+  `);
+  const deleteExpensesStmt = db.prepare('DELETE FROM expenses WHERE category_id = ?');
 
   function create(input: CreateExpenseCategoryInput): ExpenseCategoryWithMetrics {
     const now = new Date().toISOString();
@@ -294,15 +304,40 @@ export function createExpenseCategoriesRepo(db: Database): ExpenseCategoriesRepo
     return getById(id);
   }
 
+  function listAssociatedExpenses(id: number): AssociatedExpense[] {
+    const rows = listAssociatedExpensesStmt.all(id) as Array<{
+      id: number;
+      concept: string;
+      amount: number;
+      expense_date: string;
+    }>;
+    return rows.map((row) => ({ ...row, amount: round2(row.amount) }));
+  }
+
   function remove(id: number): RemoveExpenseCategoryResult {
     return db.transaction((): RemoveExpenseCategoryResult => {
       const existing = getStmt.get(id) as ExpenseCategoryRow | undefined;
       if (!existing) return { ok: false, code: 'NOT_FOUND' };
       const row = countExpensesStmt.get(id) as { cnt: number };
       if (row.cnt > 0) {
-        return { ok: false, code: 'HAS_EXPENSES', expenses_count: row.cnt };
+        return {
+          ok: false,
+          code: 'HAS_EXPENSES',
+          expenses_count: row.cnt,
+          expenses: listAssociatedExpenses(id),
+        };
       }
       deleteStmt.run(id);
+      return { ok: true };
+    })();
+  }
+
+  function removeWithCascade(id: number): CascadeResult {
+    return db.transaction((): CascadeResult => {
+      const existing = getStmt.get(id) as ExpenseCategoryRow | undefined;
+      if (!existing) return { ok: false, code: 'NOT_FOUND' };
+      deleteExpensesStmt.run(id);
+      if (deleteStmt.run(id).changes === 0) return { ok: false, code: 'NOT_FOUND' };
       return { ok: true };
     })();
   }
@@ -313,5 +348,7 @@ export function createExpenseCategoriesRepo(db: Database): ExpenseCategoriesRepo
     list,
     update,
     remove,
+    listAssociatedExpenses,
+    removeWithCascade,
   };
 }
