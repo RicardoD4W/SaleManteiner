@@ -72,7 +72,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
   useEffect(() => {
     if (selectedItems.length > 0 && pickerReason === null) {
-      document.getElementById('sale-price')?.focus();
+      document.getElementById('customer-autocomplete-input')?.focus();
     }
   }, [selectedItems, pickerReason]);
 
@@ -151,7 +151,12 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   }
 
   return (
-    <Modal title="Nueva venta" onClose={onClose} size="wide" initialFocusSelector="#sale-price">
+    <Modal
+      title="Nueva venta"
+      onClose={onClose}
+      size="wide"
+      initialFocusSelector="#customer-autocomplete-input"
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
         <CustomerAutocomplete
           value={selectedCustomer}
@@ -256,7 +261,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
           type="date"
           {...register('sold_at')}
           error={(errors.sold_at as { message?: string } | undefined)?.message}
-          hint="Día de la venta (default hoy)"
+          hint="Día de la venta"
         />
 
         <Textarea

@@ -306,7 +306,7 @@ describe('SaleNewModal', () => {
     });
   });
 
-  it('el foco inicial de la venta cae en el precio', async () => {
+  it('el foco inicial de la venta cae en el cliente', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
 
@@ -319,7 +319,7 @@ describe('SaleNewModal', () => {
     await waitFor(() => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
-    expect(screen.getByLabelText('Precio total de venta (€) *')).toHaveFocus();
+    expect(screen.getByRole('combobox')).toHaveFocus();
   });
 
   it('cerrar el picker inicial con Escape cancela la venta entera', async () => {
@@ -337,7 +337,7 @@ describe('SaleNewModal', () => {
     expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
   });
 
-  it('al cerrar el picker de productos el foco vuelve al precio', async () => {
+  it('al cerrar el picker de productos el foco vuelve al cliente', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SaleNewModal onClose={vi.fn()} />);
 
@@ -361,7 +361,7 @@ describe('SaleNewModal', () => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio total de venta (€) *')).toHaveFocus();
+      expect(screen.getByRole('combobox')).toHaveFocus();
     });
   });
 });
