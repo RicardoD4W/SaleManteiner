@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -11,18 +11,25 @@ import { ProductNameAutocomplete } from '../../components/sales/ProductNameAutoc
 import { BuyLotTotal } from '../../components/sales/BuyLotTotal';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
+import { useTags } from '../../hooks/useTags';
 import { apiErrorMessage } from '../../api/client';
 import { formatDate } from '../../lib/format';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../../components/ui/tableStyles';
 import { BuyFormSchema, type BuyFormInput, type BuyFormOutput } from '../../schemas/forms';
+import type { UpdateBuyInput } from '../../schemas/buys';
+
+const selectClass =
+  'block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100';
 
 export function BuyEditPage() {
   const { id } = useParams();
   const buyId = Number(id);
   const { data: buy, isLoading, isError, error } = useBuy(buyId);
   const update = useUpdateBuy();
+  const { data: tags } = useTags('buy');
   const navigate = useNavigate();
+  const tagSelectId = useId();
 
   const transitionName = (field: string) => `buy-${field}-${buyId}`;
 
@@ -49,18 +56,20 @@ export function BuyEditPage() {
         associated_costs: buy.associated_costs,
         purchase_date: buy.purchase_date ?? '',
         notes: buy.notes ?? '',
+        tag_id: buy.tag?.id ?? null,
       });
     }
   }, [buy, reset]);
 
   const onSubmit: SubmitHandler<BuyFormOutput> = async (values) => {
-    const payload = {
+    const payload: UpdateBuyInput = {
       product_name: values.product_name.trim(),
       purchase_cost: values.purchase_cost,
       quantity: values.quantity,
       associated_costs: values.associated_costs,
       purchase_date: values.purchase_date?.trim() || undefined,
       notes: values.notes?.trim() || undefined,
+      tag_id: values.tag_id ?? null,
     };
 
     try {
@@ -217,6 +226,39 @@ export function BuyEditPage() {
               {...register('notes')}
               error={errors.notes?.message}
             />
+
+            <div className="space-y-2">
+              <label
+                htmlFor={tagSelectId}
+                className="text-sm font-medium text-gray-800 dark:text-gray-200"
+              >
+                Tag
+              </label>
+              <Controller
+                control={control}
+                name="tag_id"
+                render={({ field }) => (
+                  <select
+                    id={tagSelectId}
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ''}
+                    onBlur={field.onBlur}
+                    onChange={(event) =>
+                      field.onChange(event.target.value === '' ? null : Number(event.target.value))
+                    }
+                    className={cn(selectClass)}
+                  >
+                    <option value="">Sin tag</option>
+                    {(tags ?? []).map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
+            </div>
 
             {errors.root ? (
               <p className={cn(errorAlertClass, 'px-3 py-2')}>{errors.root.message}</p>

@@ -15,9 +15,14 @@ vi.mock('@/hooks/useProductNames', () => ({
   useProductNames: vi.fn(),
 }));
 
+vi.mock('@/hooks/useTags', () => ({
+  useTags: vi.fn(),
+}));
+
 import { useBuy } from '@/hooks/useBuy';
 import { useUpdateBuy } from '@/hooks/useUpdateBuy';
 import { useProductNames } from '@/hooks/useProductNames';
+import { useTags } from '@/hooks/useTags';
 import type { Buy } from '@/schemas/buys';
 import { BuyEditPage } from '@/pages/buys/BuyEditPage';
 import { renderWithProviders } from '@/test-utils/render';
@@ -31,6 +36,7 @@ const buyFixture: Buy = {
   associated_costs: 3.2,
   purchase_date: '2026-10-02',
   notes: null,
+  tag: null,
   created_at: '2026-10-02T10:00:00.000Z',
 };
 
@@ -85,6 +91,30 @@ describe('BuyEditPage', () => {
       error: null,
       refetch: vi.fn(),
     } as never);
+    vi.mocked(useTags).mockReturnValue({
+      data: [
+        {
+          id: 4,
+          scope: 'buy',
+          name: 'Oferta',
+          color: '#ff8800',
+          created_at: '2026-11-01T10:00:00.000Z',
+          buy_count: 2,
+        },
+        {
+          id: 5,
+          scope: 'buy',
+          name: 'Proveedor',
+          color: '#00aaff',
+          created_at: '2026-11-02T10:00:00.000Z',
+          buy_count: 1,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
   });
 
   it('no enfoca ningún campo al abrir el formulario', async () => {
@@ -93,7 +123,9 @@ describe('BuyEditPage', () => {
     await screen.findByLabelText('Precio unidad (€) *');
 
     expect(document.activeElement).toBe(document.body);
-    expect(screen.getByRole('combobox')).not.toHaveFocus();
+    for (const combobox of screen.getAllByRole('combobox')) {
+      expect(combobox).not.toHaveFocus();
+    }
     expect(screen.getByLabelText('Precio unidad (€) *')).not.toHaveFocus();
     expect(screen.getByLabelText('Cantidad *')).not.toHaveFocus();
   });
@@ -184,7 +216,73 @@ describe('BuyEditPage', () => {
           quantity: 20,
           associated_costs: 3.2,
           purchase_date: '2026-10-02',
+          tag_id: null,
         },
+      });
+    });
+  });
+
+  it('preselecciona el tag de la compra', async () => {
+    vi.mocked(useBuy).mockReturnValue({
+      data: { ...buyFixture, tag: { id: 4, name: 'Oferta', color: '#ff8800' } } as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderPage();
+
+    const select = await screen.findByLabelText('Tag');
+
+    await waitFor(() => {
+      expect(select).toHaveValue('4');
+    });
+  });
+
+  it('guarda el tag elegido', async () => {
+    const user = userEvent.setup();
+    const update = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(buyFixture),
+    });
+    vi.mocked(useUpdateBuy).mockReturnValue(update as never);
+
+    renderPage();
+
+    await user.selectOptions(await screen.findByLabelText('Tag'), '5');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(update.mutateAsync).toHaveBeenCalledWith({
+        id: buyFixture.id,
+        input: expect.objectContaining({ tag_id: 5 }),
+      });
+    });
+  });
+
+  it('quita el tag de la compra al elegir sin tag', async () => {
+    const user = userEvent.setup();
+    const update = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce(buyFixture),
+    });
+    vi.mocked(useUpdateBuy).mockReturnValue(update as never);
+    vi.mocked(useBuy).mockReturnValue({
+      data: { ...buyFixture, tag: { id: 4, name: 'Oferta', color: '#ff8800' } } as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderPage();
+
+    await user.selectOptions(await screen.findByLabelText('Tag'), '');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(update.mutateAsync).toHaveBeenCalledWith({
+        id: buyFixture.id,
+        input: expect.objectContaining({ tag_id: null }),
       });
     });
   });

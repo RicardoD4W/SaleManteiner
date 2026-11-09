@@ -10,8 +10,13 @@ vi.mock('@/hooks/useProductNames', () => ({
   useProductNames: vi.fn(),
 }));
 
+vi.mock('@/hooks/useTags', () => ({
+  useTags: vi.fn(),
+}));
+
 import { useCreateBuy } from '@/hooks/useCreateBuy';
 import { useProductNames } from '@/hooks/useProductNames';
+import { useTags } from '@/hooks/useTags';
 import { BuyNewModal } from '@/components/sales/BuyNewModal';
 import { renderWithProviders } from '@/test-utils/render';
 
@@ -44,6 +49,22 @@ describe('BuyNewModal', () => {
       data: [
         { name: 'Funda iPhone 15', uses: 3 },
         { name: 'Cámara réflex', uses: 1 },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useTags).mockReturnValue({
+      data: [
+        {
+          id: 4,
+          scope: 'buy',
+          name: 'Oferta',
+          color: '#ff8800',
+          created_at: '2026-11-01T10:00:00.000Z',
+          buy_count: 2,
+        },
       ],
       isLoading: false,
       isError: false,
@@ -159,10 +180,60 @@ describe('BuyNewModal', () => {
         quantity: 1,
         associated_costs: 0,
         purchase_date: undefined,
+        tag_id: null,
       });
     });
     await waitFor(() => {
       expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  it('ofrece los tags del catálogo de compras', async () => {
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    const select = await screen.findByLabelText('Tag');
+
+    expect(select).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'Oferta' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Sin tag' })).toBeInTheDocument();
+  });
+
+  it('guarda el tag elegido', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce({ id: 1 }),
+    });
+    vi.mocked(useCreateBuy).mockReturnValue(create as never);
+
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
+    await user.selectOptions(await screen.findByLabelText('Tag'), '4');
+    await user.click(screen.getByRole('button', { name: 'Crear compra' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ product_name: 'Funda iPhone 15', tag_id: 4 }),
+      );
+    });
+  });
+
+  it('sin tag chosen manda null', async () => {
+    const user = userEvent.setup();
+    const create = mutationMock({
+      mutateAsync: vi.fn().mockResolvedValueOnce({ id: 1 }),
+    });
+    vi.mocked(useCreateBuy).mockReturnValue(create as never);
+
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
+    await user.click(screen.getByRole('button', { name: 'Crear compra' }));
+
+    await waitFor(() => {
+      expect(create.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ tag_id: null }));
     });
   });
 });
