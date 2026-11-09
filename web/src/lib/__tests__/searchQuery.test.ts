@@ -198,6 +198,11 @@ describe('filterBuys', () => {
     expect(ids(filterBuys(buys, '30'))).toEqual([2]);
   });
 
+  it('filtra por el total del lote (columna Coste (€))', () => {
+    expect(ids(filterBuys(buys, '500'))).toEqual([1]);
+    expect(ids(filterBuys(buys, '90'))).toEqual([2]);
+  });
+
   it('un número también matchea como substring de un nombre', () => {
     expect(ids(filterBuys(buys, '12'))).toEqual([1]);
   });
@@ -299,7 +304,7 @@ describe('helpers de extracción', () => {
     expect(row.item).toBe(buyA);
     expect(row.names).toEqual(['Funda iPhone 12']);
     expect(row.dates).toEqual(['2026-09-28']);
-    expect(row.numbers).toEqual([50, 5, 10, 8]);
+    expect(row.numbers).toEqual([50, 500, 5, 10, 8]);
     expect(row.quantities).toEqual([10]);
     expect(row.profit).toBeUndefined();
   });

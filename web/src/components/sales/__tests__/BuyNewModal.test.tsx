@@ -101,6 +101,17 @@ describe('BuyNewModal', () => {
     expect(create.mutateAsync).not.toHaveBeenCalled();
   });
 
+  it('muestra el total del lote derivado del precio unidad y la cantidad', async () => {
+    vi.mocked(useCreateBuy).mockReturnValue(mutationMock() as never);
+
+    renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Cantidad *'), { target: { value: '20' } });
+
+    expect(await screen.findByText('910,00 €')).toBeInTheDocument();
+  });
+
   it('ofrece los nombres de producto existentes y guarda el elegido', async () => {
     const user = userEvent.setup();
     const create = mutationMock({

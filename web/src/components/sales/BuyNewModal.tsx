@@ -5,6 +5,7 @@ import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { ProductNameAutocomplete } from './ProductNameAutocomplete';
+import { BuyLotTotal } from './BuyLotTotal';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage } from '../../api/client';
@@ -92,6 +93,8 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
             hint="Unidades del lote"
           />
         </div>
+
+        <BuyLotTotal control={control} />
 
         <Input
           label="Costes asociados (€)"

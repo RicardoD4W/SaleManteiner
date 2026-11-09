@@ -209,7 +209,13 @@ export function toBuySearchRow(buy: BuyWithStock): SearchRow<BuyWithStock> {
     item: buy,
     names: [buy.product_name],
     dates: buy.purchase_date ? [datePart(buy.purchase_date)] : [],
-    numbers: [buy.purchase_cost, buy.associated_costs, buy.quantity, buy.disponibles],
+    numbers: [
+      buy.purchase_cost,
+      buy.total_cost,
+      buy.associated_costs,
+      buy.quantity,
+      buy.disponibles,
+    ],
     quantities: [buy.quantity],
   };
 }

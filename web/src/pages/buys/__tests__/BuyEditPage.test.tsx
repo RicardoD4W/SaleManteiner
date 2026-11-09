@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useBuy', () => ({
@@ -18,16 +18,19 @@ vi.mock('@/hooks/useProductNames', () => ({
 import { useBuy } from '@/hooks/useBuy';
 import { useUpdateBuy } from '@/hooks/useUpdateBuy';
 import { useProductNames } from '@/hooks/useProductNames';
+import type { Buy } from '@/schemas/buys';
 import { BuyEditPage } from '@/pages/buys/BuyEditPage';
 import { renderWithProviders } from '@/test-utils/render';
 
-const buyFixture = {
+const buyFixture: Buy = {
   id: 1,
   product_name: 'Funda iPhone 15',
   purchase_cost: 45.5,
   quantity: 20,
+  total_cost: 910,
   associated_costs: 3.2,
   purchase_date: '2026-10-02',
+  notes: null,
   created_at: '2026-10-02T10:00:00.000Z',
 };
 
@@ -93,6 +96,25 @@ describe('BuyEditPage', () => {
     expect(screen.getByRole('combobox')).not.toHaveFocus();
     expect(screen.getByLabelText('Precio unidad (€) *')).not.toHaveFocus();
     expect(screen.getByLabelText('Cantidad *')).not.toHaveFocus();
+  });
+
+  it('muestra el total del lote derivado del precio unidad y la cantidad', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Precio unidad (€) *');
+
+    expect(screen.getByText('Total del lote:')).toBeInTheDocument();
+    expect(screen.getByText('910,00 €')).toBeInTheDocument();
+  });
+
+  it('el total del lote se recalcula al cambiar el precio unidad', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Precio unidad (€) *');
+
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '7.5' } });
+
+    await waitFor(() => expect(screen.getByText('150,00 €')).toBeInTheDocument());
   });
 
   it('valida el producto con las mismas reglas que el alta', async () => {

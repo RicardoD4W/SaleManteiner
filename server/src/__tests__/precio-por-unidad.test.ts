@@ -57,6 +57,19 @@ describe('la semántica del precio por unidad', () => {
     expect(metrics.stats().kpis.stock_coste_total_eur).toBe(48);
   });
 
+  it('el prorrateo de los gastos asociados usa el mismo redondeo que las vistas', () => {
+    buys.create(
+      CreateBuyInput.parse({
+        product_name: 'A',
+        purchase_cost: 10,
+        quantity: 3,
+        associated_costs: 1,
+      }),
+    );
+
+    expect(metrics.stats().kpis.stock_coste_total_eur).toBe(30.99);
+  });
+
   it('el coste de la venta sale de la cantidad vendida por el precio unitario', () => {
     const buy = buys.create(
       CreateBuyInput.parse({ product_name: 'Camiseta', purchase_cost: 10, quantity: 4 }),

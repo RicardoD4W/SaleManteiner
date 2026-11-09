@@ -98,7 +98,7 @@ export function createMetricsRepo(db: Database): MetricsRepo {
        SELECT b.quantity - COALESCE(
                 (SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0
               ) AS pendiente,
-              b.purchase_cost + b.associated_costs * 1.0 / b.quantity AS coste_unitario
+              b.purchase_cost + ROUND(b.associated_costs / b.quantity, 2) AS coste_unitario
        FROM buys b
      )
      WHERE pendiente > 0`,

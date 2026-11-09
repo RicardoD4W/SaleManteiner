@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ProductNameAutocomplete } from '../../components/sales/ProductNameAutocomplete';
+import { BuyLotTotal } from '../../components/sales/BuyLotTotal';
 import { useBuy } from '../../hooks/useBuy';
 import { useUpdateBuy } from '../../hooks/useUpdateBuy';
 import { apiErrorMessage } from '../../api/client';
@@ -182,6 +183,12 @@ export function BuyEditPage() {
                 style={{ viewTransitionName: transitionName('qty') }}
               />
             </div>
+
+            <BuyLotTotal
+              control={control}
+              valueClassName="vt-box font-medium tabular-nums text-gray-800 dark:text-gray-200"
+              style={{ viewTransitionName: transitionName('totalCost') }}
+            />
 
             <Input
               label="Costes asociados (€)"
