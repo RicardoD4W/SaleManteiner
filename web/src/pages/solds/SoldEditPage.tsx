@@ -216,7 +216,6 @@ export function SoldEditPage() {
                 type="number"
                 step="0.01"
                 min="0"
-                autoFocus
                 {...register('sale_price', { valueAsNumber: true })}
                 error={(errors.sale_price as { message?: string } | undefined)?.message}
                 className="vt-box"

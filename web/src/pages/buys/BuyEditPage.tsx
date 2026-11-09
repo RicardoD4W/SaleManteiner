@@ -153,7 +153,6 @@ export function BuyEditPage() {
                   onBlur={field.onBlur}
                   error={fieldState.error?.message}
                   className="vt-box"
-                  autoFocus
                   style={{ viewTransitionName: transitionName('product') }}
                 />
               )}
