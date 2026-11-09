@@ -84,6 +84,17 @@ describe('BuyEditPage', () => {
     } as never);
   });
 
+  it('no enfoca ningún campo al abrir el formulario', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Coste (€) *');
+
+    expect(document.activeElement).toBe(document.body);
+    expect(screen.getByRole('combobox')).not.toHaveFocus();
+    expect(screen.getByLabelText('Coste (€) *')).not.toHaveFocus();
+    expect(screen.getByLabelText('Cantidad *')).not.toHaveFocus();
+  });
+
   it('valida el producto con las mismas reglas que el alta', async () => {
     const user = userEvent.setup();
     const update = mutationMock();

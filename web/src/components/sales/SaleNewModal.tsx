@@ -72,7 +72,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
   useEffect(() => {
     if (selectedItems.length > 0 && pickerReason === null) {
-      document.getElementById('sale-price')?.focus();
+      document.getElementById('customer-autocomplete-input')?.focus();
     }
   }, [selectedItems, pickerReason]);
 
@@ -151,7 +151,12 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   }
 
   return (
-    <Modal title="Nueva venta" onClose={onClose} size="wide" initialFocusSelector="#sale-price">
+    <Modal
+      title="Nueva venta"
+      onClose={onClose}
+      size="wide"
+      initialFocusSelector="#customer-autocomplete-input"
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
         <CustomerAutocomplete
           value={selectedCustomer}
@@ -248,7 +253,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
               value === '' || value === null || value === undefined ? null : Number(value),
           })}
           error={(errors.paid_amount as { message?: string } | undefined)?.message}
-          hint="Vacío = se asume que te ha pagado el precio entero"
+          hint="Vacío, se asume que te ha pagado el precio entero"
         />
 
         <Input

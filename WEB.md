@@ -136,7 +136,7 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### El recibo de una venta
 
-`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el **icono de recibo** de la **última columna** de la lista de ventas (columna sin cabecera, como la de acciones) y desde el botón **"Recibo"** de la página de editar la venta.
+`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el **icono de recibo** de la **última columna** de la **lista de ventas** (columna sin cabecera, como la de acciones).
 
 - **Imprimir**: el botón **"Imprimir o guardar como PDF"** llama a `window.print()` → el diálogo de impresión del navegador (o del WebView2 en la app de escritorio) permite imprimir en papel o **guardar como PDF**. No hay librería de PDF: el PDF lo pone el propio diálogo.
 - **En la hoja solo sale el recibo**: la cabecera de la app y el pie con la versión se ocultan al imprimir (`print:hidden`), y el documento se imprime en A4 con márgenes de 15 mm (`@page` en `index.css`). La cabecera de la hoja tampoco repite el nº de venta: el título del documento se vacía durante la impresión (`beforeprint`) y se restaura al terminar (`afterprint`), así que el navegador no imprime su línea de cabecera y lo único que ve el cliente es el recibo.

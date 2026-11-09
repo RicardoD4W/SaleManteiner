@@ -72,6 +72,23 @@ describe('SoldEditPage', () => {
     vi.mocked(useUpdateSold).mockReturnValue(mutationMock() as never);
   });
 
+  it('la página de editar la venta no enlaza al recibo', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Precio total de venta (€) *');
+    expect(screen.queryByRole('link', { name: 'Recibo' })).not.toBeInTheDocument();
+  });
+
+  it('no enfoca ningún campo al abrir el formulario', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Precio total de venta (€) *');
+
+    expect(document.activeElement).toBe(document.body);
+    expect(screen.getByRole('combobox')).not.toHaveFocus();
+    expect(screen.getByLabelText('Precio total de venta (€) *')).not.toHaveFocus();
+  });
+
   it('muestra el importe cobrado de la venta', async () => {
     renderPage();
 

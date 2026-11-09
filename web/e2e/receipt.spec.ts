@@ -75,7 +75,7 @@ test('/solds: el recibo de una venta se abre desde la lista y muestra el cliente
   await expect(page.getByText('120,00 €')).toBeVisible();
 });
 
-test('/solds: el recibo también se abre desde la página de editar la venta', async ({
+test('/solds: el recibo se abre desde la lista y la edición de la venta no lo enlaza', async ({
   page,
   request,
 }) => {
@@ -95,14 +95,19 @@ test('/solds: el recibo también se abre desde la página de editar la venta', a
 
   await page.goto('/solds');
   await page
+    .getByRole('link', { name: /^Recibo de la venta/ })
+    .first()
+    .click();
+  await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
+  await expect(page.getByText('Luis Prado')).toBeVisible();
+
+  await page.goBack();
+  await page
     .getByRole('link', { name: /^Editar/ })
     .first()
     .click();
-  await page.getByRole('link', { name: 'Recibo' }).click();
-
-  await expect(page.getByRole('heading', { name: 'Recibo de venta' })).toBeVisible();
-  await expect(page.getByText('Luis Prado')).toBeVisible();
-  await expect(page.getByText('35,00 €')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Editar venta' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Recibo' })).toHaveCount(0);
 });
 
 test('/solds: al imprimir solo sale el recibo, sin la cabecera de la app ni los botones', async ({
