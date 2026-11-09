@@ -35,6 +35,8 @@
 
 ### Cambiado
 
+- **Los datos que viajan cambian de color antes de moverse**: al abrir el recibo de una venta (o al editar una), el cliente, la fecha, el total y los productos **salen ya con el color de su destino**: el color se funde en la posición de partida durante 80 ms y el resto del viaje (250 ms) es solo movimiento. En la vuelta (recibo → tabla) ocurre igual.
+
 - **Las acciones de las filas son iconos, no palabras**: editar, borrar y renombrar ya no se escriben ("Editar", "Borrar", "Renombrar") sino que se muestran como iconos (lápiz, papelera). El nombre accesible se mantiene: el botón o enlace sigue teniendo su `aria-label` ("Editar Juan Pérez", "Borrar Funda iPhone 15"), así que los lectores de pantalla y el teclado no pierden nada. Aplica a compras, ventas, clientes, gastos, categorías de gasto y copias de seguridad.
 - **El recibo de una venta va en su propia columna**: en la tabla de ventas, "Recibo" es una **última columna sin cabecera** (con su icono de documento) en lugar de un enlace suelto dentro de la columna de acciones.
 

@@ -385,6 +385,68 @@ test('abrir el recibo de una venta: los datos viajan de la tabla al recibo', asy
   }
 });
 
+test('el color de los datos transiciona antes de viajar: el reloj de color es más corto que el de viaje', async ({
+  page,
+  request,
+}) => {
+  const buyId = await createBuy(request, 'Funda iPhone 15');
+  const customerId = await createCustomer(request, 'Lucía Fernández');
+  const soldId = await createSale(request, customerId, buyId);
+
+  await instrument(page);
+  await page.goto('/solds');
+
+  const initialState = await readState(page);
+  test.fixme(
+    !initialState.supported,
+    'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
+  );
+
+  const name = `sold-client-${soldId}`;
+
+  const recibo = page.getByRole('link', { name: /^Recibo de la venta/ }).first();
+  await recibo.hover();
+  await recibo.click();
+  await expect(page).toHaveURL(new RegExp(`/solds/${soldId}/receipt$`));
+
+  await page.waitForFunction(
+    (n) =>
+      ((window as unknown as { __vt: VtState }).__vt.pseudos ?? []).some((p) =>
+        p.includes(`old(${n})`),
+      ),
+    name,
+    { timeout: 5_000 },
+  );
+
+  const clocks = await page.evaluate((n) => {
+    const styles = getComputedStyle(document.documentElement);
+    const readVar = (variable: string) => parseFloat(styles.getPropertyValue(variable));
+
+    const durations = (window as unknown as { __vt: VtState }).__vt.durations ?? {};
+
+    return {
+      color: readVar('--dur-color'),
+      travel: readVar('--dur-transition'),
+      old: durations[`::view-transition-old(${n})`],
+      new: durations[`::view-transition-new(${n})`],
+      group: durations[`::view-transition-group(${n})`],
+    };
+  }, name);
+
+  expect(clocks.color, 'no se define --dur-color').toBeGreaterThan(0);
+  expect(clocks.travel, 'no se define --dur-transition').toBeGreaterThan(0);
+  expect(clocks.color, 'el reloj de color debe ser más corto que el de viaje').toBeLessThan(
+    clocks.travel,
+  );
+
+  expect(clocks.old, 'no se encontró la animación del snapshot viejo').toBeGreaterThan(0);
+  expect(clocks.new, 'no se encontró la animación del snapshot nuevo').toBeGreaterThan(0);
+  expect(clocks.group, 'no se encontró la animación del grupo').toBeGreaterThan(0);
+
+  expect(clocks.old, 'el color debe cambiar antes de que el dato viaje').toBeLessThan(clocks.group);
+  expect(clocks.new, 'el color debe cambiar antes de que el dato viaje').toBeLessThan(clocks.group);
+});
+
 test('volver desde el recibo devuelve los datos a la fila de la tabla', async ({
   page,
   request,

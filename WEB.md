@@ -160,6 +160,8 @@ El nombre lo fija un **contrato** (`web/src/lib/viewTransition.ts`): `sold-<camp
 
 En `index.css` están las clases de la animación (`.vt-cell` y `.vt-box`, respetando `prefers-reduced-motion`) y el fundido de página (`::view-transition-old(root)` / `new(root)`).
 
+**El color va antes que el viaje**: los datos que viajan (`.box`) tienen **dos relojes**. El de viaje (`--dur-transition`, 250 ms) mueve el dato de su sitio a su sitio; el de color (`--dur-color`, 80 ms) hace el fundido entre el color de origen y el de destino. El color termina de cambiar en los primeros 80 ms, así que el dato **sale ya con el color de destino** y el resto del viaje es solo movimiento. Al volver el mecanismo es el mismo: el "viejo" es el destino y el "nuevo" es el origen, y el cambio de color ocurre en la posición de partida.
+
 ### `components/sales/` — el dominio
 
 `BuyNewModal`, `SaleNewModal`, `ProductPickerModal` (multi-select con stock), `CustomerAutocomplete` (buscador con creación en línea), `CustomerFormModal`, `DeleteBuyModal`, `DeleteCascadeModal`, `DeleteDialogs`, `DeleteCustomerModal`, `DeleteCustomerDialogs`.
