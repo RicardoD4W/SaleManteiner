@@ -130,12 +130,55 @@ test('no borra una categoría en uso: avisa del 409 y la mantiene', async ({ pag
   await dialog.getByRole('button', { name: 'Borrar Alquiler' }).click();
   await dialog.getByRole('button', { name: 'Sí, eliminar' }).click();
 
-  await expect(
-    dialog.getByText('No se puede borrar la categoría porque tiene gastos asociados.'),
-  ).toBeVisible();
-  await expect(dialog.getByText('Alquiler', { exact: true })).toBeVisible();
+  const cascade = page.getByRole('dialog', { name: 'La categoría tiene gastos asociados' });
+  await expect(cascade).toBeVisible();
+  await expect(cascade.getByText('"Alquiler"', { exact: true })).toBeVisible();
 
   const categories = await request.get('/api/expense-categories');
   const categoriesBody = (await categories.json()) as { data: Array<{ id: number }> };
   expect(categoriesBody.data.some((category) => category.id === alquilerId)).toBe(true);
+});
+
+test('borra en cascada la categoría y sus gastos cuando se confirma el aviso', async ({
+  page,
+  request,
+}) => {
+  const luzId = await createCategory(request, 'Luz');
+  const expenseRes = await request.post('/api/expenses', {
+    data: {
+      concept: 'Factura de luz',
+      amount: 75.5,
+      category_id: luzId,
+      expense_date: '2026-10-03',
+    },
+  });
+  expect(expenseRes.ok(), `POST /api/expenses falló: ${expenseRes.status()}`).toBe(true);
+  const expenseBody = (await expenseRes.json()) as { data: { id: number } };
+  const expenseId = expenseBody.data.id;
+
+  await page.goto('/gastos');
+  await page.getByRole('button', { name: 'Gestionar categorías' }).click();
+
+  const manager = page.getByRole('dialog', { name: 'Categorías de gasto' });
+  await expect(manager.getByText('Luz', { exact: true })).toBeVisible();
+  await manager.getByRole('button', { name: 'Borrar Luz' }).click();
+  await manager.getByRole('button', { name: 'Sí, eliminar' }).click();
+
+  const cascade = page.getByRole('dialog', { name: 'La categoría tiene gastos asociados' });
+  await expect(cascade).toBeVisible();
+  await expect(cascade.getByText(`Gasto #${expenseId}`)).toBeVisible();
+  await expect(cascade.getByText('Factura de luz')).toBeVisible();
+  await cascade.getByRole('button', { name: 'Borrar también los gastos y la categoría' }).click();
+
+  await expect(cascade).toBeHidden();
+
+  const categories = await request.get('/api/expense-categories');
+  const categoriesBody = (await categories.json()) as { data: Array<{ name: string }> };
+  expect(categoriesBody.data.some((category) => category.name === 'Luz')).toBe(false);
+
+  const expenses = await request.get('/api/expenses');
+  const expensesBody = (await expenses.json()) as { data: Array<{ concept: string }> };
+  expect(expensesBody.data.some((expense) => expense.concept === 'Factura de luz')).toBe(false);
+
+  await expect(page.getByRole('cell', { name: 'Factura de luz', exact: true })).toHaveCount(0);
 });
