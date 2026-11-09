@@ -115,7 +115,7 @@ describe('ConfirmDeleteModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('el click en el backdrop cierra la modal', async () => {
+  it('el click en el backdrop no cierra la modal', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderWithProviders(
@@ -130,7 +130,7 @@ describe('ConfirmDeleteModal', () => {
 
     const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
     await user.click(backdrop);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('el focus trap no deja salir el foco del diálogo', () => {

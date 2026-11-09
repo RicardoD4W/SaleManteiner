@@ -133,4 +133,16 @@ describe('la fila armada', () => {
     const borrar = screen.getByRole('button', { name: 'Borrar Funda iPhone 15' });
     expect(borrar.className).toMatch(/cursor-pointer/);
   });
+
+  it('las acciones de la fila son iconos, no palabras', () => {
+    renderWithProviders(<Harness row={{ id: 12, name: 'Funda iPhone 15' }} />);
+
+    const editar = screen.getByRole('link', { name: 'Editar' });
+    const borrar = screen.getByRole('button', { name: 'Borrar Funda iPhone 15' });
+
+    expect(editar.querySelector('svg')).toBeInTheDocument();
+    expect(borrar.querySelector('svg')).toBeInTheDocument();
+    expect(editar).not.toHaveTextContent('Editar');
+    expect(borrar).not.toHaveTextContent('Borrar');
+  });
 });

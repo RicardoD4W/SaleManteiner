@@ -1,4 +1,5 @@
 import type { Database } from 'better-sqlite3';
+import { monthBounds, monthKey, shiftMonth } from '../lib/months.js';
 import { round2 } from '../lib/round.js';
 
 export interface MonthMetrics {
@@ -65,16 +66,6 @@ export interface MetricsRepo {
   stats(): MetricsStats;
 }
 
-function monthKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function shiftMonth(month: string, delta: number): string {
-  const [year, monthNumber] = month.split('-').map(Number);
-  const date = new Date(year, monthNumber - 1 + delta, 1);
-  return monthKey(date);
-}
-
 function percent(numerator: number, denominator: number): number {
   if (denominator === 0) return 0;
   return round2((numerator / denominator) * 100);
@@ -115,18 +106,18 @@ export function createMetricsRepo(db: Database): MetricsRepo {
   const monthSalesStmt = db.prepare(
     `SELECT COALESCE(SUM(sale_price), 0) AS ingresos, COUNT(*) AS ventas
      FROM solds
-     WHERE sold_at IS NOT NULL AND strftime('%Y-%m', sold_at) = ?`,
+     WHERE sold_at IS NOT NULL AND sold_at >= ? AND sold_at < ?`,
   );
   const monthProfitStmt = db.prepare(
     `SELECT COALESCE(SUM(c.profit), 0) AS total
      FROM solds s
      JOIN v_sold_costs c ON c.sold_id = s.id
-     WHERE s.sold_at IS NOT NULL AND strftime('%Y-%m', s.sold_at) = ?`,
+     WHERE s.sold_at IS NOT NULL AND s.sold_at >= ? AND s.sold_at < ?`,
   );
   const monthExpensesStmt = db.prepare(
     `SELECT COALESCE(SUM(amount), 0) AS total
      FROM expenses
-     WHERE strftime('%Y-%m', expense_date) = ?`,
+     WHERE expense_date >= ? AND expense_date < ?`,
   );
   const productMarginsStmt = db.prepare(
     `SELECT ic.buy_id AS product_id,
@@ -170,9 +161,13 @@ export function createMetricsRepo(db: Database): MetricsRepo {
   );
 
   function monthMetrics(month: string): MonthMetrics {
-    const sales = monthSalesStmt.get(month) as { ingresos: number; ventas: number };
-    const profit = monthProfitStmt.get(month) as { total: number };
-    const expenses = monthExpensesStmt.get(month) as { total: number };
+    const bounds = monthBounds(month);
+    const sales = monthSalesStmt.get(bounds.from, bounds.to) as {
+      ingresos: number;
+      ventas: number;
+    };
+    const profit = monthProfitStmt.get(bounds.from, bounds.to) as { total: number };
+    const expenses = monthExpensesStmt.get(bounds.from, bounds.to) as { total: number };
 
     const ingresos = round2(sales.ingresos);
     const beneficio = round2(profit.total);

@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSold } from '../../hooks/useSold';
 import { useCustomer } from '../../hooks/useCustomer';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
+import { TravellingField } from '../../components/ui/armedRow';
 import { formatEuro, formatPhone } from '../../lib/format';
-import { receiptDate, receiptLines, receiptTotals } from '../../lib/receipt';
+import { receiptDate, receiptFileName, receiptLines, receiptTotals } from '../../lib/receipt';
+import { soldItemVtName, soldVtName } from '../../lib/viewTransition';
 
 export function SoldReceiptPage() {
   const { id } = useParams();
@@ -12,12 +15,38 @@ export function SoldReceiptPage() {
   const { data: sold, isLoading, isError, error } = useSold(soldId);
   const { data: customer } = useCustomer(sold?.customer_id ?? 0);
 
+  const receiptTitle = sold ? receiptFileName(sold.id, sold.sold_at, sold.created_at) : null;
+
+  useEffect(() => {
+    if (!receiptTitle) return;
+    const previousTitle = document.title;
+    document.title = receiptTitle;
+
+    const hideTitleForPrint = () => {
+      document.title = '';
+    };
+    const restoreTitleAfterPrint = () => {
+      document.title = receiptTitle;
+    };
+
+    window.addEventListener('beforeprint', hideTitleForPrint);
+    window.addEventListener('afterprint', restoreTitleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', hideTitleForPrint);
+      window.removeEventListener('afterprint', restoreTitleAfterPrint);
+      document.title = previousTitle;
+    };
+  }, [receiptTitle]);
+
   if (!Number.isFinite(soldId) || soldId <= 0) {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-red-700 dark:text-red-400">Id de venta inválido.</p>
         <Link
           to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
           ← Volver
@@ -42,6 +71,8 @@ export function SoldReceiptPage() {
         </p>
         <Link
           to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
           className="mt-2 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
         >
           ← Volver
@@ -61,32 +92,40 @@ export function SoldReceiptPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
         <Button onClick={() => window.print()}>Imprimir o guardar como PDF</Button>
-        <Link to="/solds" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+        <Link
+          to="/solds"
+          state={{ armedRowId: soldId, armedTarget: 'receipt' }}
+          viewTransition
+          className="text-sm text-gray-500 hover:underline dark:text-gray-400"
+        >
           ← Volver
         </Link>
       </div>
 
       <article className="rounded-md border border-gray-200 bg-white p-8 text-gray-900 shadow-sm print:border-0 print:p-0 print:shadow-none dark:border-gray-300 dark:bg-gray-50">
         <header className="flex items-start justify-between gap-4 border-b border-gray-200 pb-4 dark:border-gray-300">
-          <div>
-            <h2 className="text-xl font-bold">Recibo de venta</h2>
-            <p className="text-sm text-gray-500">Nº {sold.id}</p>
-          </div>
+          <h2 className="text-xl font-bold">Recibo de venta</h2>
           <p className="text-sm text-gray-600">
-            Fecha: {receiptDate(sold.sold_at, sold.created_at)}
+            Fecha:{' '}
+            <TravellingField name={soldVtName('date', soldId)}>
+              {receiptDate(sold.sold_at, sold.created_at)}
+            </TravellingField>
           </p>
         </header>
 
         <section className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</h3>
-          <p className="mt-1 font-medium">{sold.customer_name}</p>
+          <h3 className="text-sm font-semibold tracking-wide text-gray-500">Cliente</h3>
+          <p className="mt-1 font-medium">
+            <TravellingField name={soldVtName('client', soldId)}>
+              {sold.customer_name}
+            </TravellingField>
+          </p>
           {phone ? <p className="text-sm text-gray-600">{phone}</p> : null}
           {address ? <p className="text-sm whitespace-pre-line text-gray-600">{address}</p> : null}
         </section>
 
         <section className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Productos</h3>
-          <table className="mt-2 w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-300 text-left">
                 <th scope="col" className="py-1 font-medium">
@@ -100,7 +139,11 @@ export function SoldReceiptPage() {
             <tbody>
               {lines.map((line) => (
                 <tr key={line.key} className="border-b border-gray-200">
-                  <td className="py-1.5">{line.productName}</td>
+                  <td className="py-1.5">
+                    <TravellingField name={soldItemVtName(line.buyId, soldId)}>
+                      {line.productName}
+                    </TravellingField>
+                  </td>
                   <td className="py-1.5 text-right tabular-nums">{line.quantity}</td>
                 </tr>
               ))}
@@ -111,7 +154,11 @@ export function SoldReceiptPage() {
         <section className="mt-6 ml-auto w-56 space-y-1 text-sm">
           <div className="flex justify-between gap-4">
             <span>Total</span>
-            <span className="font-semibold tabular-nums">{formatEuro(totals.total)}</span>
+            <span className="font-semibold tabular-nums">
+              <TravellingField name={soldVtName('price', soldId)}>
+                {formatEuro(totals.total)}
+              </TravellingField>
+            </span>
           </div>
           {totals.paid !== null ? (
             <>

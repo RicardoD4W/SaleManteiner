@@ -1,4 +1,5 @@
 import type { Database } from 'better-sqlite3';
+import { lastNMonths, monthBounds } from '../lib/months.js';
 import { round2 } from '../lib/round.js';
 import { definedOnly } from '../lib/defined-only.js';
 import type { DateRange } from './types.js';
@@ -139,17 +140,6 @@ export interface DashboardStats {
   }>;
 }
 
-function lastNMonths(n: number): string[] {
-  const result: string[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    result.push(month);
-  }
-  return result;
-}
-
 export function createSoldsRepo(db: Database): SoldsRepo {
   const insertSoldStmt = db.prepare(`
     INSERT INTO solds (customer_id, sale_price, associated_costs, paid_amount, sold_at, notes, created_at)
@@ -213,6 +203,11 @@ export function createSoldsRepo(db: Database): SoldsRepo {
      FROM v_item_costs
      WHERE sold_id = ?`,
   );
+  const stockForBuyStmt = db.prepare(
+    `SELECT b.id AS buy_id, b.product_name,
+      (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
+     FROM buys b WHERE b.id = ?`,
+  );
   const customerNameStmt = db.prepare('SELECT name AS customer_name FROM customers WHERE id = ?');
   const buysTotalsStmt = db.prepare(
     `SELECT
@@ -236,6 +231,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
     `SELECT strftime('%Y-%m', expense_date) AS month,
             COALESCE(SUM(amount), 0) AS gastos
      FROM expenses
+     WHERE expense_date >= ? AND expense_date < ?
      GROUP BY month`,
   );
   const purchasesByMonthStmt = db.prepare(
@@ -247,13 +243,13 @@ export function createSoldsRepo(db: Database): SoldsRepo {
               purchase_cost + associated_costs AS compras_de_buys,
               0 AS asociados_de_solds
        FROM buys
-       WHERE purchase_date IS NOT NULL
+       WHERE purchase_date IS NOT NULL AND purchase_date >= ? AND purchase_date < ?
        UNION ALL
        SELECT strftime('%Y-%m', sold_at) AS month,
               0 AS compras_de_buys,
               associated_costs AS asociados_de_solds
        FROM solds
-       WHERE sold_at IS NOT NULL
+       WHERE sold_at IS NOT NULL AND sold_at >= ? AND sold_at < ?
      )
      GROUP BY month`,
   );
@@ -264,7 +260,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
        COALESCE(SUM(c.profit), 0) AS beneficio
      FROM solds s
      JOIN v_sold_costs c ON c.sold_id = s.id
-     WHERE s.sold_at IS NOT NULL
+     WHERE s.sold_at IS NOT NULL AND s.sold_at >= ? AND s.sold_at < ?
      GROUP BY month`,
   );
   const topProductsStmt = db.prepare(
@@ -305,13 +301,7 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       const stockErrors: StockInsufficientItem[] = [];
 
       for (const item of input.items) {
-        const rows = db
-          .prepare(
-            `SELECT b.id AS buy_id, b.product_name,
-              (b.quantity - COALESCE((SELECT SUM(si.quantity) FROM sale_items si WHERE si.buy_id = b.id), 0)) AS disponibles
-             FROM buys b WHERE b.id = ?`,
-          )
-          .get(item.buy_id) as
+        const rows = stockForBuyStmt.get(item.buy_id) as
           { buy_id: number; product_name: string; disponibles: number } | undefined;
 
         if (!rows) {
@@ -519,13 +509,22 @@ export function createSoldsRepo(db: Database): SoldsRepo {
       stock_pendiente_count: stockRow.cnt,
     };
 
-    const purchasesRows = purchasesByMonthStmt.all() as Array<{
+    const months = lastNMonths(12);
+    const windowFrom = monthBounds(months[0]).from;
+    const windowTo = monthBounds(months[months.length - 1]).to;
+
+    const purchasesRows = purchasesByMonthStmt.all(
+      windowFrom,
+      windowTo,
+      windowFrom,
+      windowTo,
+    ) as Array<{
       month: string;
       compras_de_buys: number;
       asociados_de_solds: number;
     }>;
 
-    const salesRows = salesByMonthStmt.all() as Array<{
+    const salesRows = salesByMonthStmt.all(windowFrom, windowTo) as Array<{
       month: string;
       ingresos: number;
       beneficio: number;
@@ -533,9 +532,11 @@ export function createSoldsRepo(db: Database): SoldsRepo {
 
     const purchasesMap = new Map(purchasesRows.map((r) => [r.month, r]));
     const salesMap = new Map(salesRows.map((r) => [r.month, r]));
-    const expensesRows = expensesByMonthStmt.all() as Array<{ month: string; gastos: number }>;
+    const expensesRows = expensesByMonthStmt.all(windowFrom, windowTo) as Array<{
+      month: string;
+      gastos: number;
+    }>;
     const expensesMap = new Map(expensesRows.map((r) => [r.month, r]));
-    const months = lastNMonths(12);
     const cashFlowByMonth = months.map((month) => {
       const purchase = purchasesMap.get(month);
       const sale = salesMap.get(month);

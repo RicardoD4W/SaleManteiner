@@ -7,12 +7,14 @@ interface VtState {
   calls: number;
 
   pseudos: string[];
+
+  durations: Record<string, number>;
 }
 
 async function readState(page: Page): Promise<VtState> {
   return page.evaluate(() => {
     const state = (window as unknown as { __vt?: VtState }).__vt;
-    return state ?? { supported: false, calls: 0, pseudos: [] };
+    return state ?? { supported: false, calls: 0, pseudos: [], durations: {} };
   });
 }
 
@@ -22,6 +24,7 @@ async function instrument(page: Page): Promise<void> {
       supported: typeof document.startViewTransition === 'function',
       calls: 0,
       pseudos: [],
+      durations: {},
     };
     (window as unknown as { __vt: VtState }).__vt = state;
 
@@ -30,7 +33,11 @@ async function instrument(page: Page): Promise<void> {
         const pseudo =
           (anim.effect as (AnimationEffect & { pseudoElement?: string | null }) | null)
             ?.pseudoElement ?? null;
-        if (pseudo && !state.pseudos.includes(pseudo)) state.pseudos.push(pseudo);
+        if (!pseudo) continue;
+        if (!state.pseudos.includes(pseudo)) state.pseudos.push(pseudo);
+        if (state.durations[pseudo] === undefined) {
+          state.durations[pseudo] = Number(anim.effect?.getTiming().duration ?? 0);
+        }
       }
       requestAnimationFrame(accumulate);
     };
@@ -51,6 +58,7 @@ async function resetState(page: Page): Promise<void> {
     if (state) {
       state.calls = 0;
       state.pseudos = [];
+      state.durations = {};
     }
   });
 }
@@ -97,7 +105,13 @@ async function createSale(
   buy_id: number,
 ): Promise<number> {
   const res = await request.post('/api/solds', {
-    data: { customer_id, sale_price: 40, associated_costs: 5, items: [{ buy_id, quantity: 2 }] },
+    data: {
+      customer_id,
+      sale_price: 40,
+      associated_costs: 5,
+      sold_at: '2026-10-05',
+      items: [{ buy_id, quantity: 2 }],
+    },
   });
   expect(res.ok(), `POST /api/solds falló: ${res.status()}`).toBe(true);
   const body = (await res.json()) as { data: { id: number } };
@@ -123,7 +137,7 @@ test('editar una compra: la celda de producto viaja al input del formulario', as
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   const name = `buy-product-${buyId}`;
@@ -182,7 +196,7 @@ test('editar una compra: también viajan el coste, la cantidad, los asociados y 
     { suffix: 'date', text: '02/10/2026', label: 'Fecha de compra' },
   ];
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   for (const campo of FIELDS) {
@@ -221,7 +235,7 @@ test('volver a la lista desde el formulario deja armada la fila de la compra', a
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
   await editar.click();
   await expect(page).toHaveURL(new RegExp(`/buys/${buyId}$`));
@@ -266,7 +280,7 @@ test('editar una venta: la celda de cliente viaja al input del cliente', async (
     'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
   );
 
-  const editar = page.getByRole('link', { name: 'Editar' }).first();
+  const editar = page.getByRole('link', { name: /^Editar/ }).first();
   await editar.hover();
 
   const name = `sold-client-${soldId}`;
@@ -300,4 +314,190 @@ test('editar una venta: la celda de cliente viaja al input del cliente', async (
   const pseudos = (await readState(page)).pseudos;
   expect(pseudos).toContain(`::view-transition-old(${name})`);
   expect(pseudos).toContain(`::view-transition-new(${name})`);
+});
+
+const RECEIPT_FIELDS = [
+  { suffix: 'client', text: 'Lucía Fernández' },
+  { suffix: 'date', text: '05/10/2026' },
+  { suffix: 'price', text: '40,00 €' },
+];
+
+test('abrir el recibo de una venta: los datos viajan de la tabla al recibo', async ({
+  page,
+  request,
+}) => {
+  const buyId = await createBuy(request, 'Funda iPhone 15');
+  const customerId = await createCustomer(request, 'Lucía Fernández');
+  const soldId = await createSale(request, customerId, buyId);
+
+  await instrument(page);
+  await page.goto('/solds');
+
+  const initialState = await readState(page);
+  test.fixme(
+    !initialState.supported,
+    'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
+  );
+
+  const campos = [
+    ...RECEIPT_FIELDS.map((campo) => ({ ...campo, name: `sold-${campo.suffix}-${soldId}` })),
+    { name: `sold-item-${buyId}-name-${soldId}`, text: 'Funda iPhone 15' },
+  ];
+
+  const recibo = page.getByRole('link', { name: /^Recibo de la venta/ }).first();
+  await recibo.hover();
+
+  for (const campo of campos) {
+    const cell = page.locator(`[data-vt-name="${campo.name}"]`);
+    await expect(cell).toHaveCount(1);
+    await expect(cell).toHaveText(campo.text);
+    expect(await computedName(cell)).toBe(campo.name);
+    expect(await countWithName(page, campo.name)).toBe(1);
+  }
+
+  await resetState(page);
+  await recibo.click();
+  await expect(page).toHaveURL(new RegExp(`/solds/${soldId}/receipt$`));
+  await expect(page.getByRole('heading', { level: 2, name: 'Recibo de venta' })).toBeVisible();
+
+  const state = await readState(page);
+  expect(state.calls, 'no se llamó a document.startViewTransition').toBeGreaterThan(0);
+
+  for (const campo of campos) {
+    const field = page.locator(`[data-vt-name="${campo.name}"]`);
+    await expect(field).toHaveCount(1);
+    await expect.poll(() => computedName(field)).toBe(campo.name);
+    await expect.poll(() => countWithName(page, campo.name)).toBe(1);
+  }
+
+  await page.waitForFunction(
+    (n) =>
+      ((window as unknown as { __vt: VtState }).__vt.pseudos ?? []).some((p) =>
+        p.includes(`old(${n})`),
+      ),
+    campos[0].name,
+    { timeout: 5_000 },
+  );
+  const pseudos = (await readState(page)).pseudos;
+  for (const campo of campos) {
+    expect(pseudos).toContain(`::view-transition-old(${campo.name})`);
+    expect(pseudos).toContain(`::view-transition-new(${campo.name})`);
+  }
+});
+
+test('el color de los datos transiciona antes de viajar: el reloj de color es más corto que el de viaje', async ({
+  page,
+  request,
+}) => {
+  const buyId = await createBuy(request, 'Funda iPhone 15');
+  const customerId = await createCustomer(request, 'Lucía Fernández');
+  const soldId = await createSale(request, customerId, buyId);
+
+  await instrument(page);
+  await page.goto('/solds');
+
+  const initialState = await readState(page);
+  test.fixme(
+    !initialState.supported,
+    'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
+  );
+
+  const name = `sold-client-${soldId}`;
+
+  const recibo = page.getByRole('link', { name: /^Recibo de la venta/ }).first();
+  await recibo.hover();
+  await recibo.click();
+  await expect(page).toHaveURL(new RegExp(`/solds/${soldId}/receipt$`));
+
+  await page.waitForFunction(
+    (n) =>
+      ((window as unknown as { __vt: VtState }).__vt.pseudos ?? []).some((p) =>
+        p.includes(`old(${n})`),
+      ),
+    name,
+    { timeout: 5_000 },
+  );
+
+  const clocks = await page.evaluate((n) => {
+    const styles = getComputedStyle(document.documentElement);
+    const readVar = (variable: string) => parseFloat(styles.getPropertyValue(variable));
+
+    const durations = (window as unknown as { __vt: VtState }).__vt.durations ?? {};
+
+    return {
+      color: readVar('--dur-color'),
+      travel: readVar('--dur-transition'),
+      old: durations[`::view-transition-old(${n})`],
+      new: durations[`::view-transition-new(${n})`],
+      group: durations[`::view-transition-group(${n})`],
+    };
+  }, name);
+
+  expect(clocks.color, 'no se define --dur-color').toBeGreaterThan(0);
+  expect(clocks.travel, 'no se define --dur-transition').toBeGreaterThan(0);
+  expect(clocks.color, 'el reloj de color debe ser más corto que el de viaje').toBeLessThan(
+    clocks.travel,
+  );
+
+  expect(clocks.old, 'no se encontró la animación del snapshot viejo').toBeGreaterThan(0);
+  expect(clocks.new, 'no se encontró la animación del snapshot nuevo').toBeGreaterThan(0);
+  expect(clocks.group, 'no se encontró la animación del grupo').toBeGreaterThan(0);
+
+  expect(clocks.old, 'el color debe cambiar antes de que el dato viaje').toBeLessThan(clocks.group);
+  expect(clocks.new, 'el color debe cambiar antes de que el dato viaje').toBeLessThan(clocks.group);
+});
+
+test('volver desde el recibo devuelve los datos a la fila de la tabla', async ({
+  page,
+  request,
+}) => {
+  const buyId = await createBuy(request, 'Funda iPhone 15');
+  const customerId = await createCustomer(request, 'Lucía Fernández');
+  const soldId = await createSale(request, customerId, buyId);
+
+  await instrument(page);
+  await page.goto('/solds');
+
+  const initialState = await readState(page);
+  test.fixme(
+    !initialState.supported,
+    'El navegador del entorno no soporta la View Transitions API (sin transición que comprobar)',
+  );
+
+  const campos = [
+    ...RECEIPT_FIELDS.map((campo) => ({ ...campo, name: `sold-${campo.suffix}-${soldId}` })),
+    { name: `sold-item-${buyId}-name-${soldId}`, text: 'Funda iPhone 15' },
+  ];
+
+  const recibo = page.getByRole('link', { name: /^Recibo de la venta/ }).first();
+  await recibo.hover();
+  await recibo.click();
+  await expect(page).toHaveURL(new RegExp(`/solds/${soldId}/receipt$`));
+
+  await resetState(page);
+  await page.getByRole('link', { name: '← Volver' }).click();
+  await expect(page).toHaveURL(/\/solds$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'Ventas' })).toBeVisible();
+
+  for (const campo of campos) {
+    const cell = page.locator(`[data-vt-name="${campo.name}"]`);
+    await expect(cell).toHaveCount(1);
+    await expect(cell).toHaveText(campo.text);
+    await expect.poll(() => computedName(cell)).toBe(campo.name);
+    await expect.poll(() => countWithName(page, campo.name)).toBe(1);
+  }
+
+  await page.waitForFunction(
+    (n) =>
+      ((window as unknown as { __vt: VtState }).__vt.pseudos ?? []).some((p) =>
+        p.includes(`old(${n})`),
+      ),
+    campos[0].name,
+    { timeout: 5_000 },
+  );
+  const pseudos = (await readState(page)).pseudos;
+  for (const campo of campos) {
+    expect(pseudos).toContain(`::view-transition-old(${campo.name})`);
+    expect(pseudos).toContain(`::view-transition-new(${campo.name})`);
+  }
 });

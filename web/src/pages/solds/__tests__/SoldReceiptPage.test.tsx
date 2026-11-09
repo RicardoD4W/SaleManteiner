@@ -102,6 +102,35 @@ describe('SoldReceiptPage', () => {
     expect(screen.queryByText('12,50 €')).not.toBeInTheDocument();
   });
 
+  it('nombra los datos que viajan entre la tabla y el recibo', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Ana García')).toHaveAttribute('data-vt-name', 'sold-client-1');
+    expect(screen.getByText('05/10/2026')).toHaveAttribute('data-vt-name', 'sold-date-1');
+    expect(screen.getByText('120,00 €')).toHaveAttribute('data-vt-name', 'sold-price-1');
+    expect(screen.getByText('iPhone 15')).toHaveAttribute('data-vt-name', 'sold-item-10-name-1');
+  });
+
+  it('no muestra el número de venta en el recibo', async () => {
+    renderPage();
+
+    await screen.findByRole('heading', { level: 2, name: 'Recibo de venta' });
+    expect(screen.queryByText(/^Nº /)).not.toBeInTheDocument();
+  });
+
+  it('vacía el título del documento al imprimir y lo restaura al terminar', async () => {
+    renderPage();
+
+    await screen.findByRole('heading', { level: 2, name: 'Recibo de venta' });
+    expect(document.title).toBe('Factura Nº1 - 05-10-2026');
+
+    window.dispatchEvent(new Event('beforeprint'));
+    expect(document.title).toBe('');
+
+    window.dispatchEvent(new Event('afterprint'));
+    expect(document.title).toBe('Factura Nº1 - 05-10-2026');
+  });
+
   it('el botón de imprimir llama a window.print', async () => {
     const user = userEvent.setup();
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});

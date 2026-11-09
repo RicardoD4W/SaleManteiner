@@ -127,7 +127,7 @@ describe('BackupModal', () => {
 
     renderWithProviders(<BackupModal onClose={vi.fn()} />);
 
-    fireEvent.click(screen.getAllByText('Eliminar')[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^Eliminar salemanteiner/ })[0]);
 
     expect(screen.getByText('Eliminar la copia')).toBeInTheDocument();
     expect(remove.mutateAsync).not.toHaveBeenCalled();

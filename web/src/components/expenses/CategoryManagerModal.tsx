@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Spinner } from '../ui/Spinner';
 import { ErrorState } from '../ui/ErrorState';
+import { PencilIcon, TrashIcon } from '../ui/icons';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
 import { formatEuro } from '../../lib/format';
@@ -165,9 +166,9 @@ export function CategoryManagerModal({ onClose }: CategoryManagerModalProps) {
                         type="button"
                         onClick={() => handleStartRename(category)}
                         aria-label={`Renombrar ${category.name}`}
-                        className="cursor-pointer text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer rounded text-brand-600 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:hover:text-brand-300 dark:focus-visible:ring-offset-gray-900"
                       >
-                        Renombrar
+                        <PencilIcon />
                       </button>
                       <button
                         type="button"
@@ -176,9 +177,9 @@ export function CategoryManagerModal({ onClose }: CategoryManagerModalProps) {
                           setDeleteError(null);
                         }}
                         aria-label={`Borrar ${category.name}`}
-                        className="cursor-pointer text-sm font-medium text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:focus-visible:ring-offset-gray-900"
+                        className="cursor-pointer rounded text-red-700 transition-colors hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300 dark:focus-visible:ring-offset-gray-900"
                       >
-                        Borrar
+                        <TrashIcon />
                       </button>
                     </div>
                   </>

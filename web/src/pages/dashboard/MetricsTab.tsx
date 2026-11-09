@@ -47,7 +47,7 @@ export function MetricsTab() {
     <div className="space-y-6">
       <section className="space-y-3">
         <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
-          Este mes ({formatMonth(actual.month)})
+          Este mes - {formatMonth(actual.month)}
         </h3>
         <div
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"
@@ -88,7 +88,7 @@ export function MetricsTab() {
 
       <section className="space-y-3">
         <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
-          Frente a {formatMonth(anterior.month)}
+          Frente a - {formatMonth(anterior.month)}
         </h3>
         {var_ === null ? (
           <Card>

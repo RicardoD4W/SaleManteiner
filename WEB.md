@@ -107,19 +107,20 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### `components/ui/` — la base
 
-| Componente                                                      | Para qué                                                                                                                                                    |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado)                    |
-| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                              |
-| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                    |
-| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                           |
-| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                    |
-| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                            |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (dato que viaja al formulario)                                                                                          |
-| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                          |
-| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                |
-| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él) |
-| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                   |
+| Componente                                                      | Para qué                                                                                                                                                           |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado; **clic fuera no cierra**) |
+| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                                     |
+| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                           |
+| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                                  |
+| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                           |
+| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                                   |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (el dato que viaja en la tabla) + `TravellingField` (el dato con nombre en la ficha)                                           |
+| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                 |
+| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                       |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)        |
+| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`, `ReceiptIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`           |
+| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                          |
 
 ### El modal y el scroll de la página
 
@@ -129,14 +130,37 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 - **Scroll de fondo bloqueado** (`useScrollLock`): con el modal abierto, la raíz tiene `overflow: hidden`, así que la rueda del ratón no mueve la página que queda detrás. La posición del scroll se conserva y se restaura al cerrar; las aperturas anidadas se cuentan, para que cerrar el modal de encima no desbloquee el de abajo.
 - **Barra de scroll reservada** (`scrollbar-gutter: stable both-edges` en `html`, `web/src/index.css`): el hueco de la barra de scroll vertical está siempre reservado, así que el ancho del contenido no depende de si la página se puede desplazar (si no, al pasar de una lista larga a una ficha corta el contenido se iría de lado). Con `both-edges` el hueco se reserva **a los dos lados**: el contenido queda centrado en la ventana en vez de pegado al borde izquierdo. El hueco se pinta con el **fondo de la raíz** (`html`), que lleva el mismo color que la app (`gray-50` / `dark:gray-950`) y `color-scheme` según el tema: si no, se vería una franja de otro color cuando la página no tiene scroll.
 
+### Cómo se cierra el modal
+
+`Modal` se cierra con el botón **"Cerrar"** (la aspa de la cabecera) o con la tecla `Escape`. **Hacer clic fuera del diálogo no lo cierra**: el clic en el fondo no descarta lo que se ha escrito, por decisión explícita del usuario. El fondo (`role="presentation"`) se sigue pintando como velo, pero no tiene manejador de clic.
+
 ### El recibo de una venta
 
-`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el enlace **"Recibo"** de cada fila de la lista de ventas y desde el botón **"Recibo"** de la página de editar la venta.
+`SoldReceiptPage` (`/solds/:id/receipt`) es un **documento imprimible**: los datos del cliente (nombre, teléfono y dirección), los productos vendidos con su cantidad, el total y, si la venta tiene importe cobrado, el cobrado y el pendiente. Se entra desde el **icono de recibo** de la **última columna** de la lista de ventas (columna sin cabecera, como la de acciones) y desde el botón **"Recibo"** de la página de editar la venta.
 
 - **Imprimir**: el botón **"Imprimir o guardar como PDF"** llama a `window.print()` → el diálogo de impresión del navegador (o del WebView2 en la app de escritorio) permite imprimir en papel o **guardar como PDF**. No hay librería de PDF: el PDF lo pone el propio diálogo.
-- **En la hoja solo sale el recibo**: la cabecera de la app y el pie con la versión se ocultan al imprimir (`print:hidden`), y el documento se imprime en A4 con márgenes de 15 mm (`@page` en `index.css`).
+- **En la hoja solo sale el recibo**: la cabecera de la app y el pie con la versión se ocultan al imprimir (`print:hidden`), y el documento se imprime en A4 con márgenes de 15 mm (`@page` en `index.css`). La cabecera de la hoja tampoco repite el nº de venta: el título del documento se vacía durante la impresión (`beforeprint`) y se restaura al terminar (`afterprint`), así que el navegador no imprime su línea de cabecera y lo único que ve el cliente es el recibo.
 - **El recibo no lleva datos internos**: ni las notas ni los gastos asociados (envío, comisión). Son cosas del vendedor, no del cliente.
 - Los helpers (líneas, total, pendiente, fecha) están en `web/src/lib/receipt.ts`; el cliente se pide con `useCustomer`.
+- **El recibo se abre con los datos viajando**: desde la tabla, el cliente, la fecha, el total y los productos salen de su celda y aterrizan en el recibo (y vuelven a su celda al pulsar "← Volver"). Ver "El viaje de los datos" más abajo.
+
+### El viaje de los datos (View Transitions)
+
+Editar una venta (o abrir su recibo) no cambia la página de golpe: **el dato que estás tocando viaja** desde la tabla hasta su sitio en la ficha. Se apoya en la **View Transitions API** (`document.startViewTransition`), que el router envuelve en la navegación cuando el enlace (o `navigate`) pide `viewTransition`.
+
+Tres piezas, en `web/src/components/ui/armedRow.tsx`:
+
+- **`useArmedRow`**: al pasar el ratón (o el foco, o el dedo) por el enlace de una fila, **arma** esa fila: guarda su id, precarga la caché de TanStack Query (`['solds', id]`) para que la ficha se pinte con datos en el primer fotograma y expone el contexto. La vuelta a la lista la deja armada otra vez: el enlace de "Volver" lleva `state={{ armedRowId, armedTarget }}`.
+- **`TravellingCell`**: la celda de la fila armada es la que lleva `view-transition-name`. Solo viaja una fila a la vez, así que el nombre es único.
+- **`TravellingField`**: el mismo nombre, en la página destino (el input del formulario, el total del recibo). Si el nombre no coincide en los dos lados, el navegador no "viaja" nada: solo hace un fundido.
+
+El nombre lo fija un **contrato** (`web/src/lib/viewTransition.ts`): `sold-<campo>-<id>` para los datos de la venta y `sold-item-<buy_id>-name-<id>` para cada producto. La fila se arma para un destino (`armedTarget: 'edit'` o `'receipt'`): el recibo no lleva gastos asociados, así que esa celda solo viaja al editar (`targets={['edit']}`).
+
+**Entrar y salir**: el icono de recibo de la fila es un `Link` con `viewTransition` que arma la fila → al abrirlo, el cliente, la fecha, el total y los productos viajan de la tabla al recibo; el "← Volver" del recibo hace el camino inverso. El botón de atrás del navegador **no** lleva transición: React Router solo envuelve en `startViewTransition` las navegaciones que lo piden explícitamente.
+
+En `index.css` están las clases de la animación (`.vt-cell` y `.vt-box`, respetando `prefers-reduced-motion`) y el fundido de página (`::view-transition-old(root)` / `new(root)`).
+
+**El color va antes que el viaje**: los datos que viajan (`.box`) tienen **dos relojes**. El de viaje (`--dur-transition`, 250 ms) mueve el dato de su sitio a su sitio; el de color (`--dur-color`, 80 ms) hace el fundido entre el color de origen y el de destino. El color termina de cambiar en los primeros 80 ms, así que el dato **sale ya con el color de destino** y el resto del viaje es solo movimiento. Al volver el mecanismo es el mismo: el "viejo" es el destino y el "nuevo" es el origen, y el cambio de color ocurre en la posición de partida.
 
 ### `components/sales/` — el dominio
 
@@ -189,7 +213,7 @@ Modal con el listado de las copias guardadas (nombre, fecha y tamaño) y sus acc
 
 - **Crear copia ahora** → `POST /api/backups` (toast "Copia creada").
 - **Descargar** → enlace a `GET /api/backups/:name/download` (el archivo se descarga al disco del usuario).
-- **Eliminar** → `DELETE /api/backups/:name`, con **modal de confirmación** (toast "Copia eliminada").
+- **Eliminar** → `DELETE /api/backups/:name`, con **modal de confirmación** (toast "Copia eliminada"). Es un **icono de papelera** (`aria-label="Eliminar <nombre de la copia>"`).
 - **Restaurar** desde una copia guardada o **desde un archivo del disco del usuario** (input de fichero `.db`, subida binaria a `POST /api/backups/restore`).
 
 Restaurar **reescribe la base de datos del usuario**, así que exige una **confirmación explícita** en un segundo modal: dice qué archivo se va a restaurar y recuerda que antes se guardará una copia del estado actual. Tras restaurar se invalidan las queries de datos (`backups`, `stats`, `buys`, `solds`, `customers`, `expenses`, `expense-categories`) y se avisa con el resumen de lo restaurado.

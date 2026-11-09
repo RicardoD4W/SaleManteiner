@@ -88,12 +88,23 @@ db.pragma('busy_timeout = 5000');
 | `002_purchase_date_and_manual_sold_at.sql` | fechas en el modelo legacy                                                                                  |
 | `003_buys_and_solds.sql`                   | **el modelo actual**: `buys`, `solds`, `sale_items`, `customers`                                            |
 | `004_vistas_cifras.sql`                    | vistas `v_item_costs` y `v_sold_costs` (la fuente de la verdad de las cifras)                               |
-| `005_indices_de_fecha.sql`                 | índices de fecha para las consultas de rango                                                                |
+| `005_indices_de_fecha.sql`                 | **elimina** los índices de fecha (`idx_buys_purchase_date`, `idx_solds_sold_at`) y `idx_customers_name`     |
 | `006_gastos_y_ficha_cliente.sql`           | **aditiva**: `customers.phone/address/notes`, `solds.paid_amount`, tablas `expenses` y `expense_categories` |
 | `007_notas_en_compras.sql`                 | **aditiva**: `buys.notes`                                                                                   |
 | `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
+| `009_indices_performance.sql`              | **aditiva**: recrea `idx_buys_purchase_date` e `idx_solds_sold_at`                                          |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
+
+### Índices y predicados sargables
+
+Índices que hay hoy: `idx_buys_purchase_date`, `idx_solds_sold_at`, `idx_solds_customer`, `idx_sale_items_buy`, `idx_expenses_date`, `idx_expenses_category`.
+
+**Por qué no hay índice en `customers.name`**: la búsqueda de clientes filtra con `LIKE '%texto%'` (el comodín inicial impide usar el índice) y el listado ordena con `ORDER BY c.name COLLATE NOCASE`, que necesita un índice con esa collation. Un índice BINARY sobre `name` no sirve para ninguno de los dos casos: solo añadiría coste de escritura.
+
+**Regla**: un índice de fecha solo se usa si el predicado compara la **columna cruda**. Filtrar por mes con `strftime('%Y-%m', sold_at) = ?` envuelve la columna y el índice no sirve; el predicado equivalente es un **rango**: `sold_at >= 'YYYY-MM-01' AND sold_at < 'YYYY-MM+1-01'` (ver `lib/months.ts`, `monthBounds`). Los agregados por mes de `metrics-repo.ts` y las series mensuales de `solds-repo.ts` usan rangos.
+
+El stock disponible se calcula con una **subconsulta correlacionada asistida por índice** (`idx_sale_items_buy`): una búsqueda por cada compra. Se midió contra la alternativa (agregar `sale_items` en bloque y unirlo con `LEFT JOIN`): la subconsulta **gana** (27,8 ms frente a 37,7 ms en el listado con volumen `large`), porque el planificador materializa el agregado y se inventa un índice automático. Se mantiene la forma original (ver el Log del documento de feature).
 
 El modelo de datos completo está en [ARCHITECTURE.md §3](ARCHITECTURE.md#3-modelo-de-datos).
 
@@ -255,7 +266,7 @@ Si el nombre ya existe se le añade un sufijo (`-1`, `-2`, …). El nombre de la
 1. **Validación previa** (si falla → **400** y **la BD del usuario no se toca**): el archivo se abre en solo lectura, se le pasa `integrity_check` y se comprueba que existan las tablas del esquema (`customers`, `buys`, `solds`, `sale_items`). Un archivo que no sea una BD válida, esté dañado o no contenga datos de SaleManteiner se rechaza.
 2. **Copia de seguridad automática** del estado actual (`pre-restauracion-AAAAMMDD-HHmmss.db`, también con `VACUUM INTO`) → una restauración equivocada es reversible.
 3. **Importación transaccional**: en una única `db.transaction()` se vacían las tablas de datos y se reinsertan las de la copia **conservando los ids** (las referencias entre ventas, compras y clientes siguen apuntando al mismo sitio). Si algo falla, `rollback`: no queda estado intermedio roto.
-4. **Migraciones**: al terminar se vuelve a ejecutar `runMigrations(db)`, así una copia de una versión anterior del esquema queda al día. Las copias anteriores a la migración `008` (las que guardaban el importe cobrado en `0` porque era el valor por defecto) se restauran con las ventas **pagadas íntegras**, sin deuda.
+4. **Migraciones**: al terminar se vuelve a ejecutar `runMigrations(db)`, así una copia de una versión anterior del esquema queda al día. Las copias anteriores a la migración `008` (las que guardaban el importe cobrado en `0` porque era el valor por defecto) se restauran con las ventas **pagadas íntegras**, sin deuda. El esquema de la copia se deduce de **qué migraciones aparecen en su `_migrations`** (la `006` y la `008`), no del número más alto: si a una copia anterior se le añade después una migración nueva, la copia sigue siendo "anterior a la `008`" y no resucita la deuda.
 
 Restaurar **reemplaza** el contenido actual de la base de datos por el de la copia (no se fusiona). El resumen devuelto (`{ customers, buys, solds, sale_items, expenses, expense_categories, safety_backup }`) dice qué se restauró y cómo se llama la copia de seguridad previa.
 
@@ -285,3 +296,29 @@ Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (
 | `backups-routes.test.ts`  | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |
 | `products.test.ts`        | el repo de nombres de producto: agrupación sin mayúsculas, grafía más reciente, orden por usos y conteo                                         |
 | `products-routes.test.ts` | el contrato HTTP de `GET /api/products`                                                                                                         |
+
+## 9. Banco de medición (`npm run bench`)
+
+`server/src/scripts/bench.ts` siembra una **BD temporal** (en el `tmp` del sistema; nunca la del usuario) con un volumen controlado y reproducible, levanta la app real (`createApp` + `listen`) y mide:
+
+- **latencia p50/p95/p99** por endpoint, con peticiones HTTP reales;
+- **nº de consultas y ms de SQL por petición**, instrumentando `db.prepare`;
+- **`EXPLAIN QUERY PLAN`** de cada consulta que se ejecuta, para distinguir `SCAN` de `SEARCH`;
+- **el camino de escritura**, que las lecturas no cubren: crear una venta (`POST /api/solds`) con **1, 10 y 50 ítems** y el borrado en cascada de una compra (`DELETE /api/buys/:id/cascade`), con su latencia, su nº de consultas y su SQL.
+
+La fase de escritura usa compras aparte sembradas con existencias holgadas, así que el stock no interfiere, y se mide **después** de las lecturas: el volumen que reporta el informe (`rows`, `dbBytes`) es el sembrado, no el ya escrito.
+
+```bash
+npm run bench -- --profile medium --iterations 30 --json odd/bench/baseline-medium.json
+```
+
+| Perfil   | clientes | compras | ventas | ítems de venta | gastos | meses |
+| -------- | -------- | ------- | ------ | -------------- | ------ | ----- |
+| `tiny`   | 10       | 20      | 30     | ~45            | 20     | 6     |
+| `small`  | 100      | 500     | 1.000  | ~2.000         | 300    | 12    |
+| `medium` | 500      | 2.000   | 5.000  | ~10.000        | 1.000  | 24    |
+| `large`  | 2.000    | 10.000  | 25.000 | ~50.000        | 5.000  | 24    |
+
+Opciones: `--profile`, `--iterations`, `--warmup`, `--seed`, `--dir` (conserva la BD sembrada), `--keep`, `--json`.
+
+La siembra usa un PRNG con semilla fija (`--seed`), así que el volumen es reproducible; las fechas se reparten hacia atrás desde el día de ejecución, de modo que el mes en curso siempre tiene datos. El script **no se empaqueta** en la app de escritorio: `tsconfig.build.json` excluye `src/scripts/**`.

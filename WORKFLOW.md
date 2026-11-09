@@ -24,17 +24,18 @@ Alternativas: `npm run dev:server` / `npm run dev:web` por separado · `npm run 
 
 ## 2. Comandos
 
-| Comando                           | Qué hace                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------- |
-| `npm run typecheck`               | TS en `web/` y `server/`.                                                 |
-| `npm run lint`                    | ESLint en los dos workspaces (`--max-warnings 0`).                        |
-| `npm run format` / `format:check` | Prettier sobre `**/*.{ts,tsx,js,jsx,json,md,css}`.                        |
-| `npm run test`                    | Vitest de `web/` + `server/`.                                             |
-| `npm run test:e2e`                | Playwright (`web/e2e/`).                                                  |
-| `npm run build`                   | Compila el server y el front.                                             |
-| `npm run build:desktop`           | Atajo de `desktop/` → `build:app` (front + back + sidecar + instalador).  |
-| `npm run publish:new-version`     | Publica una versión nueva **solo si** la local difiere de la distribuida. |
-| `npm run write:versions`          | Genera `web/.env` + `server/version.json` (ya corre solo en dev/build).   |
+| Comando                           | Qué hace                                                                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`               | TS en `web/` y `server/`.                                                                                                                                 |
+| `npm run lint`                    | ESLint en los dos workspaces (`--max-warnings 0`).                                                                                                        |
+| `npm run format` / `format:check` | Prettier sobre `**/*.{ts,tsx,js,jsx,json,md,css}`.                                                                                                        |
+| `npm run test`                    | Vitest de `web/` + `server/`.                                                                                                                             |
+| `npm run test:e2e`                | Playwright (`web/e2e/`).                                                                                                                                  |
+| `npm run build`                   | Compila el server y el front.                                                                                                                             |
+| `npm run build:desktop`           | Atajo de `desktop/` → `build:app` (front + back + sidecar + instalador).                                                                                  |
+| `npm run publish:new-version`     | Publica una versión nueva **solo si** la local difiere de la distribuida.                                                                                 |
+| `npm run write:versions`          | Genera `web/.env` + `server/version.json` (ya corre solo en dev/build).                                                                                   |
+| `npm run bench`                   | Banco de medición del back: siembra una BD temporal y mide latencia, consultas y planes. Ver [SERVER.md §9](SERVER.md#9-banco-de-medición-npm-run-bench). |
 
 ## 3. Gates (antes de commitear)
 
