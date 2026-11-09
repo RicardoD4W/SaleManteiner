@@ -480,3 +480,52 @@ describe('schemas buys (Zod)', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('total_cost de la compra', () => {
+  let db: Database;
+  let repo: ReturnType<typeof createBuysRepo>;
+
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+    repo = createBuysRepo(db);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('es el precio por unidad por la cantidad', () => {
+    const buy = repo.create(
+      validCreate({ product_name: 'Camiseta', purchase_cost: 5, quantity: 4 }),
+    );
+
+    expect(buy.total_cost).toBe(20);
+  });
+
+  it('se recalcula al cambiar la cantidad', () => {
+    const buy = repo.create(
+      validCreate({ product_name: 'Camiseta', purchase_cost: 5, quantity: 4 }),
+    );
+
+    const updated = repo.update(buy.id, validUpdate({ quantity: 3 }));
+
+    expect(updated?.total_cost).toBe(15);
+  });
+
+  it('se recalcula al cambiar el precio por unidad', () => {
+    const buy = repo.create(
+      validCreate({ product_name: 'Camiseta', purchase_cost: 5, quantity: 4 }),
+    );
+
+    const updated = repo.update(buy.id, validUpdate({ purchase_cost: 2.5 }));
+
+    expect(updated?.total_cost).toBe(10);
+  });
+
+  it('aparece en la lista de compras', () => {
+    repo.create(validCreate({ product_name: 'Camiseta', purchase_cost: 5, quantity: 4 }));
+
+    expect(repo.listWithStock()[0]?.total_cost).toBe(20);
+  });
+});
