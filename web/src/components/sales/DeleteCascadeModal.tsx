@@ -1,10 +1,15 @@
 import { useRef } from 'react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { formatDate } from '../../lib/format';
 import { cn } from '../../lib/classNames';
 import { errorAlertClass } from '../ui/tableStyles';
-import type { AssociatedSale } from '../../api/types';
+
+interface CascadeItem {
+  id: number;
+  title: string;
+  description: string;
+  badge: string;
+}
 
 interface DeleteCascadeModalProps {
   title: string;
@@ -17,7 +22,13 @@ interface DeleteCascadeModalProps {
 
   confirmLabel: string;
 
-  sales: AssociatedSale[];
+  countLabelSingular: string;
+
+  countLabelPlural: string;
+
+  itemsNoun: string;
+
+  items: CascadeItem[];
 
   isPending: boolean;
 
@@ -34,7 +45,10 @@ export function DeleteCascadeModal({
   entityPhrase,
   entityPronoun,
   confirmLabel,
-  sales,
+  countLabelSingular,
+  countLabelPlural,
+  itemsNoun,
+  items,
   isPending,
   cascadeError,
   onClose,
@@ -42,8 +56,8 @@ export function DeleteCascadeModal({
 }: DeleteCascadeModalProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
-  const salesCount = sales.length;
-  const salesLabel = salesCount === 1 ? 'venta registrada' : 'ventas registradas';
+  const itemsCount = items.length;
+  const countLabel = itemsCount === 1 ? countLabelSingular : countLabelPlural;
 
   return (
     <Modal
@@ -57,30 +71,25 @@ export function DeleteCascadeModal({
         <p className="text-sm text-gray-700 dark:text-gray-300">
           {entityPhrase} <strong>"{entityName}"</strong> tiene{' '}
           <strong>
-            {salesCount} {salesLabel}
+            {itemsCount} {countLabel}
           </strong>
-          . Si {entityPronoun} borrás también se van a borrar las ventas siguientes. Esta acción no
+          . Si {entityPronoun} borrás también se van a borrar {itemsNoun} siguientes. Esta acción no
           se puede deshacer.
         </p>
 
         <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-          {sales.map((s) => {
-            const unitLabel = s.items_count === 1 ? 'unidad' : 'unidades';
-            return (
-              <li
-                key={s.id}
-                className="flex items-center justify-between px-3 py-2 text-sm text-gray-800 dark:text-gray-200"
-              >
-                <span className="font-medium">Venta #{s.id}</span>
-                <span className="text-gray-500 dark:text-gray-400">
-                  {s.customer_name} · {formatDate(s.sold_at)}
-                </span>
-                <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  × {s.items_count} {unitLabel}
-                </span>
-              </li>
-            );
-          })}
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-center justify-between px-3 py-2 text-sm text-gray-800 dark:text-gray-200"
+            >
+              <span className="font-medium">{item.title}</span>
+              <span className="text-gray-500 dark:text-gray-400">{item.description}</span>
+              <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                {item.badge}
+              </span>
+            </li>
+          ))}
         </ul>
 
         {cascadeError ? (

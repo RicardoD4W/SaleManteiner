@@ -27,6 +27,13 @@ export interface ApiExpenseCategoryWithMetrics extends ApiExpenseCategory {
   total_amount: number;
 }
 
+export interface ApiAssociatedExpense {
+  id: number;
+  concept: string;
+  amount: number;
+  expense_date: string;
+}
+
 interface CategoryListResponse {
   data: ApiExpenseCategoryWithMetrics[];
 }
@@ -85,4 +92,7 @@ export const expenseCategoriesApi = {
     }).then((r) => r.data),
 
   remove: (id: number) => apiFetch<void>(`/api/expense-categories/${id}`, { method: 'DELETE' }),
+
+  removeCascade: (id: number) =>
+    apiFetch<void>(`/api/expense-categories/${id}/cascade`, { method: 'DELETE' }),
 };
