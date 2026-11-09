@@ -94,7 +94,7 @@ describe('BuyNewModal', () => {
     renderWithProviders(<BuyNewModal onClose={vi.fn()} />);
 
     await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '10.005' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '10.005' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 
     expect(await screen.findByText('Máximo 2 decimales')).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('BuyNewModal', () => {
 
     expect(screen.getByLabelText('Producto *')).toHaveValue('Funda iPhone 15');
 
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 
     await waitFor(() => {
@@ -137,7 +137,7 @@ describe('BuyNewModal', () => {
     renderWithProviders(<BuyNewModal onClose={onClose} />);
 
     await user.type(screen.getByLabelText('Producto *'), 'Funda iPhone 15');
-    fireEvent.change(screen.getByLabelText('Coste (€) *'), { target: { value: '45.5' } });
+    fireEvent.change(screen.getByLabelText('Precio unidad (€) *'), { target: { value: '45.5' } });
     fireEvent.change(screen.getByLabelText('Fecha de compra'), { target: { value: '' } });
     await user.click(screen.getByRole('button', { name: 'Crear compra' }));
 

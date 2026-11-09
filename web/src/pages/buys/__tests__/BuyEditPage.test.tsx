@@ -87,11 +87,11 @@ describe('BuyEditPage', () => {
   it('no enfoca ningún campo al abrir el formulario', async () => {
     renderPage();
 
-    await screen.findByLabelText('Coste (€) *');
+    await screen.findByLabelText('Precio unidad (€) *');
 
     expect(document.activeElement).toBe(document.body);
     expect(screen.getByRole('combobox')).not.toHaveFocus();
-    expect(screen.getByLabelText('Coste (€) *')).not.toHaveFocus();
+    expect(screen.getByLabelText('Precio unidad (€) *')).not.toHaveFocus();
     expect(screen.getByLabelText('Cantidad *')).not.toHaveFocus();
   });
 

@@ -74,13 +74,13 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Coste (€) *"
+            label="Precio unidad (€) *"
             type="number"
             step="0.01"
             min="0"
             {...register('purchase_cost', { valueAsNumber: true })}
             error={errors.purchase_cost?.message}
-            hint="Precio por unidad"
+            hint="Lo que pagaste por una unidad"
           />
           <Input
             label="Cantidad *"
