@@ -79,6 +79,24 @@ describe('CustomerAutocomplete', () => {
     });
   });
 
+  it('no despliega la lista al recibir el foco; se abre al escribir', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
+
+    const input = screen.getByRole('combobox');
+    input.focus();
+
+    await waitFor(() => {
+      expect(input).toHaveFocus();
+    });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    await user.type(input, 'juan');
+    await waitFor(() => {
+      expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+    });
+  });
+
   it('al hacer click en un cliente llama a onChange', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

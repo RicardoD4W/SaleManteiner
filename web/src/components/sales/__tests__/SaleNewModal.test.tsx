@@ -320,6 +320,7 @@ describe('SaleNewModal', () => {
       expect(screen.getByText('Nueva venta')).toBeInTheDocument();
     });
     expect(screen.getByRole('combobox')).toHaveFocus();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('cerrar el picker inicial con Escape cancela la venta entera', async () => {

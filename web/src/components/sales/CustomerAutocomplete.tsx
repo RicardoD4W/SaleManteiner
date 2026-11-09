@@ -84,9 +84,11 @@ export function CustomerAutocomplete({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      setIsOpen(true);
       setActiveIndex((i) => Math.min(i + 1, totalOptions - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      setIsOpen(true);
       setActiveIndex((i) => Math.max(i - 1, -1));
     } else if (e.key === 'Enter' && isOpen) {
       e.preventDefault();
@@ -136,7 +138,6 @@ export function CustomerAutocomplete({
           autoComplete="off"
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
           onBlur={() => setIsOpen(false)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
