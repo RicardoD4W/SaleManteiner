@@ -10,4 +10,11 @@ export interface AssociatedSale {
   items_count: number;
 }
 
+export interface AssociatedExpense {
+  id: number;
+  concept: string;
+  amount: number;
+  expense_date: string;
+}
+
 export type CascadeResult = { ok: true } | { ok: false; code: 'NOT_FOUND' };

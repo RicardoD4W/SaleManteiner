@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { logger } from '../logger.js';
 import type { ExpenseCategoriesRepo } from '../repo/expenses-repo.js';
 import { DuplicateExpenseCategoryError } from '../repo/expenses-repo.js';
+import type { CascadeResult } from '../repo/types.js';
 import { CreateExpenseCategoryInput, UpdateExpenseCategoryInput } from '../schemas/expenses.js';
 import { IdParam, asyncHandler, respondBadRequest } from './_shared.js';
 
@@ -87,6 +89,48 @@ export function expenseCategoriesRouter(deps: ExpenseCategoriesRouterDeps): Rout
   );
 
   router.delete(
+    '/:id/cascade',
+    asyncHandler(async (req, res) => {
+      const parsed = IdParam.safeParse(req.params);
+      if (!parsed.success) {
+        return respondBadRequest(res, 'Id inválido', parsed.error.flatten());
+      }
+      const id = parsed.data.id;
+      if (!repo.getById(id)) {
+        return res.status(404).json({ error: 'Categoría de gasto no encontrada', id });
+      }
+      const affected = repo.listAssociatedExpenses(id);
+      logger.warn(
+        {
+          category_id: id,
+          affected_expenses: affected.map((e) => ({
+            id: e.id,
+            concept: e.concept,
+            amount: e.amount,
+            expense_date: e.expense_date,
+          })),
+        },
+        'Borrado en cascada de categoría de gasto (iniciado)',
+      );
+      let result: CascadeResult;
+      try {
+        result = repo.removeWithCascade(id);
+      } catch (err) {
+        logger.error({ err, category_id: id }, 'Borrado en cascada fallido: no se completó');
+        throw err;
+      }
+      if (!result.ok) {
+        logger.error(
+          { category_id: id },
+          'Borrado en cascada sin efecto: la categoría ya no existía',
+        );
+        return res.status(404).json({ error: 'Categoría de gasto no encontrada', id });
+      }
+      res.status(204).end();
+    }),
+  );
+
+  router.delete(
     '/:id',
     asyncHandler(async (req, res) => {
       const parsed = IdParam.safeParse(req.params);
@@ -104,8 +148,10 @@ export function expenseCategoriesRouter(deps: ExpenseCategoriesRouterDeps): Rout
         });
       }
       return res.status(409).json({
-        error: 'No se puede borrar: la categoría tiene gastos asociados',
+        error:
+          'No se puede borrar: la categoría tiene gastos asociados. ¿Querés borrar también los gastos?',
         expenses_count: result.expenses_count,
+        associated_expenses: result.expenses,
       });
     }),
   );

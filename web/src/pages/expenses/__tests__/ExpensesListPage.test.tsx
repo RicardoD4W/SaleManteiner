@@ -15,6 +15,7 @@ vi.mock('@/api/expenses', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    removeCascade: vi.fn(),
   },
 }));
 
@@ -66,6 +67,7 @@ describe('ExpensesListPage', () => {
     vi.mocked(expenseCategoriesApi.list).mockResolvedValue([...categoriesFixture]);
     vi.mocked(expensesApi.create).mockResolvedValue(expensesFixture[0]);
     vi.mocked(expensesApi.remove).mockResolvedValue(undefined);
+    vi.mocked(expenseCategoriesApi.removeCascade).mockResolvedValue(undefined);
   });
 
   it('muestra los gastos con su categoría, su importe y su fecha', async () => {
@@ -220,10 +222,119 @@ describe('ExpensesListPage', () => {
     });
   });
 
-  it('no borra una categoría en uso: avisa del 409 y la mantiene en la lista', async () => {
+  it('abre la cascada cuando la categoría tiene gastos asociados', async () => {
+    const user = userEvent.setup();
+    const body = {
+      error:
+        'No se puede borrar: la categoría tiene gastos asociados. ¿Querés borrar también los gastos?',
+      associated_expenses: [
+        { id: 11, concept: 'Luz de octubre', amount: 45.5, expense_date: '2026-10-09' },
+      ],
+    };
+    vi.mocked(expenseCategoriesApi.remove).mockRejectedValue(new ApiError(409, body));
+
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('button', { name: 'Gestionar categorías' }));
+
+    const dialogs = screen.getAllByRole('dialog');
+    const manager = dialogs[dialogs.length - 1];
+
+    await user.click(within(manager).getByRole('button', { name: 'Borrar Alquiler' }));
+    await user.click(within(manager).getByRole('button', { name: 'Sí, eliminar' }));
+
+    const cascade = await screen.findByRole('dialog', {
+      name: 'La categoría tiene gastos asociados',
+    });
+    expect(within(cascade).getByText('"Alquiler"')).toBeInTheDocument();
+    expect(within(cascade).getByText('Gasto #11')).toBeInTheDocument();
+    expect(within(cascade).getByText(/Luz de octubre/)).toBeInTheDocument();
+    expect(expenseCategoriesApi.removeCascade).not.toHaveBeenCalled();
+
+    await user.click(
+      within(cascade).getByRole('button', { name: 'Borrar también los gastos y la categoría' }),
+    );
+
+    await waitFor(() => {
+      expect(expenseCategoriesApi.removeCascade).toHaveBeenCalledWith(3);
+    });
+  });
+
+  it('lista todos los gastos afectados en la cascada', async () => {
+    const user = userEvent.setup();
+    const body = {
+      error:
+        'No se puede borrar: la categoría tiene gastos asociados. ¿Querés borrar también los gastos?',
+      associated_expenses: [
+        { id: 11, concept: 'Luz de octubre', amount: 45.5, expense_date: '2026-10-09' },
+        { id: 12, concept: 'Luz de noviembre', amount: 50, expense_date: '2026-11-09' },
+      ],
+    };
+    vi.mocked(expenseCategoriesApi.remove).mockRejectedValue(new ApiError(409, body));
+
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('button', { name: 'Gestionar categorías' }));
+
+    const dialogs = screen.getAllByRole('dialog');
+    const manager = dialogs[dialogs.length - 1];
+
+    await user.click(within(manager).getByRole('button', { name: 'Borrar Alquiler' }));
+    await user.click(within(manager).getByRole('button', { name: 'Sí, eliminar' }));
+
+    const cascade = await screen.findByRole('dialog', {
+      name: 'La categoría tiene gastos asociados',
+    });
+    expect(within(cascade).getByText('Gasto #11')).toBeInTheDocument();
+    expect(within(cascade).getByText('Gasto #12')).toBeInTheDocument();
+    expect(within(cascade).getByText(/Luz de octubre/)).toBeInTheDocument();
+    expect(within(cascade).getByText(/Luz de noviembre/)).toBeInTheDocument();
+  });
+
+  it('cancelar la cascada no borra nada', async () => {
+    const user = userEvent.setup();
+    const body = {
+      error:
+        'No se puede borrar: la categoría tiene gastos asociados. ¿Querés borrar también los gastos?',
+      associated_expenses: [
+        { id: 11, concept: 'Luz de octubre', amount: 45.5, expense_date: '2026-10-09' },
+      ],
+    };
+    vi.mocked(expenseCategoriesApi.remove).mockRejectedValue(new ApiError(409, body));
+
+    renderWithProviders(<ExpensesListPage />);
+
+    await screen.findByText('Alquiler de octubre');
+
+    await user.click(screen.getByRole('button', { name: 'Gestionar categorías' }));
+
+    const dialogs = screen.getAllByRole('dialog');
+    const manager = dialogs[dialogs.length - 1];
+
+    await user.click(within(manager).getByRole('button', { name: 'Borrar Alquiler' }));
+    await user.click(within(manager).getByRole('button', { name: 'Sí, eliminar' }));
+
+    const cascade = await screen.findByRole('dialog', {
+      name: 'La categoría tiene gastos asociados',
+    });
+    await user.click(within(cascade).getByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'La categoría tiene gastos asociados' }),
+      ).toBeNull();
+    });
+    expect(expenseCategoriesApi.removeCascade).not.toHaveBeenCalled();
+  });
+
+  it('un 409 sin lista de gastos muestra el error del servidor y no borra nada', async () => {
     const user = userEvent.setup();
     vi.mocked(expenseCategoriesApi.remove).mockRejectedValue(
-      new ApiError(409, { error: 'La categoría tiene gastos asociados' }),
+      new ApiError(409, { error: 'No se puede borrar: la categoría tiene gastos asociados.' }),
     );
 
     renderWithProviders(<ExpensesListPage />);
@@ -239,10 +350,9 @@ describe('ExpensesListPage', () => {
     await user.click(within(manager).getByRole('button', { name: 'Sí, eliminar' }));
 
     expect(
-      await within(manager).findByText(
-        'No se puede borrar la categoría porque tiene gastos asociados.',
-      ),
+      await within(manager).findByText('No se puede borrar: la categoría tiene gastos asociados.'),
     ).toBeInTheDocument();
     expect(within(manager).getByText('Alquiler')).toBeInTheDocument();
+    expect(expenseCategoriesApi.removeCascade).not.toHaveBeenCalled();
   });
 });

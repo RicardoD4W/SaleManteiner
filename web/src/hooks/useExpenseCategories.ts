@@ -43,3 +43,13 @@ export function useDeleteExpenseCategory() {
     },
   });
 }
+
+export function useDeleteExpenseCategoryCascade() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => expenseCategoriesApi.removeCascade(id),
+    onSuccess: () => {
+      invalidate(qc, ['expense-categories'], ['expenses'], ['stats', 'dashboard']);
+    },
+  });
+}

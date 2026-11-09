@@ -7,8 +7,14 @@ import { tableHeadClass } from '../../components/ui/tableStyles';
 import { SortableTableHead } from '../../components/ui/SortableTableHead';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { ExpenseFormModal } from '../../components/expenses/ExpenseFormModal';
-import { CategoryManagerModal } from '../../components/expenses/CategoryManagerModal';
+import {
+  CategoryManagerModal,
+  type ExpenseCategoryCascadeRequest,
+} from '../../components/expenses/CategoryManagerModal';
 import { DeleteExpenseDialog } from '../../components/expenses/DeleteExpenseDialog';
+import { DeleteExpenseCategoryCascadeModal } from '../../components/expenses/DeleteExpenseCategoryCascadeModal';
+import { useDeleteExpenseCategoryCascade } from '../../hooks/useExpenseCategories';
+import { apiErrorMessage } from '../../api/client';
 import { formatDate, formatEuro } from '../../lib/format';
 import { round2 } from '../../lib/round';
 import type { Expense } from '../../schemas/expenses';
@@ -39,6 +45,11 @@ export function ExpensesListPage() {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [categoryCascade, setCategoryCascade] = useState<ExpenseCategoryCascadeRequest | null>(
+    null,
+  );
+  const [categoryCascadeError, setCategoryCascadeError] = useState<string | null>(null);
+  const deleteCategoryCascade = useDeleteExpenseCategoryCascade();
 
   const categoryNames = useMemo(() => {
     const names = new Map<number, string>();
@@ -238,7 +249,38 @@ export function ExpensesListPage() {
         <DeleteExpenseDialog expense={deleting} onClose={() => setDeleting(null)} />
       ) : null}
       {isManagingCategories ? (
-        <CategoryManagerModal onClose={() => setIsManagingCategories(false)} />
+        <CategoryManagerModal
+          onClose={() => setIsManagingCategories(false)}
+          onCascadeRequired={(request) => {
+            setIsManagingCategories(false);
+            setCategoryCascadeError(null);
+            setCategoryCascade(request);
+          }}
+        />
+      ) : null}
+      {categoryCascade ? (
+        <DeleteExpenseCategoryCascadeModal
+          categoryName={categoryCascade.category.name}
+          expenses={categoryCascade.expenses}
+          isPending={deleteCategoryCascade.isPending}
+          cascadeError={categoryCascadeError}
+          onClose={() => {
+            if (deleteCategoryCascade.isPending) return;
+            setCategoryCascade(null);
+            setCategoryCascadeError(null);
+          }}
+          onConfirm={async () => {
+            setCategoryCascadeError(null);
+            try {
+              await deleteCategoryCascade.mutateAsync(categoryCascade.category.id);
+              setCategoryCascade(null);
+            } catch (err) {
+              setCategoryCascadeError(
+                apiErrorMessage(err, 'No se pudo eliminar la categoría ni sus gastos'),
+              );
+            }
+          }}
+        />
       ) : null}
     </div>
   );

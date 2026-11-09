@@ -19,6 +19,7 @@ const {
   UnknownExpenseCategoryError,
 } = await import('../repo/expenses-repo.js');
 const { createApp } = await import('../app.js');
+const { logger } = await import('../logger.js');
 
 describe('expenses y categorías de gasto', () => {
   let db: Database;
@@ -131,8 +132,73 @@ describe('expenses y categorías de gasto', () => {
 
       const result = categoriesRepo.remove(category.id);
 
-      expect(result).toEqual({ ok: false, code: 'HAS_EXPENSES', expenses_count: 1 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe('HAS_EXPENSES');
+      if (result.code !== 'HAS_EXPENSES') return;
+      expect(result.expenses_count).toBe(1);
+      expect(result.expenses).toHaveLength(1);
+      expect(result.expenses[0]).toMatchObject({
+        concept: 'Alquiler de marzo',
+        amount: 400,
+        expense_date: '2026-03-01',
+      });
       expect(categoriesRepo.getById(category.id)).not.toBeNull();
+    });
+
+    it('lista los gastos asociados a una categoría', () => {
+      const category = seedCategory('Alquiler');
+      expensesRepo.create({
+        concept: 'Alquiler de marzo',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+      expensesRepo.create({
+        concept: 'Alquiler de abril',
+        amount: 410,
+        category_id: category.id,
+        expense_date: '2026-04-01',
+      });
+
+      const associated = categoriesRepo.listAssociatedExpenses(category.id);
+
+      expect(associated.map((e) => e.concept)).toEqual(['Alquiler de abril', 'Alquiler de marzo']);
+      expect(associated[0]).toMatchObject({ amount: 410, expense_date: '2026-04-01' });
+    });
+
+    it('borra en cascada la categoría y sus gastos sin tocar los de otras categorías', () => {
+      const alquiler = seedCategory('Alquiler');
+      const material = seedCategory('Material');
+      expensesRepo.create({
+        concept: 'Alquiler de marzo',
+        amount: 400,
+        category_id: alquiler.id,
+        expense_date: '2026-03-01',
+      });
+      expensesRepo.create({
+        concept: 'Alquiler de abril',
+        amount: 410,
+        category_id: alquiler.id,
+        expense_date: '2026-04-01',
+      });
+      const other = expensesRepo.create({
+        concept: 'Cajas',
+        amount: 12.5,
+        category_id: material.id,
+        expense_date: '2026-03-02',
+      });
+
+      expect(categoriesRepo.removeWithCascade(alquiler.id)).toEqual({ ok: true });
+
+      expect(categoriesRepo.getById(alquiler.id)).toBeNull();
+      expect(expensesRepo.list({ categoryId: alquiler.id })).toEqual([]);
+      expect(expensesRepo.getById(other.id)).not.toBeNull();
+      expect(categoriesRepo.getById(material.id)).not.toBeNull();
+    });
+
+    it('devuelve NOT_FOUND al borrar en cascada una categoría inexistente', () => {
+      expect(categoriesRepo.removeWithCascade(9999)).toEqual({ ok: false, code: 'NOT_FOUND' });
     });
 
     it('borra una categoría sin gastos', () => {
@@ -446,9 +512,152 @@ describe('expenses y categorías de gasto', () => {
       const res = await api('DELETE', `/api/expense-categories/${category.id}`);
 
       expect(res.status).toBe(409);
-      expect(res.body?.error).toBe('No se puede borrar: la categoría tiene gastos asociados');
+      expect(res.body?.error).toBe(
+        'No se puede borrar: la categoría tiene gastos asociados. ¿Querés borrar también los gastos?',
+      );
       expect(res.body?.expenses_count).toBe(1);
+      expect(res.body?.associated_expenses).toEqual([
+        {
+          id: expect.any(Number),
+          concept: 'Alquiler',
+          amount: 400,
+          expense_date: '2026-03-01',
+        },
+      ]);
       expect(categoriesRepo.getById(category.id)).not.toBeNull();
+      expect(expensesRepo.list({ categoryId: category.id })).toHaveLength(1);
+    });
+
+    it('DELETE /api/expense-categories/:id/cascade borra la categoría y sus gastos', async () => {
+      const alquiler = seedCategory('Alquiler');
+      const material = seedCategory('Material');
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: alquiler.id,
+        expense_date: '2026-03-01',
+      });
+      const other = expensesRepo.create({
+        concept: 'Cajas',
+        amount: 12.5,
+        category_id: material.id,
+        expense_date: '2026-03-02',
+      });
+
+      const res = await api('DELETE', `/api/expense-categories/${alquiler.id}/cascade`);
+
+      expect(res.status).toBe(204);
+      expect(categoriesRepo.getById(alquiler.id)).toBeNull();
+      expect(expensesRepo.list({ categoryId: alquiler.id })).toEqual([]);
+      expect(expensesRepo.getById(other.id)).not.toBeNull();
+    });
+
+    it('DELETE /api/expense-categories/:id/cascade inexistente devuelve 404', async () => {
+      const res = await api('DELETE', '/api/expense-categories/9999/cascade');
+
+      expect(res.status).toBe(404);
+      expect(res.body?.error).toBe('Categoría de gasto no encontrada');
+    });
+
+    it('DELETE /api/expense-categories/:id/cascade con id inválido devuelve 400', async () => {
+      const res = await api('DELETE', '/api/expense-categories/abc/cascade');
+
+      expect(res.status).toBe(400);
+      expect(res.body?.error).toBe('Id inválido');
+    });
+
+    it('el borrado en cascada deja registro con la categoría y los gastos afectados', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const category = seedCategory('Alquiler');
+      const expense = expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(204);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [payload] = warn.mock.calls[0] as [
+        { category_id: number; affected_expenses: unknown[] },
+      ];
+      expect(payload.category_id).toBe(category.id);
+      expect(payload.affected_expenses).toEqual([
+        {
+          id: expense.id,
+          concept: 'Alquiler',
+          amount: 400,
+          expense_date: '2026-03-01',
+        },
+      ]);
+    });
+
+    it('el registro se escribe antes del borrado', async () => {
+      const category = seedCategory('Alquiler');
+      const categoryId = category.id;
+      let existedAtLogTime: boolean | null = null;
+      vi.spyOn(logger, 'warn').mockImplementation(() => {
+        const row = db
+          .prepare('SELECT COUNT(*) AS c FROM expense_categories WHERE id = ?')
+          .get(categoryId) as { c: number };
+        existedAtLogTime = row.c > 0;
+      });
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(204);
+      expect(existedAtLogTime).toBe(true);
+    });
+
+    it('si el borrado en cascada falla, queda registrado que no se completó', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+      const category = seedCategory('Alquiler');
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+      db.exec(
+        `CREATE TRIGGER block_category_delete BEFORE DELETE ON expense_categories
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(500);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const payloads = error.mock.calls.map((call) => call[0] as { category_id?: number });
+      expect(payloads.some((payload) => payload.category_id === category.id)).toBe(true);
+    });
+
+    it('si el borrado en cascada falla a mitad, no queda nada a medias', async () => {
+      const category = seedCategory('Alquiler');
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+      db.exec(
+        `CREATE TRIGGER block_category_delete BEFORE DELETE ON expense_categories
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(500);
+      expect(categoriesRepo.getById(category.id)).not.toBeNull();
+      expect(expensesRepo.list({ categoryId: category.id })).toHaveLength(1);
     });
 
     it('DELETE /api/expense-categories/:id sin gastos devuelve 204', async () => {
