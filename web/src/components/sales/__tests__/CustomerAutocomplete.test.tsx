@@ -97,6 +97,19 @@ describe('CustomerAutocomplete', () => {
     });
   });
 
+  it('ArrowDown despliega la lista de sugerencias', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
+
+    const input = screen.getByRole('combobox');
+    input.focus();
+    await user.keyboard('{ArrowDown}');
+
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+  });
+
   it('al hacer click en un cliente llama a onChange', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
