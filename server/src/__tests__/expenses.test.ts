@@ -19,6 +19,7 @@ const {
   UnknownExpenseCategoryError,
 } = await import('../repo/expenses-repo.js');
 const { createApp } = await import('../app.js');
+const { logger } = await import('../logger.js');
 
 describe('expenses y categorías de gasto', () => {
   let db: Database;
@@ -563,6 +564,100 @@ describe('expenses y categorías de gasto', () => {
 
       expect(res.status).toBe(400);
       expect(res.body?.error).toBe('Id inválido');
+    });
+
+    it('el borrado en cascada deja registro con la categoría y los gastos afectados', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const category = seedCategory('Alquiler');
+      const expense = expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(204);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [payload] = warn.mock.calls[0] as [
+        { category_id: number; affected_expenses: unknown[] },
+      ];
+      expect(payload.category_id).toBe(category.id);
+      expect(payload.affected_expenses).toEqual([
+        {
+          id: expense.id,
+          concept: 'Alquiler',
+          amount: 400,
+          expense_date: '2026-03-01',
+        },
+      ]);
+    });
+
+    it('el registro se escribe antes del borrado', async () => {
+      const category = seedCategory('Alquiler');
+      const categoryId = category.id;
+      let existedAtLogTime: boolean | null = null;
+      vi.spyOn(logger, 'warn').mockImplementation(() => {
+        const row = db
+          .prepare('SELECT COUNT(*) AS c FROM expense_categories WHERE id = ?')
+          .get(categoryId) as { c: number };
+        existedAtLogTime = row.c > 0;
+      });
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(204);
+      expect(existedAtLogTime).toBe(true);
+    });
+
+    it('si el borrado en cascada falla, queda registrado que no se completó', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+      const category = seedCategory('Alquiler');
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+      db.exec(
+        `CREATE TRIGGER block_category_delete BEFORE DELETE ON expense_categories
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(500);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const payloads = error.mock.calls.map((call) => call[0] as { category_id?: number });
+      expect(payloads.some((payload) => payload.category_id === category.id)).toBe(true);
+    });
+
+    it('si el borrado en cascada falla a mitad, no queda nada a medias', async () => {
+      const category = seedCategory('Alquiler');
+      expensesRepo.create({
+        concept: 'Alquiler',
+        amount: 400,
+        category_id: category.id,
+        expense_date: '2026-03-01',
+      });
+      db.exec(
+        `CREATE TRIGGER block_category_delete BEFORE DELETE ON expense_categories
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const res = await api('DELETE', `/api/expense-categories/${category.id}/cascade`);
+
+      expect(res.status).toBe(500);
+      expect(categoriesRepo.getById(category.id)).not.toBeNull();
+      expect(expensesRepo.list({ categoryId: category.id })).toHaveLength(1);
     });
 
     it('DELETE /api/expense-categories/:id sin gastos devuelve 204', async () => {
