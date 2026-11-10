@@ -96,11 +96,25 @@ html.dark {
   --dur-color: 80ms;
   --scrollbar-thumb: var(--color-gray-300);
   --scrollbar-thumb-hover: var(--color-gray-400);
+  --tag-tint-alpha: 14%;
 }
 
 .dark {
   --scrollbar-thumb: var(--color-gray-700);
   --scrollbar-thumb-hover: var(--color-gray-600);
+  --tag-tint-alpha: 20%;
+}
+
+.tag-row-tinted {
+  background-color: color-mix(in oklab, var(--tag-color) var(--tag-tint-alpha), transparent);
+}
+
+.tag-row-tinted:hover {
+  background-color: color-mix(
+    in oklab,
+    var(--tag-color) calc(var(--tag-tint-alpha) + 4%),
+    transparent
+  );
 }
 
 ::-webkit-scrollbar {

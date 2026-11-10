@@ -35,9 +35,15 @@ const buysFixture = [
     associated_costs: 3.2,
     purchase_date: '2026-10-02',
     notes: null,
+    tag: null,
     created_at: '2026-10-02T10:00:00.000Z',
     disponibles: 17,
   },
+];
+
+const buysConTags = [
+  { ...buysFixture[0], id: 1, tag: { id: 3, name: 'Urgente', color: '#dc2626' } },
+  { ...buysFixture[0], id: 2, product_name: 'Cargador', tag: null },
 ];
 
 const comprasConAcentos = [
@@ -181,6 +187,56 @@ describe('BuysListPage', () => {
     renderWithProviders(<BuysListPage />);
 
     expect(screen.getByText('No hay compras todavía.')).toBeInTheDocument();
+  });
+
+  it('la columna Tags está inmediatamente a la izquierda de la columna Notas', () => {
+    renderWithProviders(<BuysListPage />);
+
+    const cabeceras = screen.getAllByRole('columnheader').map((cabecera) => cabecera.textContent);
+    const indiceTags = cabeceras.indexOf('Tags');
+    const indiceNotas = cabeceras.indexOf('Notas');
+
+    expect(indiceTags).toBeGreaterThanOrEqual(0);
+    expect(indiceNotas).toBe(indiceTags + 1);
+  });
+
+  it('muestra el icono de tag solo en las compras que tienen tag', () => {
+    vi.mocked(useBuys).mockReturnValue({
+      data: buysConTags as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    const conTag = screen.getByText('Funda iPhone 15').closest('tr') as HTMLElement;
+    const sinTag = screen.getByText('Cargador').closest('tr') as HTMLElement;
+
+    expect(within(conTag).getByRole('img', { name: 'Tag: Urgente' })).toBeInTheDocument();
+    expect(within(sinTag).queryByRole('img', { name: /Tag:/ })).toBeNull();
+  });
+
+  it('tiñe la fila de las compras con tag y deja intacta la fila sin tag', () => {
+    vi.mocked(useBuys).mockReturnValue({
+      data: buysConTags as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    const conTag = screen.getByText('Funda iPhone 15').closest('tr') as HTMLElement;
+    const sinTag = screen.getByText('Cargador').closest('tr') as HTMLElement;
+
+    expect(conTag.className).toContain('tag-row-tinted');
+    expect(conTag.style.getPropertyValue('--tag-color')).toBe('#dc2626');
+
+    expect(sinTag.className).not.toContain('tag-row-tinted');
+    expect(sinTag.style.getPropertyValue('--tag-color')).toBe('');
   });
 
   it('sin compras dentro del período avisa de que el período está vacío', async () => {

@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { tableHeadClass } from './tableStyles';
@@ -21,6 +21,10 @@ interface VirtualTableProps<TData> {
 
     onSort: (columnId: string) => void;
   };
+
+  getRowClassName?: (row: TData) => string | undefined;
+
+  getRowStyle?: (row: TData) => CSSProperties | undefined;
 }
 
 export function VirtualTable<TData>({
@@ -29,6 +33,8 @@ export function VirtualTable<TData>({
   estimateRowHeight = 44,
   footer,
   sort,
+  getRowClassName,
+  getRowStyle,
 }: VirtualTableProps<TData>) {
   const parentRef = useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
@@ -91,14 +97,18 @@ export function VirtualTable<TData>({
           >
             {virtualItems.map((vi) => {
               const row = rows[vi.index];
+              const rowClassName = getRowClassName?.(row.original);
+              const rowStyle = getRowStyle?.(row.original);
               return (
                 <tr
                   key={row.id}
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
                   aria-rowindex={vi.index + 2}
-                  className="absolute flex w-full border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
-                  style={{ transform: `translateY(${vi.start}px)` }}
+                  className={`absolute flex w-full border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800${
+                    rowClassName ? ` ${rowClassName}` : ''
+                  }`}
+                  style={{ ...rowStyle, transform: `translateY(${vi.start}px)` }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

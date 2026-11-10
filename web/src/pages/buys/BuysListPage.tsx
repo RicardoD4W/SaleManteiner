@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useBuys } from '../../hooks/useBuys';
 import { useSortable } from '../../hooks/useSortable';
@@ -24,6 +24,8 @@ import { errorAlertClass } from '../../components/ui/tableStyles';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { Button } from '../../components/ui/Button';
 import { NotesPopover } from '../../components/ui/NotesPopover';
+import { TagPopover } from '../../components/ui/TagPopover';
+import { TAG_ROW_TINT_CLASS } from '../../lib/tagColors';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
 
@@ -161,6 +163,13 @@ export function BuysListPage() {
           );
         },
       }),
+      columnHelper.display({
+        id: 'tag',
+        header: 'Tags',
+        size: 64,
+        enableSorting: false,
+        cell: (info) => <TagPopover tag={info.row.original.tag} />,
+      }),
       columnHelper.accessor('notes', {
         header: 'Notas',
         size: 56,
@@ -278,6 +287,10 @@ export function BuysListPage() {
         <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
+            getRowClassName={(buy) => (buy.tag ? TAG_ROW_TINT_CLASS : undefined)}
+            getRowStyle={(buy) =>
+              buy.tag ? ({ ['--tag-color']: buy.tag.color } as CSSProperties) : undefined
+            }
             sort={{
               columnId: sortKey,
               direction: sortDir,
