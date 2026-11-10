@@ -46,7 +46,11 @@ export function TagFilter({ value, onChange, onManage }: TagFilterProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div role="group" aria-label="Filtro de tags" className="flex flex-wrap items-center gap-2">
+      <div
+        role="group"
+        aria-label="Filtro de tags"
+        className="flex flex-wrap items-center gap-2 lg:justify-end"
+      >
         {(tags ?? []).map((tag) => {
           const active = selectedIds.includes(tag.id);
           return (
@@ -83,7 +87,7 @@ export function TagFilter({ value, onChange, onManage }: TagFilterProps) {
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
         <button
           type="button"
           onClick={onManage}

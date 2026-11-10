@@ -224,7 +224,7 @@ export function BuysListPage() {
       <div className="min-w-0">
         <DateRangeFilter value={range} onChange={setRange} layout="stacked" />
       </div>
-      <div className="w-full lg:max-w-md">
+      <div className="w-full lg:ml-auto lg:max-w-md">
         <TagFilterBar
           value={tagFilter}
           onChange={setTagFilter}

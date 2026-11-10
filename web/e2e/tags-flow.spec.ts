@@ -162,6 +162,42 @@ test('/buys: editar el color de un tag actualiza el swatch y el tinte de la fila
   await expect(row).toHaveAttribute('style', /--tag-color:\s*#0d9488/i);
 });
 
+test('/buys: el filtro de tags queda pegado al borde derecho de la barra de filtros', async ({
+  page,
+  request,
+}) => {
+  await createTagViaApi(request, TAG_NAME, TAG_COLOR);
+  await createBuyViaApi(request, {
+    product_name: 'Funda con etiqueta',
+    purchase_cost: 5,
+    quantity: 3,
+  });
+
+  await page.goto('/buys');
+
+  const sinTag = page.getByRole('button', { name: 'Sin tag', exact: true });
+  const quitar = page.getByRole('button', { name: 'Quitar filtro de tags' });
+  const nuevaCompra = page.getByRole('button', { name: '+ Nueva compra' });
+
+  await expect(sinTag).toBeVisible();
+  await expect(quitar).toBeVisible();
+  await expect(nuevaCompra).toBeVisible();
+
+  const [chipBox, quitarBox, buttonBox] = await Promise.all([
+    sinTag.boundingBox(),
+    quitar.boundingBox(),
+    nuevaCompra.boundingBox(),
+  ]);
+
+  expect(chipBox).not.toBeNull();
+  expect(quitarBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+
+  const rightEdge = buttonBox!.x + buttonBox!.width;
+  expect(Math.abs(chipBox!.x + chipBox!.width - rightEdge)).toBeLessThan(2);
+  expect(Math.abs(quitarBox!.x + quitarBox!.width - rightEdge)).toBeLessThan(2);
+});
+
 test('/buys: etiquetar una compra desde la app actualiza el contador del tag y avisa al borrarlo', async ({
   page,
   request,
