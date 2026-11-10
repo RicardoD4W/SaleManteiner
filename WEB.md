@@ -199,16 +199,22 @@ Un **tag** es una etiqueta con **nombre y color** que se puede poner en una comp
 
 Los tags viven en un **catálogo por ámbito**: el de compras (`buy`) y el de ventas (`sold`) son independientes (el mismo nombre puede existir en los dos). Todo el stack (API, hooks, filtro, modal, columna) es **el mismo código parametrizado por ámbito**, así que el catálogo de ventas no duplica ni una línea: por ahora solo la tabla de compras lo usa.
 
-| Pieza             | Qué hace                                                                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `TagFilter`       | el filtro de la tabla: chips de multi-selección (semántica **OR**) + el chip exclusivo **"Sin tag"** + el botón **"Gestionar tags"** + **"Quitar filtro de tags"** |
-| `TagManagerModal` | el modal gestor ("Tags de compra"): crear, renombrar, recolorear y borrar tags                                                                                     |
-| `TagColorPicker`  | la paleta de 10 colores predefinidos + un **color libre** en hexadecimal (`#rrggbb`) + el selector de color del navegador                                          |
-| `TagPopover`      | el icono del tag en la celda + el popover con el **nombre y el color** (`components/ui/TagPopover.tsx`)                                                            |
+| Pieza              | Qué hace                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TagFilter`        | el filtro de la tabla: chips de multi-selección (semántica **OR**) + el chip exclusivo **"Sin tag"** + el botón **"Gestionar tags"** + **"Quitar filtro de tags"** |
+| `TagManagerModal`  | el modal gestor ("Tags de compra"): crear, renombrar, recolorear y borrar tags                                                                                     |
+| `DeleteTagCascade` | el **segundo** paso del borrado: la lista de las compras que tienen el tag que se va a borrar (patrón del borrado en cascada)                                      |
+| `TagColorPicker`   | la paleta de 10 colores predefinidos + un **color libre** en hexadecimal (`#rrggbb`) + el selector de color del navegador                                          |
+| `TagPopover`       | el icono del tag en la celda + el popover con el **nombre y el color** (`components/ui/TagPopover.tsx`)                                                            |
 
 **El filtro**: cada chip es un tag del catálogo y se pueden marcar **varios**: la lista muestra las compras que tengan **cualquier** de los tags marcados. El chip **"Sin tag"** es **exclusivo**: cuando está activo, el servidor **ignora** los ids de tag enviados y solo devuelve las compras sin etiquetar. El filtro **lo resuelve el servidor** (`GET /api/buys?tag_ids=3,7` o `GET /api/buys?sin_tag=true`), igual que el rango de fechas.
 
-**El modal gestor** (`TagManagerModal`, patrón de `CategoryManagerModal`) lista los tags con su **nº de compras** y deja crear, renombrar, recolorear y borrar. Al borrar pide confirmación y **dice cuántas compras quedan sin etiqueta** ("3 compras quedarán sin etiqueta. Las compras no se borran."): borrar un tag **desasigna**, nunca borra compras.
+**El modal gestor** (`TagManagerModal`, patrón de `CategoryManagerModal`) lista los tags con su **nº de compras** y deja crear, renombrar, recolorear y borrar. Borrar un tag es un flujo de **dos pasos**:
+
+1. **Pregunta** (arriba del modal, no al final): "¿Estás seguro de que quieres borrar el tag «{nombre}»?".
+2. Si el tag **tiene compras**, al confirmar se abre el **segundo aviso** (`DeleteTagCascade`), con el mismo patrón que el borrado en cascada de una compra vendida: **lista los productos que tienen ese tag** y recuerda que **se quedan sin etiqueta** ("Las compras no se borran"). Si el tag no tiene compras, la pregunta basta y el tag se borra directamente.
+
+Borrar un tag **desasigna**, nunca borra compras. La lista de las compras afectadas sale del filtro que ya existía (`GET /api/buys?tag_ids={id}`), a través de `useBuys`.
 
 **El alta y la edición de compra** llevan un selector **"Tag"** (`BuyNewModal` y `BuyEditPage`, con `tag_id` en `BuyFormSchema`): es un `select` con la opción **"Sin tag"** y los tags del catálogo de compras. El `tag_id` viaja en el `POST`/`PATCH` de la compra; `null` deja la compra sin tag.
 
