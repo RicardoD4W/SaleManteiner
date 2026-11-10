@@ -9,10 +9,12 @@ import { runMigrations } from '../db/migrate.js';
 import { createCustomersRepo } from '../repo/customers-repo.js';
 import { createBuysRepo } from '../repo/buys-repo.js';
 import { createSoldsRepo } from '../repo/solds-repo.js';
+import { createTagsRepo } from '../repo/tags-repo.js';
 import { createBackupService, InvalidBackupError } from '../backup/backup-service.js';
 import { CreateCustomerInput } from '../schemas/customers.js';
 import { CreateBuyInput } from '../schemas/buys.js';
 import { CreateSoldInput } from '../schemas/solds.js';
+import { CreateTagInput } from '../schemas/tags.js';
 
 describe('copias de seguridad de la base de datos', () => {
   let dir: string;
@@ -211,6 +213,111 @@ describe('copias de seguridad de la base de datos', () => {
 
     expect(soldRow()).toEqual({ paid_amount: 100, sale_price: 100 });
     expect(customerDebt()).toBe(0);
+  });
+
+  function seedTag(name: string, color: string): number {
+    return createTagsRepo(db).create('buy', CreateTagInput.parse({ name, color })).id;
+  }
+
+  function tagRows(): Array<{ id: number; scope: string; name: string; color: string }> {
+    return db.prepare('SELECT id, scope, name, color FROM tags ORDER BY id').all() as Array<{
+      id: number;
+      scope: string;
+      name: string;
+      color: string;
+    }>;
+  }
+
+  function buyTagIds(): Array<{ id: number; tag_id: number | null }> {
+    return db.prepare('SELECT id, tag_id FROM buys ORDER BY id').all() as Array<{
+      id: number;
+      tag_id: number | null;
+    }>;
+  }
+
+  it('restaura el catálogo de tags y la asignación de las compras', () => {
+    const tagId = seedTag('Urgente', '#ff0000');
+    const otherTagId = seedTag('Barato', '#00ff00');
+    const buyId = createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10, tag_id: tagId }),
+    ).id;
+    createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Cromo', purchase_cost: 20, tag_id: otherTagId }),
+    );
+    const backup = service.create();
+
+    db.prepare('DELETE FROM buys').run();
+    db.prepare('DELETE FROM tags').run();
+
+    const summary = service.restoreFromStored(backup.name);
+
+    expect(summary.tags).toBe(2);
+    expect(tagRows()).toEqual([
+      { id: tagId, scope: 'buy', name: 'Urgente', color: '#ff0000' },
+      { id: otherTagId, scope: 'buy', name: 'Barato', color: '#00ff00' },
+    ]);
+    expect(buyTagIds()).toEqual([
+      { id: buyId, tag_id: tagId },
+      { id: buyId + 1, tag_id: otherTagId },
+    ]);
+  });
+
+  it('restaura el catálogo de tags aunque ninguna compra los use', () => {
+    const tagId = seedTag('Urgente', '#ff0000');
+    const buyId = createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10 }),
+    ).id;
+    const backup = service.create();
+
+    db.prepare('DELETE FROM buys').run();
+    db.prepare('DELETE FROM tags').run();
+
+    const summary = service.restoreFromStored(backup.name);
+
+    expect(summary.tags).toBe(1);
+    expect(tagRows()).toEqual([{ id: tagId, scope: 'buy', name: 'Urgente', color: '#ff0000' }]);
+    expect(buyTagIds()).toEqual([{ id: buyId, tag_id: null }]);
+  });
+
+  it('restaura una copia con una compra que apunta a un tag inexistente', () => {
+    const tagId = seedTag('Urgente', '#ff0000');
+    const buyId = createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10, tag_id: tagId }),
+    ).id;
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.pragma('foreign_keys = OFF');
+    copy.exec('DELETE FROM tags');
+    copy.close();
+
+    const summary = service.restoreFromStored(backup.name);
+
+    expect(summary.buys).toBe(1);
+    expect(summary.tags).toBe(0);
+    expect(buyTagIds()).toEqual([{ id: buyId, tag_id: null }]);
+  });
+
+  it('restaura una copia anterior a los tags sin tag ni catálogo', () => {
+    const tagId = seedTag('Urgente', '#ff0000');
+    const buyId = createBuysRepo(db).create(
+      CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10, tag_id: tagId }),
+    ).id;
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.pragma('foreign_keys = OFF');
+    copy.exec('DROP INDEX idx_buys_tag_id');
+    copy.exec('ALTER TABLE buys DROP COLUMN tag_id');
+    copy.exec('DROP TABLE tags');
+    copy.exec('DELETE FROM _migrations WHERE version = 11');
+    copy.close();
+
+    const summary = service.restoreFromStored(backup.name);
+
+    expect(summary.tags).toBe(0);
+    expect(tagRows()).toEqual([]);
+    expect(buyTagIds()).toEqual([{ id: buyId, tag_id: null }]);
   });
 
   it('una copia sin la tabla de migraciones conserva la deuda ya informada', () => {

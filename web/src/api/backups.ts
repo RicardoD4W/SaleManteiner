@@ -13,6 +13,7 @@ export interface RestoreSummary {
   sale_items: number;
   expenses: number;
   expense_categories: number;
+  tags: number;
   safety_backup: string;
 }
 

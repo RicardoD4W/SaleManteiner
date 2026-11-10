@@ -17,6 +17,7 @@ export interface RestoreSummary {
   sale_items: number;
   expenses: number;
   expense_categories: number;
+  tags: number;
   safety_backup: string;
 }
 
@@ -53,6 +54,7 @@ const DEBT_DEFAULT_SCHEMA_VERSION = 8;
 const DELETE_SALE_ITEMS = 'DELETE FROM sale_items';
 const DELETE_SOLDS = 'DELETE FROM solds';
 const DELETE_BUYS = 'DELETE FROM buys';
+const DELETE_TAGS = 'DELETE FROM tags';
 const DELETE_EXPENSES = 'DELETE FROM expenses';
 const DELETE_EXPENSE_CATEGORIES = 'DELETE FROM expense_categories';
 const DELETE_CUSTOMERS = 'DELETE FROM customers';
@@ -61,10 +63,19 @@ const INSERT_CUSTOMERS = `INSERT INTO customers (id, name, phone, address, notes
   SELECT json_extract(value, '$.id'), json_extract(value, '$.name'), json_extract(value, '$.phone'),
          json_extract(value, '$.address'), json_extract(value, '$.notes'), json_extract(value, '$.created_at')
   FROM json_each(?)`;
-const INSERT_BUYS = `INSERT INTO buys (id, product_name, purchase_cost, quantity, associated_costs, purchase_date, notes, created_at)
+const INSERT_BUYS = `INSERT INTO buys (id, product_name, purchase_cost, quantity, associated_costs, purchase_date, notes, tag_id, created_at)
   SELECT json_extract(value, '$.id'), json_extract(value, '$.product_name'), json_extract(value, '$.purchase_cost'),
          json_extract(value, '$.quantity'), json_extract(value, '$.associated_costs'), json_extract(value, '$.purchase_date'),
-         json_extract(value, '$.notes'), json_extract(value, '$.created_at')
+         json_extract(value, '$.notes'),
+         CASE WHEN json_extract(value, '$.tag_id') IS NULL THEN NULL
+              WHEN EXISTS (SELECT 1 FROM tags t WHERE t.id = json_extract(value, '$.tag_id'))
+              THEN json_extract(value, '$.tag_id')
+              ELSE NULL END,
+         json_extract(value, '$.created_at')
+  FROM json_each(?)`;
+const INSERT_TAGS = `INSERT INTO tags (id, scope, name, color, created_at)
+  SELECT json_extract(value, '$.id'), json_extract(value, '$.scope'), json_extract(value, '$.name'),
+         json_extract(value, '$.color'), json_extract(value, '$.created_at')
   FROM json_each(?)`;
 const INSERT_SOLDS = `INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, sold_at, notes, created_at)
   SELECT json_extract(value, '$.id'), json_extract(value, '$.customer_id'), json_extract(value, '$.sale_price'),
@@ -86,6 +97,8 @@ const SELECT_CUSTOMERS_CURRENT =
   "SELECT json_object('id', id, 'name', name, 'phone', phone, 'address', address, 'notes', notes, 'created_at', created_at) AS row FROM customers";
 const SELECT_CUSTOMERS_LEGACY =
   "SELECT json_object('id', id, 'name', name, 'created_at', created_at) AS row FROM customers";
+const SELECT_BUYS_WITH_TAG =
+  "SELECT json_object('id', id, 'product_name', product_name, 'purchase_cost', purchase_cost, 'quantity', quantity, 'associated_costs', associated_costs, 'purchase_date', purchase_date, 'notes', notes, 'tag_id', tag_id, 'created_at', created_at) AS row FROM buys";
 const SELECT_BUYS_CURRENT =
   "SELECT json_object('id', id, 'product_name', product_name, 'purchase_cost', purchase_cost, 'quantity', quantity, 'associated_costs', associated_costs, 'purchase_date', purchase_date, 'notes', notes, 'created_at', created_at) AS row FROM buys";
 const SELECT_BUYS_LEGACY =
@@ -102,6 +115,8 @@ const SELECT_SALE_ITEMS =
   "SELECT json_object('sold_id', sold_id, 'buy_id', buy_id, 'quantity', quantity) AS row FROM sale_items";
 const SELECT_EXPENSE_CATEGORIES =
   "SELECT json_object('id', id, 'name', name, 'created_at', created_at) AS row FROM expense_categories";
+const SELECT_TAGS =
+  "SELECT json_object('id', id, 'scope', scope, 'name', name, 'color', color, 'created_at', created_at) AS row FROM tags";
 const SELECT_EXPENSES =
   "SELECT json_object('id', id, 'concept', concept, 'amount', amount, 'category_id', category_id, 'expense_date', expense_date, 'created_at', created_at) AS row FROM expenses";
 
@@ -244,15 +259,37 @@ export function createBackupService(deps: {
     return (rows as Array<{ row: string }>).map((entry) => entry.row);
   }
 
+  function readRowsAny(backup: DatabaseType, selects: string[]): string[] {
+    let lastError: unknown;
+    for (const select of selects) {
+      try {
+        return unwrap(backup.prepare(select).all());
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+
+  function ensureTagsSchema(): void {
+    if (tableExists(db, 'tags') && columnExists(db, 'buys', 'tag_id')) return;
+    runMigrations(db);
+  }
+
   function importFrom(backup: DatabaseType): RestoreSummary {
     const customers = readRows(backup, SELECT_CUSTOMERS_CURRENT, SELECT_CUSTOMERS_LEGACY);
-    const buys = readRows(backup, SELECT_BUYS_CURRENT, SELECT_BUYS_LEGACY);
+    const buys = readRowsAny(backup, [
+      ...(columnExists(backup, 'buys', 'tag_id') ? [SELECT_BUYS_WITH_TAG] : []),
+      SELECT_BUYS_CURRENT,
+      SELECT_BUYS_LEGACY,
+    ]);
     const solds = readRows(backup, soldsSelect(backup), SELECT_SOLDS_LEGACY);
     const saleItems = readRows(backup, SELECT_SALE_ITEMS, null);
     const categories = tableExists(backup, 'expense_categories')
       ? readRows(backup, SELECT_EXPENSE_CATEGORIES, null)
       : [];
     const expenses = tableExists(backup, 'expenses') ? readRows(backup, SELECT_EXPENSES, null) : [];
+    const tags = tableExists(backup, 'tags') ? readRows(backup, SELECT_TAGS, null) : [];
 
     const counts = {
       customers: customers.length,
@@ -261,17 +298,20 @@ export function createBackupService(deps: {
       sale_items: saleItems.length,
       expense_categories: categories.length,
       expenses: expenses.length,
+      tags: tags.length,
     };
 
     const importAll = db.transaction(() => {
       db.prepare(DELETE_SALE_ITEMS).run();
       db.prepare(DELETE_SOLDS).run();
       db.prepare(DELETE_BUYS).run();
+      db.prepare(DELETE_TAGS).run();
       db.prepare(DELETE_EXPENSES).run();
       db.prepare(DELETE_EXPENSE_CATEGORIES).run();
       db.prepare(DELETE_CUSTOMERS).run();
 
       db.prepare(INSERT_CUSTOMERS).run(JSON.stringify(customers));
+      db.prepare(INSERT_TAGS).run(JSON.stringify(tags));
       db.prepare(INSERT_BUYS).run(JSON.stringify(buys));
       db.prepare(INSERT_SOLDS).run(JSON.stringify(solds));
       db.prepare(INSERT_SALE_ITEMS).run(JSON.stringify(saleItems));
@@ -280,6 +320,7 @@ export function createBackupService(deps: {
     });
 
     try {
+      ensureTagsSchema();
       importAll();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
