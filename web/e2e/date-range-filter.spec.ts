@@ -67,7 +67,7 @@ test('/buys: el filtro de fechas deja solo las compras del período', async ({ p
   await expect(page.getByText('Funda de abril')).toBeVisible();
   await expect(page.getByText('Cargador de mayo')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Quitar filtro' }).click();
+  await page.getByRole('button', { name: 'Quitar filtro', exact: true }).click();
 
   await expect(page.getByText('Cargador de mayo')).toBeVisible();
 });
@@ -110,7 +110,7 @@ test('/solds: el filtro de fechas deja solo las ventas del período', async ({ p
   await expect(page.getByText('Funda de abril')).toBeVisible();
   await expect(page.getByText('Cargador de mayo')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Quitar filtro' }).click();
+  await page.getByRole('button', { name: 'Quitar filtro', exact: true }).click();
 
   await expect(page.getByText('Cargador de mayo')).toBeVisible();
 });
@@ -132,7 +132,7 @@ test('/buys: sin compras en el período se avisa y se puede quitar el filtro', a
 
   await expect(page.getByText('No hay compras en este período.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Quitar filtro' }).click();
+  await page.getByRole('button', { name: 'Quitar filtro', exact: true }).click();
 
   await expect(page.getByText('Funda de abril')).toBeVisible();
 });
