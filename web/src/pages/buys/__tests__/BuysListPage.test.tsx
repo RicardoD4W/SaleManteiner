@@ -313,6 +313,35 @@ describe('BuysListPage', () => {
     expect(await screen.findByRole('dialog', { name: 'Tags de compra' })).toBeInTheDocument();
   });
 
+  it('centra las columnas de iconos: Tags, Notas y acciones', () => {
+    vi.mocked(useBuys).mockReturnValue({
+      data: [
+        {
+          ...buysFixture[0],
+          notes: 'Una nota',
+          tag: { id: 3, name: 'Urgente', color: '#dc2626' },
+        },
+      ] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.getByRole('columnheader', { name: 'Tags' })).toHaveClass('text-center');
+    expect(screen.getByRole('columnheader', { name: 'Notas' })).toHaveClass('text-center');
+
+    expect(screen.getByRole('img', { name: 'Tag: Urgente' }).closest('td')).toHaveClass(
+      'text-center',
+    );
+    expect(screen.getByRole('img', { name: 'Notas: Una nota' }).closest('td')).toHaveClass(
+      'text-center',
+    );
+    expect(screen.getByRole('link', { name: /Editar/ }).closest('td')).toHaveClass('text-center');
+  });
+
   it('sin compras dentro del período avisa de que el período está vacío', async () => {
     const user = userEvent.setup();
     vi.mocked(useBuys).mockReturnValue({

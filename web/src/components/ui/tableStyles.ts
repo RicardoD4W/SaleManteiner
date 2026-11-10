@@ -1,3 +1,13 @@
+export type ColumnAlign = 'left' | 'center' | 'right';
+
+export function columnAlign(align: ColumnAlign | undefined): string {
+  return align === 'center' ? 'text-center' : 'text-left';
+}
+
+export function columnAlignOf(meta: unknown): ColumnAlign | undefined {
+  return (meta as { align?: ColumnAlign } | undefined)?.align;
+}
+
 export const tableHeadClass =
   'select-none px-4 py-2 font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800';
 

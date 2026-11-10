@@ -208,8 +208,8 @@ export function ExpensesListPage() {
                   <td className="px-4 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300">
                     {formatDate(row.expense_date)}
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-3">
+                  <td className="px-4 py-2 text-center">
+                    <div className="flex items-center justify-center gap-3">
                       <button
                         type="button"
                         onClick={() => setEditing(row.expense)}

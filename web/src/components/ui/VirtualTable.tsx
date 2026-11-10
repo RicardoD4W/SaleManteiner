@@ -1,8 +1,9 @@
 import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { tableHeadClass } from './tableStyles';
+import { tableHeadClass, columnAlign, columnAlignOf } from './tableStyles';
 import { SortableTh } from './SortableTh';
+import { cn } from '../../lib/classNames';
 import type { SortDir } from '../../lib/sorting';
 
 interface VirtualTableProps<TData> {
@@ -66,13 +67,14 @@ export function VirtualTable<TData>({
                 {hg.headers.map((header) => {
                   const sorted = sort?.columnId === header.column.id ? sort.direction : null;
                   const label = flexRender(header.column.columnDef.header, header.getContext());
+                  const align = columnAlign(columnAlignOf(header.column.columnDef.meta));
                   const style = {
                     flex: `${header.getSize()} 1 0`,
                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
                   };
                   if (!header.column.getCanSort()) {
                     return (
-                      <th key={header.id} style={style} className={`${tableHeadClass} text-left`}>
+                      <th key={header.id} style={style} className={`${tableHeadClass} ${align}`}>
                         {label}
                       </th>
                     );
@@ -83,7 +85,8 @@ export function VirtualTable<TData>({
                       label={label}
                       sorted={sorted === 'asc' ? 'asc' : sorted === 'desc' ? 'desc' : false}
                       onSort={() => sort?.onSort(header.column.id)}
-                      className={`${tableHeadClass} text-left`}
+                      className={`${tableHeadClass} ${align}`}
+                      contentClassName={align === 'text-center' ? 'justify-center' : undefined}
                       style={style}
                     />
                   );
@@ -114,7 +117,11 @@ export function VirtualTable<TData>({
                     <td
                       key={cell.id}
                       style={{ flex: `${cell.column.getSize()} 1 0` }}
-                      className="px-4 py-2 align-middle text-gray-800 dark:text-gray-200"
+                      className={cn(
+                        'px-4 py-2 align-middle text-gray-800 dark:text-gray-200',
+                        columnAlign(columnAlignOf(cell.column.columnDef.meta)) === 'text-center' &&
+                          'text-center',
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

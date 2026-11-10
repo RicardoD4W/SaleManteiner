@@ -184,7 +184,7 @@ export function RowActions<T extends ArmedRow>({
 }) {
   const { armRow } = useContext(ArmedRowContext);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       <Link
         to={`${editBasePath}/${row.id}`}
         viewTransition

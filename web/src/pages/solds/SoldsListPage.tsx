@@ -224,6 +224,7 @@ export function SoldsListPage() {
       columnHelper.accessor('notes', {
         header: 'Notas',
         size: 56,
+        meta: { align: 'center' },
         cell: (info) => <NotesPopover notes={info.getValue()} />,
       }),
       columnHelper.accessor('created_at', {
@@ -239,6 +240,7 @@ export function SoldsListPage() {
         id: 'actions',
         header: '',
         size: 90,
+        meta: { align: 'center' },
         cell: (info) => (
           <RowActions
             row={info.row.original}

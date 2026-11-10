@@ -302,6 +302,19 @@ describe('CustomersListPage', () => {
     });
   });
 
+  it('centra las columnas de iconos: Notas y acciones', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    const notasHeader = screen.getByRole('columnheader', { name: 'Notas' });
+    expect(notasHeader).toHaveClass('text-center');
+    expect(screen.getByRole('img', { name: 'Notas: Paga al contado' }).closest('td')).toHaveClass(
+      'text-center',
+    );
+    expect(screen.getByRole('button', { name: 'Editar Juan Pérez' }).closest('td')).toHaveClass(
+      'text-center',
+    );
+  });
+
   it('si el borrado simple falla, el error se muestra dentro de la modal', async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockRejectedValue(new ApiError(0, { error: 'Error de red' }));

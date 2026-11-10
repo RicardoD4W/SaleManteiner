@@ -136,7 +136,7 @@ export function CustomersListPage() {
                     currentDir={sortDir}
                     onSort={onSort}
                   />
-                  <th scope="col" className={`${tableHeadClass} text-left`}>
+                  <th scope="col" className={`${tableHeadClass} text-center`}>
                     Notas
                   </th>
                   <th scope="col" className={`${tableHeadClass} text-left`}></th>
@@ -163,11 +163,11 @@ export function CustomersListPage() {
                     <td className="px-4 py-2 tabular-nums text-gray-700 dark:text-gray-300">
                       {formatEuro(row.deuda)}
                     </td>
-                    <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                    <td className="px-4 py-2 text-center text-gray-700 dark:text-gray-300">
                       <NotesPopover notes={row.notes} />
                     </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-3">
+                    <td className="px-4 py-2 text-center">
+                      <div className="flex items-center justify-center gap-3">
                         <button
                           type="button"
                           onClick={() => setEditing(row.customer)}

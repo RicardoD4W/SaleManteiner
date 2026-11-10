@@ -173,17 +173,20 @@ export function BuysListPage() {
         header: 'Tags',
         size: 64,
         enableSorting: false,
+        meta: { align: 'center' },
         cell: (info) => <TagPopover tag={info.row.original.tag} />,
       }),
       columnHelper.accessor('notes', {
         header: 'Notas',
         size: 56,
+        meta: { align: 'center' },
         cell: (info) => <NotesPopover notes={info.getValue()} />,
       }),
       columnHelper.display({
         id: 'actions',
         header: '',
         size: 90,
+        meta: { align: 'center' },
         cell: (info) => (
           <RowActions
             row={info.row.original}
@@ -217,7 +220,7 @@ export function BuysListPage() {
         }`;
 
   const filtersBar = (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <DateRangeFilter value={range} onChange={setRange} layout="stacked" />
       </div>
