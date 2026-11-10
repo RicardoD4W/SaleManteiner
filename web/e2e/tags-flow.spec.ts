@@ -180,12 +180,16 @@ test('/buys: borrar un tag deja las compras sin etiqueta y no las borra', async 
 
   await modal.getByRole('button', { name: `Borrar ${TAG_NAME}` }).click();
   await expect(
-    modal.getByText(
-      `Al borrar «${TAG_NAME}», 1 compra quedará sin etiqueta. Las compras no se borran.`,
-    ),
+    modal.getByText(`¿Estás seguro de que quieres borrar el tag «${TAG_NAME}»?`),
   ).toBeVisible();
 
   await modal.getByRole('button', { name: 'Sí, borrar' }).click();
+
+  await expect(modal.getByText(/tiene/)).toBeVisible();
+  await expect(modal.getByText(/sin etiqueta/)).toBeVisible();
+  await expect(modal.getByText('Funda superviviente')).toBeVisible();
+
+  await modal.getByRole('button', { name: 'Sí, borrar el tag' }).click();
 
   await expect(modal.getByRole('button', { name: `Editar ${TAG_NAME}` })).toHaveCount(0);
   await expect(modal.getByText(TAG_NAME, { exact: true })).toHaveCount(0);

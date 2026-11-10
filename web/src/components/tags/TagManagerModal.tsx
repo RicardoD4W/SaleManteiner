@@ -12,6 +12,7 @@ import type { ApiTagWithCount } from '../../api/tags';
 import { TAG_PALETTE } from '../../lib/tagColors';
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '../../hooks/useTags';
 import { TagColorPicker } from './TagColorPicker';
+import { DeleteTagCascade } from './DeleteTagCascade';
 
 interface TagManagerModalProps {
   onClose: () => void;
@@ -24,14 +25,7 @@ function buyCountText(count: number): string {
 }
 
 function deleteConfirmation(tag: ApiTagWithCount): string {
-  if (tag.buy_count === 0) {
-    return `Al borrar «${tag.name}». No hay compras con este tag.`;
-  }
-  const affected =
-    tag.buy_count === 1
-      ? '1 compra quedará sin etiqueta'
-      : `${tag.buy_count} compras quedarán sin etiqueta`;
-  return `Al borrar «${tag.name}», ${affected}. Las compras no se borran.`;
+  return `¿Estás seguro de que quieres borrar el tag «${tag.name}»?`;
 }
 
 export function TagManagerModal({ onClose }: TagManagerModalProps) {
@@ -50,6 +44,7 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
   const [editError, setEditError] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<ApiTagWithCount | null>(null);
+  const [deleteStep, setDeleteStep] = useState<'confirm' | 'affected'>('confirm');
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleCreate = async () => {
@@ -95,14 +90,69 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
     try {
       await deleteTagMutation.mutateAsync(deleteTarget.id);
       setDeleteTarget(null);
+      setDeleteStep('confirm');
     } catch (err) {
       setDeleteError(apiErrorMessage(err, 'No se pudo borrar el tag'));
     }
   };
 
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    if (deleteTarget.buy_count > 0) {
+      setDeleteStep('affected');
+      return;
+    }
+    void handleDelete();
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null);
+    setDeleteStep('confirm');
+    setDeleteError(null);
+  };
+
   return (
     <Modal title="Tags de compra" onClose={onClose} size="medium">
       <div className="space-y-4 p-4">
+        {deleteTarget && deleteStep === 'affected' ? (
+          <DeleteTagCascade
+            tagName={deleteTarget.name}
+            tagId={deleteTarget.id}
+            isPending={deleteTagMutation.isPending}
+            error={deleteError}
+            onCancel={handleCancelDelete}
+            onConfirm={() => void handleDelete()}
+          />
+        ) : null}
+
+        {deleteTarget && deleteStep === 'confirm' ? (
+          <div className="space-y-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+            <p className="text-sm text-gray-800 dark:text-gray-100">
+              {deleteConfirmation(deleteTarget)}
+            </p>
+            {deleteError ? (
+              <p role="alert" className={cn(errorAlertClass, 'px-3 py-2')}>
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancelDelete}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                isLoading={deleteTagMutation.isPending}
+                onClick={handleConfirmDelete}
+              >
+                Sí, borrar
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
             <Spinner size="sm" /> Cargando tags…
@@ -185,6 +235,7 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
                         type="button"
                         onClick={() => {
                           setDeleteTarget(tag);
+                          setDeleteStep('confirm');
                           setDeleteError(null);
                         }}
                         aria-label={`Borrar ${tag.name}`}
@@ -198,41 +249,6 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
               </li>
             ))}
           </ul>
-        ) : null}
-
-        {deleteTarget ? (
-          <div className="space-y-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
-            <p className="text-sm text-gray-800 dark:text-gray-100">
-              {deleteConfirmation(deleteTarget)}
-            </p>
-            {deleteError ? (
-              <p role="alert" className={cn(errorAlertClass, 'px-3 py-2')}>
-                {deleteError}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setDeleteTarget(null);
-                  setDeleteError(null);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                isLoading={deleteTagMutation.isPending}
-                onClick={handleDelete}
-              >
-                Sí, borrar
-              </Button>
-            </div>
-          </div>
         ) : null}
 
         <div className="space-y-2 border-t border-gray-200 pt-3 dark:border-gray-800">

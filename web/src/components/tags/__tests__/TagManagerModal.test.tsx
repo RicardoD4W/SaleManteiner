@@ -9,10 +9,33 @@ vi.mock('@/hooks/useTags', () => ({
   useDeleteTag: vi.fn(),
 }));
 
+vi.mock('@/hooks/useBuys', () => ({
+  useBuys: vi.fn(),
+}));
+
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '@/hooks/useTags';
+import { useBuys } from '@/hooks/useBuys';
 import { TagManagerModal } from '@/components/tags/TagManagerModal';
 import { renderWithProviders } from '@/test-utils/render';
 import { ApiError } from '@/api/client';
+import type { BuyWithStock } from '@/api/buys';
+
+function buyFixture(overrides: Partial<BuyWithStock> = {}): BuyWithStock {
+  return {
+    id: 10,
+    product_name: 'Funda etiquetada',
+    purchase_cost: 5,
+    quantity: 3,
+    total_cost: 15,
+    associated_costs: 0,
+    purchase_date: '2026-11-01',
+    notes: null,
+    tag: { id: 1, name: 'Urgente', color: '#dc2626' },
+    created_at: '2026-11-01T10:00:00.000Z',
+    disponibles: 3,
+    ...overrides,
+  };
+}
 
 const tagsFixture = [
   {
@@ -67,6 +90,16 @@ describe('TagManagerModal', () => {
     vi.mocked(useCreateTag).mockReturnValue(mutationMock() as never);
     vi.mocked(useUpdateTag).mockReturnValue(mutationMock() as never);
     vi.mocked(useDeleteTag).mockReturnValue(mutationMock() as never);
+    vi.mocked(useBuys).mockReturnValue({
+      data: [
+        buyFixture(),
+        buyFixture({ id: 11, product_name: 'Funda urgente' }),
+        buyFixture({ id: 12, product_name: 'Caja urgente' }),
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
   });
 
   it('lista los tags con el número de compras en palabras', () => {
@@ -162,7 +195,7 @@ describe('TagManagerModal', () => {
     expect(screen.getByLabelText('Nuevo nombre de Urgente')).toBeInTheDocument();
   });
 
-  it('al borrar pide confirmación y dice cuántas compras quedan sin etiqueta', async () => {
+  it('al borrar pide confirmación con la pregunta genérica', async () => {
     const user = userEvent.setup();
     const remove = mutationMock();
     vi.mocked(useDeleteTag).mockReturnValue(remove as never);
@@ -171,12 +204,45 @@ describe('TagManagerModal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
 
-    expect(screen.getByText(/3 compras quedarán sin etiqueta/)).toBeInTheDocument();
+    expect(
+      screen.getByText('¿Estás seguro de que quieres borrar el tag «Urgente»?'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/quedarán sin etiqueta/)).toBeNull();
+    expect(remove.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('la confirmación de borrado sale arriba de la lista de tags', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+
+    const confirmation = screen.getByText('¿Estás seguro de que quieres borrar el tag «Urgente»?');
+    const tagRow = screen.getByText('Urgente', { selector: 'span' });
+    expect(
+      confirmation.compareDocumentPosition(tagRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('un tag con compras abre el segundo aviso con los productos que lo tienen', async () => {
+    const user = userEvent.setup();
+    const remove = mutationMock();
+    vi.mocked(useDeleteTag).mockReturnValue(remove as never);
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+    expect(await screen.findByText('Funda etiquetada')).toBeInTheDocument();
+    expect(screen.getByText('Caja urgente')).toBeInTheDocument();
+    expect(screen.getByText(/tiene/)).toHaveTextContent('3 compras');
     expect(screen.getByText(/Las compras no se borran/)).toBeInTheDocument();
     expect(remove.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it('confirmar el borrado llama a la mutación de borrar', async () => {
+  it('confirmar el segundo aviso borra el tag', async () => {
     const user = userEvent.setup();
     const remove = mutationMock({ mutateAsync: vi.fn().mockResolvedValueOnce(undefined) });
     vi.mocked(useDeleteTag).mockReturnValue(remove as never);
@@ -185,6 +251,7 @@ describe('TagManagerModal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
     await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+    await user.click(await screen.findByRole('button', { name: 'Sí, borrar el tag' }));
 
     await waitFor(() => {
       expect(remove.mutateAsync).toHaveBeenCalledWith(1);
@@ -205,14 +272,23 @@ describe('TagManagerModal', () => {
     expect(screen.getByRole('button', { name: 'Borrar Urgente' })).toBeInTheDocument();
   });
 
-  it('un tag sin compras se confirma sin mencionar compras afectadas', async () => {
+  it('un tag sin compras se borra tras la confirmación, sin segundo aviso', async () => {
     const user = userEvent.setup();
+    const remove = mutationMock({ mutateAsync: vi.fn().mockResolvedValueOnce(undefined) });
+    vi.mocked(useDeleteTag).mockReturnValue(remove as never);
 
     renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Borrar Oferta' }));
+    expect(
+      screen.getByText('¿Estás seguro de que quieres borrar el tag «Oferta»?'),
+    ).toBeInTheDocument();
 
-    expect(screen.getByText(/No hay compras con este tag/)).toBeInTheDocument();
-    expect(screen.queryByText(/quedarán sin etiqueta/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+    await waitFor(() => {
+      expect(remove.mutateAsync).toHaveBeenCalledWith(2);
+    });
+    expect(screen.queryByRole('button', { name: 'Sí, borrar el tag' })).toBeNull();
   });
 });
