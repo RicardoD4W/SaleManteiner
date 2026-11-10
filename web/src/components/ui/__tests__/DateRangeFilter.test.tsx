@@ -120,6 +120,24 @@ describe('DateRangeFilter', () => {
     expect(datesGroup.contains(quitar)).toBe(true);
   });
 
+  it('con layout "stacked" los presets quedan encima de los campos de fecha', () => {
+    renderFilter({ layout: 'stacked', value: { from: '2026-04-10', to: '2026-04-30' } });
+
+    const presetsGroup = screen.getByRole('button', { name: 'Todo' }).parentElement!;
+    const datesGroup = screen.getByLabelText('Desde').parentElement!.parentElement!;
+
+    expect(presetsGroup.parentElement).toBe(datesGroup.parentElement);
+    expect(presetsGroup.parentElement!.firstElementChild).toBe(presetsGroup);
+  });
+
+  it('con layout "stacked" sigue mostrando las etiquetas y el botón de limpiar', () => {
+    renderFilter({ layout: 'stacked' });
+
+    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
+    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar filtro' })).toBeInTheDocument();
+  });
+
   it('la descripción del rango queda justo a la derecha de "Este año"', () => {
     renderFilter();
 

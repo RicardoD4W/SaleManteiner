@@ -12,6 +12,8 @@ import {
   type DateRangeSelection,
 } from '../../lib/dateRange.js';
 
+type DateRangeFilterLayout = 'default' | 'stacked';
+
 interface DateRangeFilterProps {
   value: DateRange;
   onChange: (value: DateRange) => void;
@@ -21,6 +23,7 @@ interface DateRangeFilterProps {
   toLabel?: string;
   clearLabel?: string;
   className?: string;
+  layout?: DateRangeFilterLayout;
 }
 
 const INVALID_RANGE_MESSAGE = 'La fecha inicial no puede ser posterior a la final';
@@ -47,6 +50,7 @@ export function DateRangeFilter({
   toLabel = 'Hasta',
   clearLabel = 'Quitar filtro',
   className,
+  layout = 'default',
 }: DateRangeFilterProps) {
   const groupId = useId();
   const errorId = `${groupId}-error`;
@@ -90,7 +94,13 @@ export function DateRangeFilter({
       className={['flex flex-col gap-2 mt-2', className ?? ''].join(' ')}
       aria-label={label}
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div
+        className={
+          layout === 'stacked'
+            ? 'flex flex-col gap-3'
+            : 'flex flex-wrap items-end justify-between gap-3'
+        }
+      >
         <div className="flex flex-wrap items-center gap-1">
           {DATE_RANGE_PRESETS.map((preset) => {
             const active = activePreset === preset.id;
