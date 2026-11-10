@@ -1,11 +1,17 @@
 export type ColumnAlign = 'left' | 'center' | 'right';
 
+export interface ColumnMetaExtras {
+  align?: ColumnAlign;
+
+  compact?: boolean;
+}
+
 export function columnAlign(align: ColumnAlign | undefined): string {
   return align === 'center' ? 'text-center' : 'text-left';
 }
 
-export function columnAlignOf(meta: unknown): ColumnAlign | undefined {
-  return (meta as { align?: ColumnAlign } | undefined)?.align;
+export function columnMetaOf(meta: unknown): ColumnMetaExtras {
+  return (meta as ColumnMetaExtras | undefined) ?? {};
 }
 
 export const tableHeadClass =

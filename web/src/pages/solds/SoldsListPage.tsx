@@ -207,7 +207,7 @@ export function SoldsListPage() {
       }),
       columnHelper.accessor('profit', {
         header: 'Beneficio',
-        size: 112,
+        size: 124,
         cell: (info) => {
           const profit = info.getValue() as number;
           const colorClass =
@@ -240,7 +240,7 @@ export function SoldsListPage() {
         id: 'actions',
         header: '',
         size: 90,
-        meta: { align: 'center' },
+        meta: { align: 'center', compact: true },
         cell: (info) => (
           <RowActions
             row={info.row.original}

@@ -186,7 +186,7 @@ export function BuysListPage() {
         id: 'actions',
         header: '',
         size: 90,
-        meta: { align: 'center' },
+        meta: { align: 'center', compact: true },
         cell: (info) => (
           <RowActions
             row={info.row.original}

@@ -1,7 +1,15 @@
-import { useRef, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { tableHeadClass, columnAlign, columnAlignOf } from './tableStyles';
+import { tableHeadClass, columnAlign, columnMetaOf } from './tableStyles';
 import { SortableTh } from './SortableTh';
 import { cn } from '../../lib/classNames';
 import type { SortDir } from '../../lib/sorting';
@@ -38,6 +46,8 @@ export function VirtualTable<TData>({
   getRowStyle,
 }: VirtualTableProps<TData>) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const headerRowRef = useRef<HTMLTableRowElement>(null);
+  const [columnWidths, setColumnWidths] = useState<number[]>([]);
   const rows = table.getRowModel().rows;
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -49,6 +59,38 @@ export function VirtualTable<TData>({
   });
 
   const virtualItems = virtualizer.getVirtualItems();
+
+  const measureHeader = useCallback(() => {
+    const headerCells = headerRowRef.current?.children;
+    if (!headerCells || headerCells.length === 0) return;
+    const widths = Array.from(headerCells).map((cell) => cell.getBoundingClientRect().width);
+    setColumnWidths((previous) =>
+      previous.length === widths.length &&
+      previous.every((width, index) => Math.abs(width - widths[index]) < 0.5)
+        ? previous
+        : widths,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    measureHeader();
+  }, [measureHeader, table, rows.length]);
+
+  useEffect(() => {
+    const element = parentRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => measureHeader());
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [measureHeader]);
+
+  const cellFlex = useCallback(
+    (index: number, size: number) => {
+      const width = columnWidths[index];
+      return width ? `0 0 ${width}px` : `${size} 1 0`;
+    },
+    [columnWidths],
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -63,11 +105,11 @@ export function VirtualTable<TData>({
             style={{ display: 'grid' }}
           >
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="flex w-full">
+              <tr key={hg.id} ref={headerRowRef} className="flex w-full">
                 {hg.headers.map((header) => {
                   const sorted = sort?.columnId === header.column.id ? sort.direction : null;
                   const label = flexRender(header.column.columnDef.header, header.getContext());
-                  const align = columnAlign(columnAlignOf(header.column.columnDef.meta));
+                  const align = columnAlign(columnMetaOf(header.column.columnDef.meta).align);
                   const style = {
                     flex: `${header.getSize()} 1 0`,
                     cursor: header.column.getCanSort() ? 'pointer' : 'default',
@@ -113,19 +155,22 @@ export function VirtualTable<TData>({
                   }`}
                   style={{ ...rowStyle, transform: `translateY(${vi.start}px)` }}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      style={{ flex: `${cell.column.getSize()} 1 0` }}
-                      className={cn(
-                        'px-4 py-2 align-middle text-gray-800 dark:text-gray-200',
-                        columnAlign(columnAlignOf(cell.column.columnDef.meta)) === 'text-center' &&
-                          'text-center',
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell, index) => {
+                    const meta = columnMetaOf(cell.column.columnDef.meta);
+                    return (
+                      <td
+                        key={cell.id}
+                        style={{ flex: cellFlex(index, cell.column.getSize()) }}
+                        className={cn(
+                          'py-2 align-middle text-gray-800 dark:text-gray-200',
+                          meta.compact ? 'px-2' : 'px-4',
+                          columnAlign(meta.align) === 'text-center' && 'text-center',
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
