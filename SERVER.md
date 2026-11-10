@@ -30,15 +30,15 @@ server/
     │   ├── migrate.ts         ← runMigrations (tabla _migrations)
     │   ├── resolve-path.ts    ← decide la ruta de la BD
     │   ├── probe.ts           ← probe readonly: ¿esta ruta tiene datos?
-    │   └── migrations/        ← 001..005
+    │   └── migrations/        ← 001..011
     ├── lib/
     │   ├── round.ts           ← round2()
     │   └── defined-only.ts    ← filtra undefined en los patches
     ├── backup/
     │   └── backup-service.ts  ← copias (VACUUM INTO), restauración y validación
-    ├── schemas/               ← common, buys, solds, customers
-    ├── repo/                  ← buys-repo, solds-repo, customers-repo, metrics-repo, types
-    ├── routes/                ← health, version, buys, solds, customers, dashboard, metrics, backups, _shared
+    ├── schemas/               ← common, buys, solds, customers, tags
+    ├── repo/                  ← buys-repo, solds-repo, customers-repo, metrics-repo, tags-repo, types
+    ├── routes/                ← health, version, buys, solds, customers, dashboard, metrics, backups, tags, _shared
     └── __tests__/             ← tests
 ```
 
@@ -47,7 +47,7 @@ server/
 `server/src/index.ts` levanta el server; `server/src/app.ts` arma la app:
 
 - `cors` con origen local, `express.json` con límite de 1 MB, `pinoHttp` para los logs.
-- Routers: `/api/health`, `/api/version`, `/api/buys`, `/api/solds`, `/api/customers`, `/api/stats`.
+- Routers: `/api/health`, `/api/version`, `/api/buys`, `/api/solds`, `/api/customers`, `/api/stats`, `/api/tags/buy`, `/api/tags/sold`.
 - El router `/api/backups` **solo se registra si se pasa un `backupService`** (`createApp`): el server real (`index.ts`) lo crea con `createBackupService({ db, dbPath: DB_PATH })` y lo inyecta.
 - **Static + fallback de SPA**: si existe `WEB_DIR`, sirve `web/dist` y devuelve `index.html` para cualquier ruta que no sea `/api` y no tenga extensión (esto es lo que hace que la app de escritorio tenga **un solo origen**).
 - 404 JSON para lo que no existe: `{ error: 'Not Found', path }`.
@@ -94,6 +94,7 @@ db.pragma('busy_timeout = 5000');
 | `008_deuda_pagada_por_defecto.sql`         | **datos**: las ventas con `paid_amount = 0` pasan a `sale_price` (se asumen pagadas íntegras)               |
 | `009_indices_performance.sql`              | **aditiva**: recrea `idx_buys_purchase_date` e `idx_solds_sold_at`                                          |
 | `010_precio_compra_por_unidad.sql`         | **vistas**: `v_item_costs` y `v_sold_costs` con el precio por unidad (no reescribe datos)                   |
+| `011_tags.sql`                             | **aditiva**: tabla `tags` (con `scope`) + `buys.tag_id` con `ON DELETE SET NULL` + índice `idx_buys_tag_id` |
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
@@ -132,68 +133,135 @@ routes/  →  schemas (Zod, validan)  →  repo/ (SQL)  →  db/
 
 ### `routes/_shared.ts`
 
-| Helper                 | Qué hace                                            |
-| ---------------------- | --------------------------------------------------- |
-| `IdParam`              | `{ id }` → entero positivo (coerce)                 |
-| `DateRangeQuery`       | `from` / `to` opcionales en `YYYY-MM-DD`            |
-| `SalesListQuery`       | rango de fechas + `customerId`                      |
-| `CustomersSearchQuery` | `{ name }` opcional, `.strict()`                    |
-| `ExpensesListQuery`    | `{ category_id }` opcional, `.strict()`             |
-| `asyncHandler`         | envuelve un handler async y pasa el error al `next` |
-| `respondBadRequest`    | 400 con `{ error, issues }`                         |
+| Helper                 | Qué hace                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `IdParam`              | `{ id }` → entero positivo (coerce)                                                  |
+| `DateRangeQuery`       | `from` / `to` opcionales en `YYYY-MM-DD`                                             |
+| `SalesListQuery`       | rango de fechas + `customerId`                                                       |
+| `BuysListQuery`        | rango de fechas + `tag_ids` (CSV) + `sin_tag`                                        |
+| `CustomersSearchQuery` | `{ name }` opcional, `.strict()`                                                     |
+| `ExpensesListQuery`    | `{ category_id }` opcional, `.strict()`                                              |
+| `parseTagIdsParam`     | CSV de ids de tag → `number[]`; `null` si hay algún id que no sea un entero positivo |
+| `asyncHandler`         | envuelve un handler async y pasa el error al `next`                                  |
+| `respondBadRequest`    | 400 con `{ error, issues }`                                                          |
 
 ## 6. Rutas
 
-| Método + ruta                        | Qué hace                                                                       | Errores             |
-| ------------------------------------ | ------------------------------------------------------------------------------ | ------------------- |
-| `GET /api/health`                    | estado + versión del server                                                    | —                   |
-| `GET /api/version`                   | `{ app, front, back }`                                                         | —                   |
-| `GET /api/buys`                      | lista de compras con `disponibles` y `total_cost` (derivado)                   | —                   |
-| `GET /api/buys/stock`                | stock por compra (con `total_cost` derivado)                                   | —                   |
-| `GET /api/buys/:id`                  | una compra (con `total_cost` derivado)                                         | 404                 |
-| `POST /api/buys`                     | alta                                                                           | 400                 |
-| `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)                          | 400/404             |
-| `DELETE /api/buys/:id`               | borra la compra                                                                | 409 si tiene ventas |
-| `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción                            | 404                 |
-| `GET /api/products`                  | nombres de producto distintos (para el autocompletado)                         | —                   |
-| `GET /api/solds`                     | lista de ventas con beneficio + items                                          | —                   |
-| `GET /api/solds/:id`                 | una venta con sus items                                                        | 404                 |
-| `POST /api/solds`                    | alta con items (valida stock)                                                  | 400/**422**         |
-| `PATCH /api/solds/:id`               | edición                                                                        | 400/404             |
-| `DELETE /api/solds/:id`              | borra la venta                                                                 | 404                 |
-| `GET /api/customers`                 | clientes con nº de ventas, total gastado y deuda                               | —                   |
-| `GET /api/customers/:id`             | un cliente                                                                     | 404                 |
-| `POST /api/customers`                | alta                                                                           | 400                 |
-| `PATCH /api/customers/:id`           | edición                                                                        | 400/404             |
-| `DELETE /api/customers/:id`          | borra el cliente                                                               | 409 si tiene ventas |
-| `GET /api/expenses`                  | lista de gastos (filtro opcional por `category_id`)                            | —                   |
-| `GET /api/expenses/:id`              | un gasto                                                                       | 404                 |
-| `POST /api/expenses`                 | alta (exige `category_id`)                                                     | 400                 |
-| `PATCH /api/expenses/:id`            | edición                                                                        | 400/404             |
-| `DELETE /api/expenses/:id`           | borra el gasto                                                                 | 404                 |
-| `GET /api/expense-categories`        | categorías con nº de gastos e importe total (`expenses_count`, `total_amount`) | —                   |
-| `POST /api/expense-categories`       | alta (nombre único)                                                            | 400/409             |
-| `PATCH /api/expense-categories/:id`  | edición del nombre                                                             | 400/404             |
-| `DELETE /api/expense-categories/:id` | borra la categoría                                                             | 409 si tiene gastos |
-| `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores                    | —                   |
-| `GET /api/stats/metrics`             | métricas: KPIs, mes actual/anterior, variaciones y listados                    | —                   |
-| `GET /api/backups`                   | lista de copias guardadas (nombre, tamaño, fecha)                              | —                   |
-| `POST /api/backups`                  | crea una copia (`VACUUM INTO`)                                                 | —                   |
-| `GET /api/backups/:name/download`    | descarga una copia al disco del usuario                                        | 404                 |
-| `DELETE /api/backups/:name`          | elimina una copia guardada                                                     | 400/404             |
-| `POST /api/backups/:name/restore`    | restaura desde una copia guardada                                              | 400/404             |
-| `POST /api/backups/restore`          | restaura desde un archivo subido (binario)                                     | 400                 |
+| Método + ruta                        | Qué hace                                                                                           | Errores                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `GET /api/health`                    | estado + versión del server                                                                        | —                            |
+| `GET /api/version`                   | `{ app, front, back }`                                                                             | —                            |
+| `GET /api/buys`                      | lista de compras con `disponibles`, `total_cost` (derivado) y `tag`; filtros `tag_ids` y `sin_tag` | 400 si `tag_ids` es inválido |
+| `GET /api/buys/stock`                | stock por compra (con `total_cost` derivado)                                                       | —                            |
+| `GET /api/buys/:id`                  | una compra (con `total_cost` derivado)                                                             | 404                          |
+| `POST /api/buys`                     | alta (admite `tag_id`)                                                                             | 400/422                      |
+| `PATCH /api/buys/:id`                | edición (los `undefined` no pisan lo que no se manda)                                              | 400/404/422                  |
+| `DELETE /api/buys/:id`               | borra la compra                                                                                    | 409 si tiene ventas          |
+| `DELETE /api/buys/:id/cascade`       | borra la compra y limpia las ventas, en transacción                                                | 404                          |
+| `GET /api/products`                  | nombres de producto distintos (para el autocompletado)                                             | —                            |
+| `GET /api/solds`                     | lista de ventas con beneficio + items                                                              | —                            |
+| `GET /api/solds/:id`                 | una venta con sus items                                                                            | 404                          |
+| `POST /api/solds`                    | alta con items (valida stock)                                                                      | 400/**422**                  |
+| `PATCH /api/solds/:id`               | edición                                                                                            | 400/404                      |
+| `DELETE /api/solds/:id`              | borra la venta                                                                                     | 404                          |
+| `GET /api/customers`                 | clientes con nº de ventas, total gastado y deuda                                                   | —                            |
+| `GET /api/customers/:id`             | un cliente                                                                                         | 404                          |
+| `POST /api/customers`                | alta                                                                                               | 400                          |
+| `PATCH /api/customers/:id`           | edición                                                                                            | 400/404                      |
+| `DELETE /api/customers/:id`          | borra el cliente                                                                                   | 409 si tiene ventas          |
+| `GET /api/expenses`                  | lista de gastos (filtro opcional por `category_id`)                                                | —                            |
+| `GET /api/expenses/:id`              | un gasto                                                                                           | 404                          |
+| `POST /api/expenses`                 | alta (exige `category_id`)                                                                         | 400                          |
+| `PATCH /api/expenses/:id`            | edición                                                                                            | 400/404                      |
+| `DELETE /api/expenses/:id`           | borra el gasto                                                                                     | 404                          |
+| `GET /api/expense-categories`        | categorías con nº de gastos e importe total (`expenses_count`, `total_amount`)                     | —                            |
+| `POST /api/expense-categories`       | alta (nombre único)                                                                                | 400/409                      |
+| `PATCH /api/expense-categories/:id`  | edición del nombre                                                                                 | 400/404                      |
+| `DELETE /api/expense-categories/:id` | borra la categoría                                                                                 | 409 si tiene gastos          |
+| `GET /api/tags/buy`                  | tags del catálogo de compras, con `buy_count`                                                      | —                            |
+| `POST /api/tags/buy`                 | alta de un tag (nombre + color)                                                                    | 400/409                      |
+| `PATCH /api/tags/buy/:id`            | edición del nombre o del color                                                                     | 400/404/409                  |
+| `DELETE /api/tags/buy/:id`           | borra el tag (desasigna sus compras, no las borra)                                                 | 404                          |
+| `GET /api/tags/sold`                 | tags del catálogo de ventas, con `buy_count`                                                       | —                            |
+| `POST /api/tags/sold`                | alta de un tag (nombre + color)                                                                    | 400/409                      |
+| `PATCH /api/tags/sold/:id`           | edición del nombre o del color                                                                     | 400/404/409                  |
+| `DELETE /api/tags/sold/:id`          | borra el tag (desasigna sus ventas, no las borra)                                                  | 404                          |
+| `GET /api/stats/dashboard`           | KPIs, flujo de caja por mes, top productos, top compradores                                        | —                            |
+| `GET /api/stats/metrics`             | métricas: KPIs, mes actual/anterior, variaciones y listados                                        | —                            |
+| `GET /api/backups`                   | lista de copias guardadas (nombre, tamaño, fecha)                                                  | —                            |
+| `POST /api/backups`                  | crea una copia (`VACUUM INTO`)                                                                     | —                            |
+| `GET /api/backups/:name/download`    | descarga una copia al disco del usuario                                                            | 404                          |
+| `DELETE /api/backups/:name`          | elimina una copia guardada                                                                         | 400/404                      |
+| `POST /api/backups/:name/restore`    | restaura desde una copia guardada                                                                  | 400/404                      |
+| `POST /api/backups/restore`          | restaura desde un archivo subido (binario)                                                         | 400                          |
 
 ### Códigos de error
 
-| Código | Cuándo                                | Cuerpo                                                                                        |
-| ------ | ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 400    | la validación de Zod falla            | `{ error, issues }` (flatten)                                                                 |
-| 404    | el registro no existe                 | `{ error }`                                                                                   |
-| 409    | el borrado dejaría ventas huérfanas   | `{ error, associated_sales }`                                                                 |
-| 409    | borrar una categoría de gasto en uso  | `{ error }`                                                                                   |
-| 422    | stock insuficiente al crear una venta | `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }` |
-| 500    | error no previsto                     | `{ error: 'Internal Server Error' }`                                                          |
+| Código | Cuándo                                                  | Cuerpo                                                                                        |
+| ------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 400    | la validación de Zod falla                              | `{ error, issues }` (flatten)                                                                 |
+| 404    | el registro no existe                                   | `{ error }`                                                                                   |
+| 409    | el borrado dejaría ventas huérfanas                     | `{ error, associated_sales }`                                                                 |
+| 409    | borrar una categoría de gasto en uso                    | `{ error }`                                                                                   |
+| 422    | stock insuficiente al crear una venta                   | `{ error: 'Stock insuficiente', items: [{ buy_id, product_name, disponibles, solicitado }] }` |
+| 422    | el `tag_id` de una compra no existe o es de otro ámbito | `{ error: 'El tag no existe' }`                                                               |
+| 500    | error no previsto                                       | `{ error: 'Internal Server Error' }`                                                          |
+
+### Los tags: catálogos por ámbito
+
+Un **tag** es una etiqueta con **nombre y color**. Hay **catálogos independientes**: uno de compras (`scope = 'buy'`) y otro de ventas (`scope = 'sold'`). El nombre es **único dentro de su catálogo** e **insensible a mayúsculas** (`COLLATE NOCASE`), así que "Navidad" y "navidad" son el mismo tag en compras, pero un tag "Navidad" de compras y otro de ventas no colisionan.
+
+**El modelo** (`db/migrations/011_tags.sql`, **aditiva**: no reescribe ni borra datos existentes):
+
+```sql
+CREATE TABLE tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scope TEXT NOT NULL CHECK (scope IN ('buy', 'sold')),
+  name TEXT NOT NULL COLLATE NOCASE,
+  color TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (scope, name)
+);
+
+ALTER TABLE buys ADD COLUMN tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_buys_tag_id ON buys(tag_id);
+```
+
+- `UNIQUE (scope, name)` da la unicidad **por catálogo**; el `CHECK` del `scope` limita la tabla a `buy` y `sold`.
+- `ON DELETE SET NULL` implementa la desasignación en cascada **en la BD**: borrar un tag **no borra compras**, las deja sin tag (`tag_id = NULL`). Es el primer `ON DELETE SET NULL` del repo (la otra FK, `expenses.category_id`, es `ON DELETE RESTRICT`).
+- `buys.tag_id` es **nullable**: la compra sin tag es el estado por defecto.
+- `created_at` no lleva `DEFAULT`: lo pone el repo (ISO 8601).
+
+**Los schemas** (`server/src/schemas/tags.ts`): `TagScope` (`'buy' | 'sold'`), `TagColor` (hex `#rrggbb`, regex `^#[0-9a-fA-F]{6}$`), `CreateTagInput` (`name` + `color`, `.strict()`), `UpdateTagInput` (`name` y/o `color` opcionales, `.strict()`), `Tag` y `TagWithCount` (`Tag` + `buy_count`, el nº de compras que usan el tag).
+
+**El repo** (`server/src/repo/tags-repo.ts`, `createTagsRepo(db)`): `list(scope)` (ordenado por nombre, con `buy_count`), `getById(scope, id)`, `create(scope, input)`, `update(scope, id, input)` y `remove(scope, id)`. Todas las consultas filtran por `scope`: un tag de un ámbito no se ve ni se toca desde el otro. Dos errores de dominio:
+
+| Error               | HTTP | Cuándo                                                                |
+| ------------------- | ---- | --------------------------------------------------------------------- |
+| `DuplicateTagError` | 409  | el nombre ya existe en ese ámbito ("Ya existe un tag con ese nombre") |
+| `UnknownTagError`   | 422  | el tag no existe o no es del ámbito ("El tag no existe")              |
+
+**El router** (`server/src/routes/tags.ts`) es **uno solo parametrizado por ámbito** (`createTagsRouter(scope, deps)`) y se monta **dos veces** en `server/src/app.ts`: `/api/tags/buy` y `/api/tags/sold`. El ámbito viaja **en la ruta**, nunca en el cuerpo ni en un query param: el cliente no puede consultar ni escribir en el catálogo equivocado.
+
+| Método + ruta | Qué hace                                                | Errores     |
+| ------------- | ------------------------------------------------------- | ----------- |
+| `GET /`       | lista los tags del ámbito con `buy_count`               | —           |
+| `POST /`      | crea un tag (nombre + color)                            | 400/409     |
+| `PATCH /:id`  | actualiza el nombre y/o el color                        | 400/404/409 |
+| `DELETE /:id` | borra el tag (sus compras quedan sin tag, no se borran) | 404         |
+
+Los endpoints de cada ámbito tienen exactamente la misma forma: `GET /api/tags/buy` y `GET /api/tags/sold` devuelven la lista de **su** catálogo.
+
+### Los tags en las compras
+
+- **`POST /api/buys`** acepta `tag_id` (opcional y nullable): ausente = la compra queda sin tag.
+- **`PATCH /api/buys/:id`** acepta `tag_id` (opcional y nullable): ausente = no se toca el tag actual; `null` = se lo quita.
+- **El `tag_id` se valida contra el ámbito `buy`**: si el tag no existe **o es del catálogo de ventas**, la respuesta es **422** `{ error: 'El tag no existe' }`. El error lo lanza el **repo** (`UnknownTagError`, comprobado en `server/src/repo/buys-repo.ts` contra `scope = 'buy'`), no el router: así el router de compras no necesita un repo de tags inyectado.
+- **Toda respuesta de compra lleva `tag`**: `{ id, name, color }` o `null` (nunca el campo ausente). Se arma con un `LEFT JOIN` a `tags` en las lecturas del repo.
+- **`GET /api/buys`** acepta dos filtros, aplicados **en el servidor** como el rango de fechas:
+  - `tag_ids`: CSV de ids (`?tag_ids=3,7`) con **semántica OR** (compras con cualquiera de esos tags). Un id que no sea un entero positivo → **400**.
+  - `sin_tag=true`: compras **sin** tag. Es **exclusivo**: cuando vale `true`, el servidor **ignora** los `tag_ids` enviados.
 
 ### El importe cobrado (`paid_amount`) de una venta
 
@@ -291,14 +359,18 @@ El 409 es un **contrato**: el web lo maneja para abrir la modal de cascada. El b
 
 Vitest, en `server/src/__tests__/`. Los tests de rutas levantan el server real (`createApp` + `listen`) contra una **BD temporal** (`mkdtempSync` en el `tmp` del sistema): **la base de datos del usuario no se toca nunca**.
 
-| Fichero                   | Qué cubre                                                                                                                                       |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metrics.test.ts`         | el repo de métricas: KPIs, mes actual/anterior, variaciones (incluido el `null` sin base), márgenes, deudores y gastos por categoría            |
-| `metrics-routes.test.ts`  | el contrato HTTP de `GET /api/stats/metrics`                                                                                                    |
-| `backups.test.ts`         | el servicio de copias: crear, listar, eliminar, restaurar, la copia de seguridad previa y el rechazo de un archivo inválido **sin tocar la BD** |
-| `backups-routes.test.ts`  | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                   |
-| `products.test.ts`        | el repo de nombres de producto: agrupación sin mayúsculas, grafía más reciente, orden por usos y conteo                                         |
-| `products-routes.test.ts` | el contrato HTTP de `GET /api/products`                                                                                                         |
+| Fichero                   | Qué cubre                                                                                                                                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `metrics.test.ts`         | el repo de métricas: KPIs, mes actual/anterior, variaciones (incluido el `null` sin base), márgenes, deudores y gastos por categoría                                                                                                                                                                         |
+| `metrics-routes.test.ts`  | el contrato HTTP de `GET /api/stats/metrics`                                                                                                                                                                                                                                                                 |
+| `backups.test.ts`         | el servicio de copias: crear, listar, eliminar, restaurar, la copia de seguridad previa y el rechazo de un archivo inválido **sin tocar la BD**                                                                                                                                                              |
+| `backups-routes.test.ts`  | el contrato HTTP de `/api/backups`: alta, listado, descarga, borrado, restauración guardada y restauración por subida binaria                                                                                                                                                                                |
+| `products.test.ts`        | el repo de nombres de producto: agrupación sin mayúsculas, grafía más reciente, orden por usos y conteo                                                                                                                                                                                                      |
+| `products-routes.test.ts` | el contrato HTTP de `GET /api/products`                                                                                                                                                                                                                                                                      |
+| `migracion-011.test.ts`   | la migración `011`: la columna `buys.tag_id` sin tocar las compras existentes, el nombre único por catálogo e insensible a mayúsculas, el `CHECK` del `scope`, la desasignación en cascada (borrar un tag **no** borra compras) y que el runner la aplique una sola vez                                      |
+| `tags.test.ts`            | el repo de tags: alta con su ámbito, el mismo nombre en otro ámbito, `DuplicateTagError`, la actualización por nombre y color, el borrado (desasigna sin borrar compras) y el `buy_count` del listado                                                                                                        |
+| `tags-routes.test.ts`     | el contrato HTTP de `/api/tags/buy`: listado, alta (**201**), duplicado (**409**), color inválido (**400**), edición (**200**/**404**/**409**), borrado (**204**/**404**) y la independencia de los catálogos de compras y ventas                                                                            |
+| `buys-tags.test.ts`       | los tags en las compras por HTTP: alta con tag, `tag: null` sin tag, **422** con un tag inexistente o de otro ámbito, `tag_id: null` para quitarlo, `PATCH` sin `tag_id`, los filtros `tag_ids` (OR) y `sin_tag` (exclusivo), el **400** con un `tag_ids` inválido y el borrado de un tag sin borrar compras |
 
 ## 9. Banco de medición (`npm run bench`)
 

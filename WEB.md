@@ -44,17 +44,17 @@ web/
 
 `web/src/App.tsx` (React Router, `createBrowserRouter`):
 
-| Ruta                 | Vista               | Qué hace                                                                      |
-| -------------------- | ------------------- | ----------------------------------------------------------------------------- |
-| `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas          |
-| `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)                        |
-| `/buys`              | `BuysListPage`      | tabla de compras (precio unidad y total del lote) + alta + borrado            |
-| `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                         |
-| `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                              |
-| `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                          |
-| `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total)          |
-| `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                             |
-| `/expenses`          | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable |
+| Ruta                 | Vista               | Qué hace                                                                                               |
+| -------------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `/`                  | `DashboardPage`     | 5 tabs anidadas: Resumen, Ingresos, Productos, Compradores, Métricas                                   |
+| `/metrics`           | `MetricsTab`        | KPIs y métricas del dashboard (sin gráficos ni tablas)                                                 |
+| `/buys`              | `BuysListPage`      | tabla de compras (precio unidad y total del lote) + alta + borrado + columna de tags y filtro por tags |
+| `/buys/:id`          | `BuyEditPage`       | edición de una compra                                                                                  |
+| `/solds`             | `SoldsListPage`     | tabla de ventas + alta + borrado                                                                       |
+| `/solds/:id`         | `SoldEditPage`      | edición de una venta                                                                                   |
+| `/solds/:id/receipt` | `SoldReceiptPage`   | recibo imprimible de una venta (datos del cliente, productos, total)                                   |
+| `/customers`         | `CustomersListPage` | clientes: alta, edición y borrado                                                                      |
+| `/expenses`          | `ExpensesListPage`  | gastos: alta, edición, borrado, filtro por categoría, total y tabla ordenable                          |
 
 Las altas son **modales**, no páginas: `BuyNewModal` y `SaleNewModal` se abren desde la tabla.
 
@@ -77,8 +77,8 @@ new QueryClient({
 
 Convenciones:
 
-- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useStatsMetrics`, `useBuy`, `useSold`, `useBuysStock`, `useExpenses`, `useExpenseCategories`, `useBackups`.
-- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`, `useCreateExpense`, `useUpdateExpense`, `useDeleteExpense`, `useCreateExpenseCategory`, `useUpdateExpenseCategory`, `useDeleteExpenseCategory`, `useCreateBackup`, `useDeleteBackup`, `useRestoreBackup`.
+- **Una query por recurso**, con su hook: `useBuys`, `useSolds`, `useCustomers`, `useStatsDashboard`, `useStatsMetrics`, `useBuy`, `useSold`, `useBuysStock`, `useExpenses`, `useExpenseCategories`, `useBackups`, `useTags`.
+- **Una mutación por operación**: `useCreateBuy`, `useUpdateBuy`, `useDeleteBuy`, `useDeleteBuyCascade`, `useCreateSold`, `useUpdateSold`, `useDeleteSold`, `useCreateCustomer`, `useUpdateCustomer`, `useDeleteCustomer`, `useCreateExpense`, `useUpdateExpense`, `useDeleteExpense`, `useCreateExpenseCategory`, `useUpdateExpenseCategory`, `useDeleteExpenseCategory`, `useCreateBackup`, `useDeleteBackup`, `useRestoreBackup`, `useCreateTag`, `useUpdateTag`, `useDeleteTag`.
 - Cada mutación invalida lo que dejó de ser cierto (p. ej. borrar una compra invalida `buys`, `solds` y `stats`).
 - Los hooks de cascada comparten máquina de estados: `useCascadeDeleteFlow`.
 
@@ -90,7 +90,11 @@ Convenciones:
 - `ApiError` lleva `status` y `body` (`{ error, issues? }`).
 - `apiErrorMessage(err, fallback)` → mensaje en español para pintar en la UI.
 
-Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.ts`, `api/backups.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
+Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.ts`, `api/backups.ts`, `api/tags.ts`) son una función por endpoint y devuelven **solo el `data`** del sobre `{ data }`.
+
+**Los tags** (`web/src/api/tags.ts`) son un recurso **parametrizado por ámbito**: `TagScope` es `'buy' | 'sold'` y todas las funciones (`listTags`, `createTag`, `updateTag`, `deleteTag`) lo reciben como primer argumento → la URL se arma como `/api/tags/${scope}`. El ámbito viaja **en la ruta**, nunca en el cuerpo ni en la query, así que el cliente no puede escribir en el catálogo equivocado. Los tipos son `ApiTag` (id, scope, name, color, created_at) y `ApiTagWithCount` (`ApiTag` + `buy_count`, que solo existe en el listado).
+
+Los hooks (`web/src/hooks/useTags.ts`) son también **parametrizados por ámbito**: `useTags(scope)` (query key `['tags', scope]`), `useCreateTag(scope)`, `useUpdateTag(scope)` y `useDeleteTag(scope)`. Las tres mutaciones invalidan **los tags del ámbito y las compras** (`['buys']`), porque un tag cambia lo que se ve en la tabla de compras (su color tiñe la fila y su nombre aparece en la columna).
 
 Las **métricas** no tienen módulo propio: viven en `api/solds.ts` (`soldsApi.metricsStats()` → `GET /api/stats/metrics`), con el tipo `MetricsStats` (KPIs, mes actual/anterior, variaciones, márgenes por producto, deudores y gastos por categoría). El web **no recalcula** cifras de negocio: las pide ya redondeadas al server.
 
@@ -107,20 +111,21 @@ Los forms usan `zodResolver` y llevan **`noValidate`**: la validación nativa de
 
 ### `components/ui/` — la base
 
-| Componente                                                      | Para qué                                                                                                                                                           |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado; **clic fuera no cierra**) |
-| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                                     |
-| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                           |
-| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                                  |
-| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll)                                                                                                           |
-| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                                   |
-| `armedRow`                                                      | la fila "armada" + `TravellingCell` (el dato que viaja en la tabla) + `TravellingField` (el dato con nombre en la ficha)                                           |
-| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                 |
-| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                       |
-| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)        |
-| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`, `ReceiptIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`           |
-| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta)                                                          |
+| Componente                                                      | Para qué                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Modal` + `useFocusTrap` + `useScrollLock`                      | el único modal del repo (foco inicial, foco atrapado, `Escape`, montado en un portal a `document.body` con el scroll de fondo bloqueado; **clic fuera no cierra**)                                                                                                                |
+| `ConfirmDeleteModal`                                            | confirmación de borrado simple                                                                                                                                                                                                                                                    |
+| `Button`, `Input`, `Textarea`, `Card`, `Spinner`, `SearchInput` | primitivas con dark mode                                                                                                                                                                                                                                                          |
+| `SortableTh`, `SortableTableHead`                               | cabeceras ordenables (clic, teclado, `aria-sort`)                                                                                                                                                                                                                                 |
+| `VirtualTable`                                                  | tabla virtualizada (el listado largo no traba el scroll). Acepta `getRowClassName` y `getRowStyle` (opcionales) para poder dar clase o estilo a una fila concreta                                                                                                                 |
+| `ErrorState`                                                    | estado de error con "reintentar"                                                                                                                                                                                                                                                  |
+| `armedRow`                                                      | la fila "armada" + `TravellingCell` (el dato que viaja en la tabla) + `TravellingField` (el dato con nombre en la ficha)                                                                                                                                                          |
+| `tableStyles`, `classNames`                                     | clases compartidas de tabla y utilidades de clases                                                                                                                                                                                                                                |
+| `inputStyles`                                                   | clases del input compartidas por `Input`, `CustomerAutocomplete` y `ProductNameAutocomplete`                                                                                                                                                                                      |
+| `NotesPopover`                                                  | icono de notas + popover con la nota entera al pasar el ratón (ancho automático, texto largo en varias líneas, se mantiene abierto si el ratón entra en él)                                                                                                                       |
+| `TagPopover`                                                    | icono del tag + popover con el **nombre y el color** del tag al pasar el ratón (mismo patrón que `NotesPopover`: portal a `document.body` + `role="tooltip"`)                                                                                                                     |
+| `icons`                                                         | iconos de acción (`PencilIcon`, `TrashIcon`, `ReceiptIcon`): las acciones de fila son **iconos**, no palabras; el nombre accesible va en el `aria-label`                                                                                                                          |
+| `DateRangeFilter`                                               | filtro por rango de fechas: presets (Este mes, Último trimestre, Este año) + rango a medida (Desde/Hasta). Admite la prop `layout` con los valores `'default'` y `'stacked'`: el layout por defecto no cambia y `'stacked'` apila los presets y los campos Desde/Hasta en columna |
 
 ### El modal y el scroll de la página
 
@@ -187,6 +192,40 @@ Las compras que ya tuvieras antes del cambio conservan el total pagado en el cam
 `ExpenseFormModal` (alta y edición; crea la primera categoría en línea si no hay ninguna), `CategoryManagerModal` (crear, renombrar y borrar categorías) y `DeleteExpenseDialog`.
 
 El servidor manda el total de cada categoría como `total_amount`: `web/src/api/expenses.ts` lo convierte a `total` (el nombre que usa el modelo del web) al mapear la respuesta de la API. Cualquier alta, edición o borrado de un gasto invalida también la consulta de categorías: el nº de gastos y el total de cada categoría se actualizan solos.
+
+### `components/tags/` — los tags de compra
+
+Un **tag** es una etiqueta con **nombre y color** que se puede poner en una compra. Cada compra lleva **como máximo un** tag y puede no llevar ninguno: el tag es opcional y, si se asigna uno nuevo, sustituye al anterior (no acumula).
+
+Los tags viven en un **catálogo por ámbito**: el de compras (`buy`) y el de ventas (`sold`) son independientes (el mismo nombre puede existir en los dos). Todo el stack (API, hooks, filtro, modal, columna) es **el mismo código parametrizado por ámbito**, así que el catálogo de ventas no duplica ni una línea: por ahora solo la tabla de compras lo usa.
+
+| Pieza             | Qué hace                                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TagFilter`       | el filtro de la tabla: chips de multi-selección (semántica **OR**) + el chip exclusivo **"Sin tag"** + el botón **"Gestionar tags"** + **"Quitar filtro de tags"** |
+| `TagManagerModal` | el modal gestor ("Tags de compra"): crear, renombrar, recolorear y borrar tags                                                                                     |
+| `TagColorPicker`  | la paleta de 10 colores predefinidos + un **color libre** en hexadecimal (`#rrggbb`) + el selector de color del navegador                                          |
+| `TagPopover`      | el icono del tag en la celda + el popover con el **nombre y el color** (`components/ui/TagPopover.tsx`)                                                            |
+
+**El filtro**: cada chip es un tag del catálogo y se pueden marcar **varios**: la lista muestra las compras que tengan **cualquier** de los tags marcados. El chip **"Sin tag"** es **exclusivo**: cuando está activo, el servidor **ignora** los ids de tag enviados y solo devuelve las compras sin etiquetar. El filtro **lo resuelve el servidor** (`GET /api/buys?tag_ids=3,7` o `GET /api/buys?sin_tag=true`), igual que el rango de fechas.
+
+**El modal gestor** (`TagManagerModal`, patrón de `CategoryManagerModal`) lista los tags con su **nº de compras** y deja crear, renombrar, recolorear y borrar. Al borrar pide confirmación y **dice cuántas compras quedan sin etiqueta** ("3 compras quedarán sin etiqueta. Las compras no se borran."): borrar un tag **desasigna**, nunca borra compras.
+
+**El alta y la edición de compra** llevan un selector **"Tag"** (`BuyNewModal` y `BuyEditPage`, con `tag_id` en `BuyFormSchema`): es un `select` con la opción **"Sin tag"** y los tags del catálogo de compras. El `tag_id` viaja en el `POST`/`PATCH` de la compra; `null` deja la compra sin tag.
+
+**La columna Tags** (`BuysListPage.tsx`) va **inmediatamente a la izquierda de Notas** y pinta el icono del tag (`TagIcon`, el SVG de etiqueta de `size-6` en `components/ui/icons.tsx`) teñido con el color del tag; al pasar el ratón se abre el popover con el nombre y el color. Si la compra no tiene tag, la celda queda vacía.
+
+**El tinte de la fila**: el color del tag se aplica como **fondo diluido de la fila**, nunca como color de texto: el texto conserva el color del tema. El color viaja a la fila como variable CSS (`--tag-color`) y la clase la pone `getRowClassName`; `VirtualTable` acepta las props opcionales `getRowClassName` y `getRowStyle` para poder dar clase o estilo a cada fila.
+
+**La barra de filtros** de `/buys` queda en **dos bloques**: a la **izquierda** el filtro de fechas **apilado** (`<DateRangeFilter layout="stacked">`, que apila los presets y los campos Desde/Hasta en columna) y a la **derecha** el filtro de tags con su botón de gestión. El layout por defecto de `DateRangeFilter` no cambia: `/solds` lo sigue usando tal cual.
+
+**La paleta y la accesibilidad** (`web/src/lib/tagColors.ts`):
+
+- `TAG_PALETTE`: los 10 colores predefinidos.
+- `isValidTagColor`: valida el formato `#rrggbb` (el mismo regex que usa el server).
+- El tinte está **acotado**: `--tag-tint-alpha` vale **14 %** en claro y **20 %** en oscuro (y +4 % en hover), así que el fondo resultante nunca es opaco.
+- La **regla de contraste** es de **WCAG AA**: el texto de la fila sobre el fondo teñido tiene que seguir en **≥ 4.5:1** en los dos temas (`TAG_MIN_CONTRAST_RATIO`). Los helpers (`compositeOver`, `relativeLuminance`, `contrastRatio`, `tagRowContrastRatio`, `isAccessibleTagColor`) la calculan de verdad. El servidor **solo valida el formato** del color: si un color libre baja el contraste, la UI lo avisa ("Este color puede reducir el contraste de la tabla.") pero no lo bloquea.
+
+**e2e**: `web/e2e/tags-flow.spec.ts` recorre el flujo entero (crear un tag en el modal gestor → etiquetar una compra → filtrar por tags → editar el color → borrar el tag y comprobar que las compras quedan sin etiqueta y **no** se borran). Los fixtures (`web/e2e/fixtures.ts`) borran también los tags al limpiar la BD de la prueba.
 
 ### `components/dashboard/`
 
@@ -261,12 +300,20 @@ Los tokens se combinan con AND: varias palabras = todas las condiciones.
 - Un rango inválido (desde > hasta) **no se aplica**: sale un aviso y la lista se queda con el último rango válido.
 - Con el filtro activo y sin resultados, la lista vacía dice _"No hay compras en este período"_ (o _"No hay ventas en este período"_), no "todavía".
 
+**Filtro por tags** (solo en `/buys`): la barra de filtros de compras tiene dos bloques, el de fechas **apilado** a la izquierda (`layout="stacked"`) y el de tags a la derecha.
+
+- Es **multi-selección con semántica OR**: se pueden marcar varios tags y la lista muestra las compras que tengan **cualquier** de ellos.
+- El chip **"Sin tag"** es **exclusivo**: con él activo, el servidor **ignora** los ids de tag y solo devuelve las compras sin etiquetar.
+- **El filtro va al servidor**: `GET /api/buys?tag_ids=3,7` (CSV de ids) y `GET /api/buys?sin_tag=true` (`api/queryString.ts` los monta con `tagFilterParams`). La clave de la query de compras incluye los tags (`['buys', from, to, tagIds, sinTag]`). Un `tag_ids` con ids que no son enteros positivos se rechaza con **400**.
+- Si al guardar una compra se manda un `tag_id` que no existe o que es del catálogo de ventas, el servidor lo rechaza con **422** ("El tag no existe").
+
 ## 8. Estilos
 
 - Tailwind 4 con config en CSS: `@import "tailwindcss"`, `@custom-variant dark` y `@theme` (paleta brand, paleta de métricas, fuentes) en `web/src/index.css`.
 - `html` lleva `scrollbar-gutter: stable both-edges`: el hueco de la barra de scroll vertical está siempre reservado (a los dos lados, para que el contenido quede centrado) y el contenido no se desplaza de lado al cambiar de ruta o al abrir un modal. La raíz pinta ese hueco con el fondo de la app (`gray-50` / `gray-950` en dark) y fija `color-scheme` según el tema, para que no quede una franja de otro color ni una barra de scroll en claro sobre la app en dark.
 - **Barra de scroll con el tema de la app** (`web/src/index.css`): `::-webkit-scrollbar` la deja fina (10 px), con el **track transparente** (el hueco reservado se sigue viendo como el fondo de la app) y el **pulgar redondeado** en los tonos del tema (`gray-300` en claro, `gray-700` en dark, con un tono más claro al pasar el ratón). Los tokens viven en `--scrollbar-thumb` / `--scrollbar-thumb-hover`. Para los navegadores que no soportan `::-webkit-scrollbar` (Firefox), hay un bloque `@supports not selector(::-webkit-scrollbar)` con `scrollbar-width` y `scrollbar-color`. Chromium y el WebView2 de la app de escritorio sí lo soportan.
 - Dark mode clase-based (`dark`), con anti-FOUC en `index.html` y persistencia en `localStorage` (`salemanteiner-theme`).
+- **El tinte de los tags** (`web/src/index.css`): el token `--tag-tint-alpha` vale **14 %** en `:root` y **20 %** en `.dark`, y la clase `.tag-row-tinted` pinta el fondo de la fila con `color-mix(in oklab, var(--tag-color) var(--tag-tint-alpha), transparent)`. En hover el tinte sube 4 puntos (`calc(var(--tag-tint-alpha) + 4%)`). El color del tag llega a la fila como variable CSS (`--tag-color`), así que **el texto nunca cambia de color**: solo el fondo.
 - Tokens y reglas: [ARCHITECTURE.md §6](ARCHITECTURE.md#6-convenciones-de-ui-tailwind-4).
 - Cero comentarios en el código (solo directivas funcionales de ESLint) e identificadores en inglés.
 
