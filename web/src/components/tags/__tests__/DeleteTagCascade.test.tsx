@@ -1,12 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('@/hooks/useBuys', () => ({
-  useBuys: vi.fn(),
-}));
-
-import { useBuys } from '@/hooks/useBuys';
 import { DeleteTagCascade } from '@/components/tags/DeleteTagCascade';
 import { renderWithProviders } from '@/test-utils/render';
 import type { BuyWithStock } from '@/api/buys';
@@ -29,21 +24,11 @@ function buyFixture(overrides: Partial<BuyWithStock> = {}): BuyWithStock {
 }
 
 describe('DeleteTagCascade', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useBuys).mockReturnValue({
-      data: [buyFixture()],
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as never);
-  });
-
   it('avisa de cuántas compras tienen el tag y las lista', () => {
     renderWithProviders(
       <DeleteTagCascade
         tagName="Urgente"
-        tagId={1}
+        buys={[buyFixture()]}
         isPending={false}
         error={null}
         onCancel={vi.fn()}
@@ -62,7 +47,7 @@ describe('DeleteTagCascade', () => {
     renderWithProviders(
       <DeleteTagCascade
         tagName="Urgente"
-        tagId={1}
+        buys={[buyFixture()]}
         isPending={false}
         error={null}
         onCancel={vi.fn()}
@@ -84,7 +69,7 @@ describe('DeleteTagCascade', () => {
     renderWithProviders(
       <DeleteTagCascade
         tagName="Urgente"
-        tagId={1}
+        buys={[buyFixture()]}
         isPending={false}
         error={null}
         onCancel={onCancel}
@@ -103,7 +88,7 @@ describe('DeleteTagCascade', () => {
     renderWithProviders(
       <DeleteTagCascade
         tagName="Urgente"
-        tagId={1}
+        buys={[buyFixture()]}
         isPending={false}
         error="No se pudo borrar el tag"
         onCancel={vi.fn()}
@@ -114,18 +99,11 @@ describe('DeleteTagCascade', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudo borrar el tag');
   });
 
-  it('mientras carga las compras no deja confirmar', () => {
-    vi.mocked(useBuys).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-      error: null,
-    } as never);
-
+  it('sin compras afectadas no lista nada y avisa de que no cambia nada', () => {
     renderWithProviders(
       <DeleteTagCascade
         tagName="Urgente"
-        tagId={1}
+        buys={[]}
         isPending={false}
         error={null}
         onCancel={vi.fn()}
@@ -133,7 +111,7 @@ describe('DeleteTagCascade', () => {
       />,
     );
 
-    expect(screen.getByText(/Cargando/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sí, borrar el tag' })).toBeNull();
+    expect(screen.getByText(/no tiene compras/)).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).toBeNull();
   });
 });

@@ -10,7 +10,7 @@ export function useCreateBuy() {
     mutationFn: (input: CreateBuyInput) => buysApi.create(input),
     onSuccess: (_data, input) => {
       toastCreated('buy', input.product_name);
-      invalidate(qc, ['buys'], ['stats', 'dashboard']);
+      invalidate(qc, ['buys'], ['tags'], ['stats', 'dashboard']);
     },
   });
 }

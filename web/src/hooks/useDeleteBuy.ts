@@ -9,7 +9,7 @@ export function useDeleteBuy() {
     mutationFn: (id: number) => buysApi.remove(id),
     onSuccess: () => {
       toastDeleted('buy');
-      invalidate(qc, ['buys'], ['stats', 'dashboard']);
+      invalidate(qc, ['buys'], ['tags'], ['stats', 'dashboard']);
     },
   });
 }

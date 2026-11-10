@@ -162,6 +162,36 @@ test('/buys: editar el color de un tag actualiza el swatch y el tinte de la fila
   await expect(row).toHaveAttribute('style', /--tag-color:\s*#0d9488/i);
 });
 
+test('/buys: etiquetar una compra desde la app actualiza el contador del tag y avisa al borrarlo', async ({
+  page,
+  request,
+}) => {
+  await createTagViaApi(request, TAG_NAME, TAG_COLOR);
+  await createBuyViaApi(request, {
+    product_name: 'Funda etiquetada',
+    purchase_cost: 5,
+    quantity: 3,
+  });
+
+  await page.goto('/buys');
+  await page.getByRole('link', { name: 'Editar Funda etiquetada' }).click();
+  await page.getByLabel('Tag', { exact: true }).selectOption({ label: TAG_NAME });
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page).toHaveURL(/\/buys$/);
+
+  await page.getByRole('button', { name: 'Gestionar tags' }).click();
+  const modal = page.getByRole('dialog');
+  await expect(modal.getByText('1 compra')).toBeVisible();
+
+  await modal.getByRole('button', { name: `Borrar ${TAG_NAME}` }).click();
+  const confirm = modal.getByRole('button', { name: 'Sí, borrar' });
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+
+  await expect(modal.getByText('Funda etiquetada')).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Sí, borrar el tag' })).toBeVisible();
+});
+
 test('/buys: borrar un tag deja las compras sin etiqueta y no las borra', async ({
   page,
   request,
@@ -183,7 +213,9 @@ test('/buys: borrar un tag deja las compras sin etiqueta y no las borra', async 
     modal.getByText(`¿Estás seguro de que quieres borrar el tag «${TAG_NAME}»?`),
   ).toBeVisible();
 
-  await modal.getByRole('button', { name: 'Sí, borrar' }).click();
+  const confirm = modal.getByRole('button', { name: 'Sí, borrar' });
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
 
   await expect(modal.getByText(/tiene/)).toBeVisible();
   await expect(modal.getByText(/sin etiqueta/)).toBeVisible();

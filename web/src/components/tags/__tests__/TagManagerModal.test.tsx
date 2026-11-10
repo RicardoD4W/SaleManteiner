@@ -54,7 +54,24 @@ const tagsFixture = [
     created_at: '2026-11-02T10:00:00.000Z',
     buy_count: 0,
   },
+  {
+    id: 3,
+    scope: 'buy' as const,
+    name: 'Contable',
+    color: '#0d9488',
+    created_at: '2026-11-03T10:00:00.000Z',
+    buy_count: 0,
+  },
 ];
+
+const buysByTagId: Record<number, BuyWithStock[]> = {
+  1: [
+    buyFixture(),
+    buyFixture({ id: 11, product_name: 'Funda urgente' }),
+    buyFixture({ id: 12, product_name: 'Caja urgente' }),
+  ],
+  3: [buyFixture({ id: 20, product_name: 'Caja con contador obsoleto' })],
+};
 
 function mutationMock(overrides: Record<string, unknown> = {}) {
   return {
@@ -90,23 +107,23 @@ describe('TagManagerModal', () => {
     vi.mocked(useCreateTag).mockReturnValue(mutationMock() as never);
     vi.mocked(useUpdateTag).mockReturnValue(mutationMock() as never);
     vi.mocked(useDeleteTag).mockReturnValue(mutationMock() as never);
-    vi.mocked(useBuys).mockReturnValue({
-      data: [
-        buyFixture(),
-        buyFixture({ id: 11, product_name: 'Funda urgente' }),
-        buyFixture({ id: 12, product_name: 'Caja urgente' }),
-      ],
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as never);
+    vi.mocked(useBuys).mockImplementation((_range, filter) => {
+      const ids = filter?.tagIds ?? [];
+      const data = ids.flatMap((id) => buysByTagId[id] ?? []);
+      return {
+        data,
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as never;
+    });
   });
 
   it('lista los tags con el número de compras en palabras', () => {
     renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
 
     expect(screen.getByText('3 compras')).toBeInTheDocument();
-    expect(screen.getByText('sin compras')).toBeInTheDocument();
+    expect(screen.getAllByText('sin compras')).toHaveLength(2);
   });
 
   it('un nombre vacío avisa y no llama a la API', async () => {
@@ -270,6 +287,20 @@ describe('TagManagerModal', () => {
 
     expect(remove.mutateAsync).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Borrar Urgente' })).toBeInTheDocument();
+  });
+
+  it('el aviso sale aunque el contador del catálogo esté obsoleto', async () => {
+    const user = userEvent.setup();
+    const remove = mutationMock();
+    vi.mocked(useDeleteTag).mockReturnValue(remove as never);
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Contable' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+    expect(await screen.findByText('Caja con contador obsoleto')).toBeInTheDocument();
+    expect(remove.mutateAsync).not.toHaveBeenCalled();
   });
 
   it('un tag sin compras se borra tras la confirmación, sin segundo aviso', async () => {

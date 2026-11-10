@@ -3,7 +3,7 @@ import { buysApi } from '../api/buys.js';
 import type { TagFilter } from '../api/queryString.js';
 import type { DateRange } from '../lib/dateRange.js';
 
-export function useBuys(range?: DateRange, filter?: TagFilter) {
+export function useBuys(range?: DateRange, filter?: TagFilter, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [
       'buys',
@@ -14,5 +14,6 @@ export function useBuys(range?: DateRange, filter?: TagFilter) {
     ],
     queryFn: () => buysApi.list(range, filter),
     placeholderData: (previous) => previous,
+    enabled: options?.enabled,
   });
 }
