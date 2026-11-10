@@ -8,6 +8,13 @@ vi.mock('@/api/tags', () => ({
   deleteTag: vi.fn(),
 }));
 
+const { toastCreated, toastUpdated, toastDeleted } = vi.hoisted(() => ({
+  toastCreated: vi.fn(),
+  toastUpdated: vi.fn(),
+  toastDeleted: vi.fn(),
+}));
+vi.mock('@/lib/toast', () => ({ toastCreated, toastUpdated, toastDeleted }));
+
 import { createTag, deleteTag, listTags, updateTag, type ApiTag } from '@/api/tags';
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '@/hooks/useTags';
 import { makeHookWrapper } from '@/test-utils/hook-wrapper';
@@ -68,6 +75,7 @@ describe('useTags', () => {
 describe('useCreateTag', () => {
   beforeEach(() => {
     vi.mocked(createTag).mockReset();
+    toastCreated.mockClear();
   });
 
   it('crea el tag en el ámbito e invalida el catálogo y las compras', async () => {
@@ -81,6 +89,7 @@ describe('useCreateTag', () => {
     });
 
     expect(createTag).toHaveBeenCalledWith('buy', { name: 'Oferta', color: '#ff8800' });
+    expect(toastCreated).toHaveBeenCalledWith('tag', 'Oferta');
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags', 'buy'] });
@@ -105,6 +114,7 @@ describe('useCreateTag', () => {
 describe('useUpdateTag', () => {
   beforeEach(() => {
     vi.mocked(updateTag).mockReset();
+    toastUpdated.mockClear();
   });
 
   it('actualiza el tag en el ámbito e invalida el catálogo y las compras', async () => {
@@ -118,6 +128,7 @@ describe('useUpdateTag', () => {
     });
 
     expect(updateTag).toHaveBeenCalledWith('buy', 1, { name: 'Promo' });
+    expect(toastUpdated).toHaveBeenCalledWith('tag', 'Promo');
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags', 'buy'] });
@@ -129,6 +140,7 @@ describe('useUpdateTag', () => {
 describe('useDeleteTag', () => {
   beforeEach(() => {
     vi.mocked(deleteTag).mockReset();
+    toastDeleted.mockClear();
   });
 
   it('borra el tag del ámbito e invalida el catálogo y las compras', async () => {
@@ -142,6 +154,7 @@ describe('useDeleteTag', () => {
     });
 
     expect(deleteTag).toHaveBeenCalledWith('buy', 1);
+    expect(toastDeleted).toHaveBeenCalledWith('tag');
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags', 'buy'] });

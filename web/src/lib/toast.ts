@@ -1,6 +1,6 @@
 import { sileo } from 'sileo';
 
-export type ToastKind = 'buy' | 'sale' | 'customer';
+export type ToastKind = 'buy' | 'sale' | 'customer' | 'tag';
 
 const TITLES = {
   buy: {
@@ -17,6 +17,11 @@ const TITLES = {
     created: 'Cliente registrado',
     updated: 'Cliente actualizado',
     deleted: 'Cliente eliminado',
+  },
+  tag: {
+    created: 'Tag creado',
+    updated: 'Tag actualizado',
+    deleted: 'Tag eliminado',
   },
 } satisfies Record<ToastKind, { created: string; updated: string; deleted: string }>;
 

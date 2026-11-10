@@ -36,4 +36,26 @@ describe('toast', () => {
       styles: { title: 'normal-case!' },
     });
   });
+
+  it('avisa de los tags con sus literales', () => {
+    toastCreated('tag', 'Oferta');
+    expect(success).toHaveBeenCalledWith({
+      title: 'Tag creado',
+      description: 'Oferta',
+      styles: { title: 'normal-case!' },
+    });
+
+    toastUpdated('tag', 'Oferta');
+    expect(success).toHaveBeenCalledWith({
+      title: 'Tag actualizado',
+      description: 'Oferta',
+      styles: { title: 'normal-case!' },
+    });
+
+    toastDeleted('tag');
+    expect(success).toHaveBeenCalledWith({
+      title: 'Tag eliminado',
+      styles: { title: 'normal-case!' },
+    });
+  });
 });
