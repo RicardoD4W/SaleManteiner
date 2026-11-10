@@ -6,6 +6,13 @@ vi.mock('@/hooks/useBuys', () => ({
   useBuys: vi.fn(),
 }));
 
+vi.mock('@/hooks/useTags', () => ({
+  useTags: vi.fn(),
+  useCreateTag: vi.fn(),
+  useUpdateTag: vi.fn(),
+  useDeleteTag: vi.fn(),
+}));
+
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
     getVirtualItems: () =>
@@ -21,6 +28,7 @@ vi.mock('@tanstack/react-virtual', () => ({
 }));
 
 import { useBuys } from '@/hooks/useBuys';
+import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '@/hooks/useTags';
 import { BuysListPage } from '@/pages/buys/BuysListPage';
 import { renderWithProviders } from '@/test-utils/render';
 import { presetRange } from '@/lib/dateRange';
@@ -62,6 +70,25 @@ describe('BuysListPage', () => {
       error: null,
       refetch: vi.fn(),
     } as never);
+    vi.mocked(useTags).mockReturnValue({
+      data: [
+        {
+          id: 1,
+          scope: 'buy',
+          name: 'Urgente',
+          color: '#dc2626',
+          created_at: '2026-11-01T10:00:00.000Z',
+          buy_count: 3,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useCreateTag).mockReturnValue({ isPending: false } as never);
+    vi.mocked(useUpdateTag).mockReturnValue({ isPending: false } as never);
+    vi.mocked(useDeleteTag).mockReturnValue({ isPending: false } as never);
   });
 
   it('muestra el coste del lote y el precio por unidad en columnas separadas', () => {
@@ -162,7 +189,7 @@ describe('BuysListPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Este mes' }));
 
-    expect(useBuys).toHaveBeenLastCalledWith(presetRange('month'));
+    expect(useBuys).toHaveBeenLastCalledWith(presetRange('month'), {});
   });
 
   it('"Quitar filtro" deja la lista sin rango', async () => {
@@ -172,7 +199,7 @@ describe('BuysListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Este mes' }));
     await user.click(screen.getByRole('button', { name: 'Quitar filtro' }));
 
-    expect(useBuys).toHaveBeenLastCalledWith({});
+    expect(useBuys).toHaveBeenLastCalledWith({}, {});
   });
 
   it('sin compras y sin filtro avisa de que no hay compras todavía', () => {
@@ -237,6 +264,53 @@ describe('BuysListPage', () => {
 
     expect(sinTag.className).not.toContain('tag-row-tinted');
     expect(sinTag.style.getPropertyValue('--tag-color')).toBe('');
+  });
+
+  it('el filtro de tags se pinta junto al filtro de fechas', () => {
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.getByRole('button', { name: 'Este mes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gestionar tags' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Urgente' })).toBeInTheDocument();
+  });
+
+  it('al elegir un tag pide las compras con ese tag', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuysListPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Urgente' }));
+
+    expect(useBuys).toHaveBeenLastCalledWith({}, { tagIds: [1] });
+  });
+
+  it('"Gestionar tags" abre el modal gestor de tags', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Gestionar tags' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Tags de compra' })).toBeInTheDocument();
+  });
+
+  it('sin compras también se puede filtrar y gestionar tags', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useBuys).mockReturnValue({
+      data: [] as never,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<BuysListPage />);
+
+    expect(screen.getByRole('button', { name: 'Gestionar tags' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Gestionar tags' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Tags de compra' })).toBeInTheDocument();
   });
 
   it('sin compras dentro del período avisa de que el período está vacío', async () => {

@@ -26,6 +26,9 @@ import { Button } from '../../components/ui/Button';
 import { NotesPopover } from '../../components/ui/NotesPopover';
 import { TagPopover } from '../../components/ui/TagPopover';
 import { TAG_ROW_TINT_CLASS } from '../../lib/tagColors';
+import { TagFilter as TagFilterBar } from '../../components/tags/TagFilter';
+import { TagManagerModal } from '../../components/tags/TagManagerModal';
+import type { TagFilter } from '../../api/queryString';
 
 const columnHelper = createColumnHelper<BuyWithStock>();
 
@@ -46,8 +49,10 @@ function toBuyDetail(buy: BuyWithStock): Buy {
 
 export function BuysListPage() {
   const [range, setRange] = useState<DateRange>({});
-  const { data, isLoading, isError, error, refetch } = useBuys(range);
+  const [tagFilter, setTagFilter] = useState<TagFilter>({});
+  const { data, isLoading, isError, error, refetch } = useBuys(range, tagFilter);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
 
   const [query, setQuery] = useState('');
 
@@ -211,6 +216,25 @@ export function BuysListPage() {
           buysWithStock.length === 1 ? 'compra' : 'compras'
         }`;
 
+  const filtersBar = (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <DateRangeFilter value={range} onChange={setRange} layout="stacked" />
+      </div>
+      <div className="w-full lg:max-w-md">
+        <TagFilterBar
+          value={tagFilter}
+          onChange={setTagFilter}
+          onManage={() => setIsTagManagerOpen(true)}
+        />
+      </div>
+    </div>
+  );
+
+  const tagManagerModal = isTagManagerOpen ? (
+    <TagManagerModal onClose={() => setIsTagManagerOpen(false)} />
+  ) : null;
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -239,13 +263,14 @@ export function BuysListPage() {
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Compras</h2>
           <Button onClick={() => setIsModalOpen(true)}>+ Nueva compra</Button>
         </div>
-        <DateRangeFilter value={range} onChange={setRange} />
+        {filtersBar}
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {filtered ? 'No hay compras en este período.' : 'No hay compras todavía.'}
           </p>
         </div>
         {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
+        {tagManagerModal}
       </div>
     );
   }
@@ -268,7 +293,7 @@ export function BuysListPage() {
         <Button onClick={() => setIsModalOpen(true)}>+ Nueva compra</Button>
       </div>
 
-      <DateRangeFilter value={range} onChange={setRange} />
+      {filtersBar}
 
       {filteredBuys.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
@@ -310,6 +335,7 @@ export function BuysListPage() {
         </ArmedRowProvider>
       )}
       {isModalOpen ? <BuyNewModal onClose={() => setIsModalOpen(false)} /> : null}
+      {tagManagerModal}
 
       <DeleteDialogs target={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
