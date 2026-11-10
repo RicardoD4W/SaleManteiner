@@ -28,6 +28,18 @@ describe('Modal', () => {
     expect(screen.getByText('Cuerpo')).toBeInTheDocument();
   });
 
+  it('el diálogo entra con una animación de entrada y el fondo se atenúa', () => {
+    renderWithProviders(
+      <Modal title="Nueva compra" onClose={vi.fn()}>
+        <p>Cuerpo</p>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('animate-pop-in');
+    expect(dialog.parentElement).toHaveClass('animate-fade-in');
+  });
+
   it('el botón Cerrar llama a onClose', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

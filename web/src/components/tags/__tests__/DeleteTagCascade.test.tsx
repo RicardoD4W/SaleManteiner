@@ -24,6 +24,21 @@ function buyFixture(overrides: Partial<BuyWithStock> = {}): BuyWithStock {
 }
 
 describe('DeleteTagCascade', () => {
+  it('entra con una animación de entrada', () => {
+    renderWithProviders(
+      <DeleteTagCascade
+        tagName="Urgente"
+        buys={[buyFixture()]}
+        isPending={false}
+        error={null}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/El tag/).closest('div')).toHaveClass('animate-pop-in');
+  });
+
   it('avisa de cuántas compras tienen el tag y las lista', () => {
     renderWithProviders(
       <DeleteTagCascade

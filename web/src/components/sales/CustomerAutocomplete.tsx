@@ -176,7 +176,7 @@ export function CustomerAutocomplete({
           aria-label="Clientes"
           onMouseDown={(e) => e.preventDefault()}
           className={[
-            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-lg border',
+            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto origin-top rounded-lg border animate-pop-in',
             'bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',
             'divide-y divide-gray-100 dark:divide-gray-700',
           ].join(' ')}

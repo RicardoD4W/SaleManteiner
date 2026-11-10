@@ -205,7 +205,7 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
         ) : null}
 
         {deleteTarget ? (
-          <div className="space-y-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+          <div className="space-y-2 animate-pop-in rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
             <p className="text-sm text-gray-800 dark:text-gray-100">
               ¿Eliminar la categoría <strong>"{deleteTarget.name}"</strong>? No se puede deshacer.
             </p>

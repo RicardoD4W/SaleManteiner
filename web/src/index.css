@@ -37,6 +37,29 @@ html.dark {
   --color-metric-deuda: #475569;
   --color-metric-perdida: #b91c1c;
   --color-chart-dot: #ffffff;
+
+  --animate-pop-in: pop-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  --animate-fade-in: fade-in 150ms ease-out backwards;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .dark {
@@ -59,6 +82,11 @@ html.dark {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .animate-pop-in,
+  .animate-fade-in {
     animation: none !important;
   }
 }

@@ -228,6 +228,17 @@ describe('TagManagerModal', () => {
     expect(remove.mutateAsync).not.toHaveBeenCalled();
   });
 
+  it('la confirmación de borrado entra con una animación de entrada', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+
+    const confirmation = screen.getByText('¿Estás seguro de que quieres borrar el tag «Urgente»?');
+    expect(confirmation.closest('div')).toHaveClass('animate-pop-in');
+  });
+
   it('la confirmación de borrado sale arriba de la lista de tags', async () => {
     const user = userEvent.setup();
 

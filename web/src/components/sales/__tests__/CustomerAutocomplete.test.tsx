@@ -113,6 +113,19 @@ describe('CustomerAutocomplete', () => {
     expect(screen.getAllByRole('option').length).toBeGreaterThan(0);
   });
 
+  it('la lista de clientes entra con una animación de entrada', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
+
+    screen.getByRole('combobox').focus();
+    await user.keyboard('{ArrowDown}');
+
+    await waitFor(() => {
+      expect(screen.getByRole('listbox', { name: 'Clientes' })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('listbox', { name: 'Clientes' })).toHaveClass('animate-pop-in');
+  });
+
   it('al hacer click en un cliente llama a onChange', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

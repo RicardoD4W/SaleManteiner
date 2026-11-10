@@ -62,6 +62,18 @@ describe('ProductNameAutocomplete', () => {
     expect(screen.queryByRole('option', { name: /Cámara réflex/ })).not.toBeInTheDocument();
   });
 
+  it('la lista de sugerencias entra con una animación de entrada', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness />);
+
+    await user.type(screen.getByRole('combobox'), 'IPHONE');
+
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('listbox')).toHaveClass('animate-pop-in');
+  });
+
   it('al hacer click en una sugerencia pone ese nombre en el campo', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

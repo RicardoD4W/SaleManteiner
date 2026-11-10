@@ -5,10 +5,11 @@ import { useScrollLock } from './useScrollLock';
 
 type ModalSize = 'compact' | 'medium' | 'wide' | 'panel';
 
-const backdropClass = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+const backdropClass =
+  'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in';
 
 const dialogClass =
-  'flex w-full flex-col rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900';
+  'flex w-full flex-col rounded-xl border border-gray-200 bg-white shadow-2xl animate-pop-in dark:border-gray-800 dark:bg-gray-900';
 
 const sizeClasses: Record<ModalSize, string> = {
   compact: 'max-h-[80vh] max-w-lg overflow-y-auto',
