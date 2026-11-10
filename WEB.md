@@ -96,6 +96,8 @@ Los recursos (`api/buys.ts`, `api/solds.ts`, `api/customers.ts`, `api/expenses.t
 
 Los hooks (`web/src/hooks/useTags.ts`) son también **parametrizados por ámbito**: `useTags(scope)` (query key `['tags', scope]`), `useCreateTag(scope)`, `useUpdateTag(scope)` y `useDeleteTag(scope)`. Las tres mutaciones invalidan **los tags del ámbito y las compras** (`['buys']`), porque un tag cambia lo que se ve en la tabla de compras (su color tiñe la fila y su nombre aparece en la columna).
 
+**Las mutaciones de compras invalidan también los tags** (`['tags']`): al crear, editar o borrar una compra cambia su `tag_id`, y con eso el `buy_count` que el catálogo muestra al lado de cada tag. Como la query de tags tiene `staleTime: Infinity`, sin esa invalidación el contador se quedaba **congelado en el valor viejo** (un tag recién asignado seguía saliendo como "sin compras").
+
 Las **métricas** no tienen módulo propio: viven en `api/solds.ts` (`soldsApi.metricsStats()` → `GET /api/stats/metrics`), con el tipo `MetricsStats` (KPIs, mes actual/anterior, variaciones, márgenes por producto, deudores y gastos por categoría). El web **no recalcula** cifras de negocio: las pide ya redondeadas al server.
 
 Las **copias de seguridad** sí tienen módulo propio (`api/backups.ts`): `list`, `create`, `remove`, `restoreStored`, `restoreFromFile` y `downloadUrl`. La subida de un archivo va como **cuerpo binario** (`Content-Type: application/octet-stream` + cabecera `X-Filename` con el nombre original), no como `multipart`.
@@ -215,6 +217,8 @@ Los tags viven en un **catálogo por ámbito**: el de compras (`buy`) y el de ve
 2. Si el tag **tiene compras**, al confirmar se abre el **segundo aviso** (`DeleteTagCascade`), con el mismo patrón que el borrado en cascada de una compra vendida: **lista los productos que tienen ese tag** y recuerda que **se quedan sin etiqueta** ("Las compras no se borran"). Si el tag no tiene compras, la pregunta basta y el tag se borra directamente.
 
 Borrar un tag **desasigna**, nunca borra compras. La lista de las compras afectadas sale del filtro que ya existía (`GET /api/buys?tag_ids={id}`), a través de `useBuys`.
+
+**La segunda decisión no se apoya en el `buy_count` del catálogo** (que puede estar desfasado en caché), sino en **la lista real** de las compras con ese tag: al elegir el tag se consulta `GET /api/buys?tag_ids={id}` y, si devuelve alguna, se muestra el segundo aviso. Mientras esa consulta está en curso, el botón de confirmar sale deshabilitado con el aviso "Comprobando si el tag tiene compras…".
 
 **El alta y la edición de compra** llevan un selector **"Tag"** (`BuyNewModal` y `BuyEditPage`, con `tag_id` en `BuyFormSchema`): es un `select` con la opción **"Sin tag"** y los tags del catálogo de compras. El `tag_id` viaja en el `POST`/`PATCH` de la compra; `null` deja la compra sin tag.
 
