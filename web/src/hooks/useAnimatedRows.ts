@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MOTION_MS, prefersReducedMotion } from '../lib/motion';
 
+export type RowId = number | string;
+
 export type RowAnimationKind = 'in' | 'out';
 
 interface RowAnimationEntry<T> {
@@ -8,30 +10,30 @@ interface RowAnimationEntry<T> {
   item: T;
 }
 
-interface AnimatedRowsState<T> {
+interface AnimatedRowsState<T extends { id: RowId }> {
   ids: string;
   items: T[];
   previousItems: T[];
   generation: string;
-  animations: Map<number, RowAnimationEntry<T>>;
+  animations: Map<RowId, RowAnimationEntry<T>>;
 }
 
-export interface AnimatedRows<T> {
+export interface AnimatedRows<T extends { id: RowId }> {
   rows: T[];
   rowClassName: (id: number) => string | undefined;
   rowKey: (id: number) => string;
 }
 
-function idsKey<T extends { id: number }>(items: T[]): string {
+function idsKey<T extends { id: RowId }>(items: T[]): string {
   return items.map((item) => item.id).join(',');
 }
 
-export function useAnimatedRows<T extends { id: number }>(
+export function useAnimatedRows<T extends { id: RowId }>(
   items: T[],
   generation = '',
 ): AnimatedRows<T> {
   const [state, setState] = useState<AnimatedRowsState<T>>(() => {
-    const animations = new Map<number, RowAnimationEntry<T>>();
+    const animations = new Map<RowId, RowAnimationEntry<T>>();
     for (const item of items) animations.set(item.id, { kind: 'in', item });
     return {
       ids: idsKey(items),
@@ -74,7 +76,7 @@ export function useAnimatedRows<T extends { id: number }>(
     });
   }
 
-  const deadlinesRef = useRef(new Map<number, { entry: RowAnimationEntry<T>; deadline: number }>());
+  const deadlinesRef = useRef(new Map<RowId, { entry: RowAnimationEntry<T>; deadline: number }>());
 
   useEffect(() => {
     const deadlines = deadlinesRef.current;
@@ -122,7 +124,7 @@ export function useAnimatedRows<T extends { id: number }>(
 
   const rows = useMemo(() => {
     const merged = [...items];
-    const previousIndex = new Map<number, number>();
+    const previousIndex = new Map<RowId, number>();
     state.previousItems.forEach((item, index) => previousIndex.set(item.id, index));
 
     const exiting = Array.from(state.animations.values())
@@ -138,7 +140,7 @@ export function useAnimatedRows<T extends { id: number }>(
   }, [items, state.previousItems, state.animations]);
 
   const rowClassName = useCallback(
-    (id: number) => {
+    (id: RowId) => {
       const animation = state.animations.get(id);
       if (!animation) return undefined;
       return animation.kind === 'out' ? 'animate-row-out' : 'animate-row-in';
@@ -147,7 +149,7 @@ export function useAnimatedRows<T extends { id: number }>(
   );
 
   const rowKey = useCallback(
-    (id: number) => (state.generation ? `${state.generation}:${id}` : String(id)),
+    (id: RowId) => (state.generation ? `${state.generation}:${id}` : String(id)),
     [state.generation],
   );
 
