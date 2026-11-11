@@ -71,7 +71,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
 
   return (
     <Modal title="Nueva compra" onClose={close} exiting={closing} initialFocusSelector="input">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-2.5 p-3">
         <Controller
           control={control}
           name="product_name"
@@ -172,7 +172,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
           </p>
         ) : null}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onClick={close}>
             Cancelar
           </Button>
