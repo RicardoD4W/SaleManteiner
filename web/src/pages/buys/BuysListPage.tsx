@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useBuys } from '../../hooks/useBuys';
 import { useSortable } from '../../hooks/useSortable';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { VirtualTable } from '../../components/ui/VirtualTable';
@@ -69,6 +70,11 @@ export function BuysListPage() {
   const filteredBuys = useMemo(() => filterBuys(buysWithStock, query), [buysWithStock, query]);
 
   const { sortedItems, sortKey, sortDir, onSort } = useSortable(filteredBuys);
+
+  const generation = `${range.from ?? ''}|${range.to ?? ''}|${(tagFilter.tagIds ?? []).join(
+    ',',
+  )}|${tagFilter.sinTag ? 'sin' : ''}`;
+  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, generation);
 
   const columns = useMemo(
     () => [
@@ -203,9 +209,10 @@ export function BuysListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<BuyWithStock>({
-    data: sortedItems,
+    data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId: (buy) => String(buy.id),
   });
 
   const handleQueryChange = (value: string) => {
@@ -315,7 +322,10 @@ export function BuysListPage() {
         <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
-            getRowClassName={(buy) => (buy.tag ? TAG_ROW_TINT_CLASS : undefined)}
+            getRowKey={(buy) => rowKey(buy.id)}
+            getRowClassName={(buy) =>
+              cn(rowClassName(buy.id), buy.tag ? TAG_ROW_TINT_CLASS : undefined)
+            }
             getRowStyle={(buy) =>
               buy.tag ? ({ ['--tag-color']: buy.tag.color } as CSSProperties) : undefined
             }

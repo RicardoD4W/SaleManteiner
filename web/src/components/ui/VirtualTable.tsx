@@ -33,6 +33,8 @@ interface VirtualTableProps<TData> {
 
   getRowClassName?: (row: TData) => string | undefined;
 
+  getRowKey?: (row: TData) => string;
+
   getRowStyle?: (row: TData) => CSSProperties | undefined;
 }
 
@@ -43,6 +45,7 @@ export function VirtualTable<TData>({
   footer,
   sort,
   getRowClassName,
+  getRowKey,
   getRowStyle,
 }: VirtualTableProps<TData>) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -146,7 +149,7 @@ export function VirtualTable<TData>({
               const rowStyle = getRowStyle?.(row.original);
               return (
                 <tr
-                  key={row.id}
+                  key={getRowKey?.(row.original) ?? row.id}
                   data-index={vi.index}
                   ref={virtualizer.measureElement}
                   aria-rowindex={vi.index + 2}

@@ -4,6 +4,7 @@ import { createColumnHelper, getCoreRowModel, useReactTable } from '@tanstack/re
 import type { QueryClient } from '@tanstack/react-query';
 import { useSolds } from '../../hooks/useSolds';
 import { useSortable } from '../../hooks/useSortable';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchInput } from '../../components/ui/SearchInput';
@@ -117,6 +118,9 @@ export function SoldsListPage() {
   );
 
   const { sortedItems, sortKey, sortDir, onSort } = useSortable(filteredSolds);
+
+  const generation = `${range.from ?? ''}|${range.to ?? ''}`;
+  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, generation);
 
   const columns = useMemo(
     () => [
@@ -263,9 +267,10 @@ export function SoldsListPage() {
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<SoldRow>({
-    data: sortedItems,
+    data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId: (sold) => String(sold.id),
   });
 
   const handleQueryChange = (value: string) => {
@@ -356,6 +361,8 @@ export function SoldsListPage() {
         <ArmedRowProvider value={contextValue}>
           <VirtualTable
             table={table}
+            getRowKey={(sold) => rowKey(sold.id)}
+            getRowClassName={(sold) => rowClassName(sold.id)}
             sort={{
               columnId: sortKey,
               direction: sortDir,
