@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MOTION_MS, prefersReducedMotion } from '../lib/motion';
 
-export const EXIT_ANIMATION_MS = 200;
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
+export const EXIT_ANIMATION_MS = MOTION_MS;
 
 export interface AnimatedClose {
   closing: boolean;
