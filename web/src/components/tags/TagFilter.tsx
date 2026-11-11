@@ -100,9 +100,10 @@ export function TagFilter({ value, onChange, onManage }: TagFilterProps) {
           type="button"
           onClick={() => onChange({})}
           disabled={!hasActiveFilter}
+          aria-label="Quitar filtro de tags"
           className="rounded-md px-2 py-1.5 text-sm font-medium text-brand-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-brand-400 dark:focus-visible:ring-brand-400 dark:focus-visible:ring-offset-gray-900"
         >
-          Quitar filtro de tags
+          Quitar filtro
         </button>
       </div>
     </div>
