@@ -9,9 +9,9 @@ interface Row {
 
 const row = (id: number, name = `row-${id}`): Row => ({ id, name });
 
-function renderRows(initial: Row[], generation = '') {
+function renderRows(initial: Row[], generation = '', variant: 'pop' | 'slide' = 'pop') {
   return renderHook(
-    ({ items, gen }: { items: Row[]; gen: string }) => useAnimatedRows(items, gen),
+    ({ items, gen }: { items: Row[]; gen: string }) => useAnimatedRows(items, gen, variant),
     { initialProps: { items: initial, gen: generation } },
   );
 }
@@ -152,6 +152,34 @@ describe('useAnimatedRows', () => {
 
     act(() => {
       vi.advanceTimersByTime(0);
+    });
+
+    expect(result.current.rows.map((item) => item.id)).toEqual([1]);
+  });
+
+  it('la variante slide usa las clases de fila sin zoom', () => {
+    const { result, rerender } = renderRows([row(1), row(2)], '', 'slide');
+
+    expect(result.current.rowClassName(1)).toBe('animate-row-slide-in');
+
+    rerender({ items: [row(1)], gen: '' });
+
+    expect(result.current.rowClassName(2)).toBe('animate-row-slide-out');
+  });
+
+  it('la variante slide mantiene la fila que sale durante 240 ms', () => {
+    const { result, rerender } = renderRows([row(1), row(2)], '', 'slide');
+
+    rerender({ items: [row(1)], gen: '' });
+
+    act(() => {
+      vi.advanceTimersByTime(239);
+    });
+
+    expect(result.current.rows.map((item) => item.id)).toEqual([1, 2]);
+
+    act(() => {
+      vi.advanceTimersByTime(1);
     });
 
     expect(result.current.rows.map((item) => item.id)).toEqual([1]);

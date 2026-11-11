@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MOTION_MS, prefersReducedMotion } from '../lib/motion';
+import { MOTION_MS, TABLE_MOTION_MS, prefersReducedMotion } from '../lib/motion';
 
 export type RowId = number | string;
 
 export type RowAnimationKind = 'in' | 'out';
+
+export type RowAnimationVariant = 'pop' | 'slide';
 
 interface RowAnimationEntry<T> {
   kind: RowAnimationKind;
@@ -20,8 +22,8 @@ interface AnimatedRowsState<T extends { id: RowId }> {
 
 export interface AnimatedRows<T extends { id: RowId }> {
   rows: T[];
-  rowClassName: (id: number) => string | undefined;
-  rowKey: (id: number) => string;
+  rowClassName: (id: RowId) => string | undefined;
+  rowKey: (id: RowId) => string;
 }
 
 function idsKey<T extends { id: RowId }>(items: T[]): string {
@@ -31,6 +33,7 @@ function idsKey<T extends { id: RowId }>(items: T[]): string {
 export function useAnimatedRows<T extends { id: RowId }>(
   items: T[],
   generation = '',
+  variant: RowAnimationVariant = 'pop',
 ): AnimatedRows<T> {
   const [state, setState] = useState<AnimatedRowsState<T>>(() => {
     const animations = new Map<RowId, RowAnimationEntry<T>>();
@@ -81,7 +84,8 @@ export function useAnimatedRows<T extends { id: RowId }>(
   useEffect(() => {
     const deadlines = deadlinesRef.current;
     const now = Date.now();
-    const duration = prefersReducedMotion() ? 0 : MOTION_MS;
+    const motionMs = variant === 'slide' ? TABLE_MOTION_MS : MOTION_MS;
+    const duration = prefersReducedMotion() ? 0 : motionMs;
 
     for (const id of deadlines.keys()) {
       if (!state.animations.has(id)) deadlines.delete(id);
@@ -96,31 +100,44 @@ export function useAnimatedRows<T extends { id: RowId }>(
 
     if (state.animations.size === 0) return;
 
-    let earliest = Infinity;
-    for (const { deadline } of deadlines.values()) {
-      if (deadline < earliest) earliest = deadline;
-    }
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    const timer = setTimeout(
-      () => {
-        const current = Date.now();
-        for (const [id, { deadline }] of deadlines) {
-          if (deadline <= current) deadlines.delete(id);
-        }
-        setState((previous) => {
-          const animations = new Map(previous.animations);
-          for (const [id, entry] of animations) {
-            const deadline = deadlines.get(id);
-            if (!deadline || deadline.entry !== entry) animations.delete(id);
+    const armTimer = (): void => {
+      if (timer !== null) clearTimeout(timer);
+
+      let earliest = Infinity;
+      for (const { deadline } of deadlines.values()) {
+        if (deadline < earliest) earliest = deadline;
+      }
+
+      if (!Number.isFinite(earliest)) return;
+
+      timer = setTimeout(
+        () => {
+          const current = Date.now();
+          for (const [id, { deadline }] of deadlines) {
+            if (deadline <= current) deadlines.delete(id);
           }
-          return { ...previous, animations };
-        });
-      },
-      Math.max(0, earliest - Date.now()),
-    );
+          setState((previous) => {
+            const animations = new Map(previous.animations);
+            for (const [id, entry] of animations) {
+              const deadline = deadlines.get(id);
+              if (!deadline || deadline.entry !== entry) animations.delete(id);
+            }
+            return { ...previous, animations };
+          });
+          armTimer();
+        },
+        Math.max(0, earliest - Date.now()),
+      );
+    };
 
-    return () => clearTimeout(timer);
-  }, [state.animations]);
+    armTimer();
+
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [state.animations, variant]);
 
   const rows = useMemo(() => {
     const merged = [...items];
@@ -143,9 +160,12 @@ export function useAnimatedRows<T extends { id: RowId }>(
     (id: RowId) => {
       const animation = state.animations.get(id);
       if (!animation) return undefined;
-      return animation.kind === 'out' ? 'animate-row-out' : 'animate-row-in';
+      if (animation.kind === 'out') {
+        return variant === 'slide' ? 'animate-row-slide-out' : 'animate-row-out';
+      }
+      return variant === 'slide' ? 'animate-row-slide-in' : 'animate-row-in';
     },
-    [state.animations],
+    [state.animations, variant],
   );
 
   const rowKey = useCallback(

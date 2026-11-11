@@ -120,7 +120,7 @@ export function SoldsListPage() {
   const { sortedItems, sortKey, sortDir, onSort } = useSortable(filteredSolds);
 
   const generation = `${range.from ?? ''}|${range.to ?? ''}`;
-  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, generation);
+  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, generation, 'slide');
 
   const columns = useMemo(
     () => [
@@ -305,7 +305,7 @@ export function SoldsListPage() {
     );
   }
 
-  if (!solds || solds.length === 0) {
+  if (!solds || (solds.length === 0 && rows.length === 0)) {
     const filtered = isRangeActive(range);
     return (
       <div className="space-y-4">
@@ -344,7 +344,7 @@ export function SoldsListPage() {
 
       <DateRangeFilter value={range} onChange={setRange} />
 
-      {filteredSolds.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Sin resultados para «{query.trim()}»
