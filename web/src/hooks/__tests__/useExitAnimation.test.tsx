@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useAnimatedClose } from '../useExitAnimation';
+import { useAnimatedClose, EXIT_ANIMATION_MS } from '../useExitAnimation';
 
 describe('useAnimatedClose', () => {
   beforeEach(() => {
@@ -25,11 +25,34 @@ describe('useAnimatedClose', () => {
     expect(onDone).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(result.current.closing).toBe(false);
+  });
+
+  it('no cierra antes de que termine la animación de salida', () => {
+    const onDone = vi.fn();
+    const { result } = renderHook(() => useAnimatedClose(onDone));
+
+    expect(EXIT_ANIMATION_MS).toBe(200);
+
+    act(() => {
+      result.current.close();
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(EXIT_ANIMATION_MS - 1);
+    });
+
+    expect(onDone).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 
   it('permite pasar un cierre propio en lugar del del hook', () => {
@@ -42,7 +65,7 @@ describe('useAnimatedClose', () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(custom).toHaveBeenCalledTimes(1);
@@ -59,7 +82,7 @@ describe('useAnimatedClose', () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -80,7 +103,7 @@ describe('useAnimatedClose', () => {
     expect(result.current.closing).toBe(false);
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(onDone).not.toHaveBeenCalled();
@@ -100,7 +123,7 @@ describe('useAnimatedClose', () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(first).not.toHaveBeenCalled();
@@ -118,7 +141,7 @@ describe('useAnimatedClose', () => {
     unmount();
 
     act(() => {
-      vi.advanceTimersByTime(150);
+      vi.advanceTimersByTime(200);
     });
 
     expect(onDone).not.toHaveBeenCalled();

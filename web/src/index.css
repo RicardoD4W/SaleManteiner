@@ -40,7 +40,7 @@ html.dark {
 
   --animate-pop-in: pop-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   --animate-fade-in: fade-in 150ms ease-out backwards;
-  --animate-pop-out: pop-out 150ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  --animate-pop-out: pop-out 200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   --animate-fade-out: fade-out 150ms ease-in forwards;
 }
 

@@ -72,7 +72,8 @@ test('abrir el modal de borrado no crea scroll ni mueve la página', async ({ pa
   ).toBe(before.scrollY);
 
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
+  await page.waitForSelector('[role="dialog"]', { state: 'detached' });
+  await page.waitForTimeout(50);
 
   const closed = await snapshot(page);
   expect(closed.rootOverflow, 'al cerrar el modal se restaura el scroll de la página').toBe('');

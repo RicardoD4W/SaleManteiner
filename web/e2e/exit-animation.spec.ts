@@ -102,7 +102,7 @@ test('/buys: el modal de compra sale con una animación de escala y de abajo hac
 
   expect(panel).toBeDefined();
   expect(panel?.name).toBe('pop-out');
-  expect(panel?.duration).toBe('0.15s');
+  expect(panel?.duration).toBe('0.2s');
   expect(panel?.mounted).toBe(true);
 
   const backdrop = samples.find((sample) => sample.hasFadeOut);
@@ -120,6 +120,63 @@ test('la animación pop-out va de grande a pequeño y de abajo hacia arriba', as
   expect(keyframes.length).toBeGreaterThan(0);
   expect(keyframes[0]).toContain('scale(0.92)');
   expect(keyframes[0]).toContain('translateY(10px)');
+});
+
+test('la salida es el espejo exacto de la entrada: mismos valores, duración y curva', async ({
+  page,
+}) => {
+  await page.goto('/buys');
+
+  const computed = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    document.body.append(probe);
+
+    const read = (className: string) => {
+      probe.className = className;
+      const style = getComputedStyle(probe);
+      return { duration: style.animationDuration, timing: style.animationTimingFunction };
+    };
+
+    const result = {
+      popIn: read('animate-pop-in'),
+      popOut: read('animate-pop-out'),
+      fadeIn: read('animate-fade-in'),
+      fadeOut: read('animate-fade-out'),
+    };
+
+    probe.remove();
+    return result;
+  });
+
+  expect(computed.popOut.duration).toBe(computed.popIn.duration);
+  expect(computed.popOut.timing).toBe(computed.popIn.timing);
+  expect(computed.fadeOut.duration).toBe(computed.fadeIn.duration);
+
+  const popIn = await keyframesText(page, 'pop-in');
+  const popOut = await keyframesText(page, 'pop-out');
+
+  expect(popIn.length).toBeGreaterThan(0);
+  expect(popOut.length).toBeGreaterThan(0);
+
+  const frames = (cssText: string) => {
+    const blocks = [...cssText.matchAll(/([\d.]+%)\s*\{([^}]*)\}/g)].map((match) =>
+      Object.fromEntries(
+        match[2]
+          .split(';')
+          .map((declaration) => declaration.split(':').map((part) => part.trim()))
+          .filter(([property]) => property)
+          .map(([property, value]) => [property, value]),
+      ),
+    );
+
+    return { from: blocks[0], to: blocks[1] };
+  };
+
+  const entry = frames(popIn[0]);
+  const exit = frames(popOut[0]);
+
+  expect(exit.from).toEqual(entry.to);
+  expect(exit.to).toEqual(entry.from);
 });
 
 test('/buys: con prefers-reduced-motion la animación de salida se desactiva', async ({ page }) => {
@@ -171,6 +228,6 @@ test('/buys: la confirmación inline de borrado de un tag sale con una animació
 
   expect(block).toBeDefined();
   expect(block?.name).toBe('pop-out');
-  expect(block?.duration).toBe('0.15s');
+  expect(block?.duration).toBe('0.2s');
   expect(block?.mounted).toBe(true);
 });
