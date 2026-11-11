@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useExpenseCategories } from '../../hooks/useExpenseCategories';
 import { useSortable } from '../../hooks/useSortable';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Spinner } from '../../components/ui/Spinner';
 import { tableHeadClass } from '../../components/ui/tableStyles';
 import { SortableTableHead } from '../../components/ui/SortableTableHead';
@@ -73,6 +74,12 @@ export function ExpensesListPage() {
   );
 
   const { sortedItems, sortKey, sortDir, onSort } = useSortable<ExpenseRow>(rows);
+
+  const {
+    rows: animatedRows,
+    rowClassName,
+    rowKey,
+  } = useAnimatedRows(sortedItems, categoryId === null ? '' : String(categoryId), 'slide');
 
   const total = useMemo(
     () => round2(rows.reduce((acc, expense) => acc + expense.amount, 0)),
@@ -150,7 +157,7 @@ export function ExpensesListPage() {
         </select>
       </div>
 
-      {rows.length === 0 ? (
+      {animatedRows.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {categoryId === null ? 'No hay gastos todavía.' : 'No hay gastos en esta categoría.'}
@@ -194,8 +201,11 @@ export function ExpensesListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {sortedItems.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              {animatedRows.map((row) => (
+                <tr
+                  key={rowKey(row.id)}
+                  className={cn('hover:bg-gray-50 dark:hover:bg-gray-800', rowClassName(row.id))}
+                >
                   <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
                     {row.concept}
                   </td>

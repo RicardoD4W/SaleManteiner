@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useCustomers', () => ({
@@ -329,5 +329,45 @@ describe('CustomersListPage', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Error de red');
     });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('las filas entran con la animación de entrada', () => {
+    renderWithProviders(<CustomersListPage />);
+
+    expect(screen.getByText('Juan Pérez').closest('tr')).toHaveClass('animate-row-slide-in');
+    expect(screen.getByText('Ana García').closest('tr')).toHaveClass('animate-row-slide-in');
+  });
+
+  it('la fila que desaparece sale con la animación de salida y se retira al terminar', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { rerender } = renderWithProviders(<CustomersListPage />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      vi.mocked(useCustomers).mockReturnValue({
+        data: [customersFixture[0]] as never,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      } as never);
+
+      rerender(<CustomersListPage />);
+
+      expect(screen.getByText('Ana García').closest('tr')).toHaveClass('animate-row-slide-out');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(240);
+      });
+
+      expect(screen.queryByText('Ana García')).toBeNull();
+      expect(screen.getByText('Juan Pérez').closest('tr')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

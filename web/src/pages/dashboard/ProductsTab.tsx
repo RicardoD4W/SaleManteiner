@@ -1,13 +1,16 @@
+import { useMemo } from 'react';
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
 import { SortableTableHead } from '../../components/ui/SortableTableHead';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { cn } from '../../lib/classNames';
 
 type ProductRow = {
-  product_id: number;
+  id: number;
   product_name: string;
   times_sold: number;
   total_revenue: number;
@@ -17,9 +20,21 @@ type ProductRow = {
 export function ProductsTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
-  const { sortedItems, sortKey, sortDir, onSort } = useSortable<ProductRow>(
-    (data?.topProducts ?? []) as ProductRow[],
+  const items = useMemo<ProductRow[]>(
+    () =>
+      (data?.topProducts ?? []).map((product) => ({
+        id: product.product_id,
+        product_name: product.product_name,
+        times_sold: product.times_sold,
+        total_revenue: product.total_revenue,
+        total_profit: product.total_profit,
+      })),
+    [data],
   );
+
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable<ProductRow>(items);
+
+  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, '', 'slide');
 
   if (isLoading) {
     return (
@@ -48,7 +63,7 @@ export function ProductsTab() {
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
             Productos vendidos
           </h3>
-          {sortedItems.length === 0 ? (
+          {rows.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay ventas vendidas para armar el ranking.
             </p>
@@ -91,8 +106,8 @@ export function ProductsTab() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  {sortedItems.map((p) => (
-                    <tr key={p.product_id}>
+                  {rows.map((p) => (
+                    <tr key={rowKey(p.id)} className={cn(rowClassName(p.id))}>
                       <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
                         {p.product_name}
                       </td>

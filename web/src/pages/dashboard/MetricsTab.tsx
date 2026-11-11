@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { useStatsMetrics } from '../../hooks/useStatsMetrics';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Card, CardBody } from '../../components/ui/Card';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { METRIC_COLOR, profitColorClass, variationColorClass } from '../../lib/colors';
 import { Spinner } from '../../components/ui/Spinner';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { cn } from '../../lib/classNames';
 import {
   formatEuro,
   formatMonth,
@@ -14,6 +17,40 @@ import {
 
 export function MetricsTab() {
   const { data, isLoading, isError, error, refetch } = useStatsMetrics();
+
+  const marginProducts = useMemo(
+    () => (data?.margen_productos ?? []).map((product) => ({ ...product, id: product.product_id })),
+    [data],
+  );
+
+  const debtors = useMemo(
+    () => (data?.deudores ?? []).map((debtor) => ({ ...debtor, id: debtor.customer_id })),
+    [data],
+  );
+
+  const categoryExpenses = useMemo(
+    () =>
+      (data?.gastos_categoria ?? []).map((category) => ({ ...category, id: category.category_id })),
+    [data],
+  );
+
+  const {
+    rows: marginRows,
+    rowClassName: marginClassName,
+    rowKey: marginKey,
+  } = useAnimatedRows(marginProducts);
+
+  const {
+    rows: debtorRows,
+    rowClassName: debtorClassName,
+    rowKey: debtorKey,
+  } = useAnimatedRows(debtors);
+
+  const {
+    rows: categoryRows,
+    rowClassName: categoryClassName,
+    rowKey: categoryKey,
+  } = useAnimatedRows(categoryExpenses);
 
   if (isLoading) {
     return (
@@ -226,14 +263,17 @@ export function MetricsTab() {
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
               Márgenes por producto
             </h3>
-            {data.margen_productos.length === 0 ? (
+            {marginRows.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sin ventas todavía.</p>
             ) : (
               <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
-                {data.margen_productos.map((p) => (
+                {marginRows.map((p) => (
                   <li
-                    key={p.product_id}
-                    className="flex items-baseline justify-between gap-2 py-2 text-sm"
+                    key={marginKey(p.id)}
+                    className={cn(
+                      'flex items-baseline justify-between gap-2 py-2 text-sm',
+                      marginClassName(p.id),
+                    )}
                   >
                     <span className="truncate text-gray-800 dark:text-gray-200">
                       {p.product_name}
@@ -256,17 +296,20 @@ export function MetricsTab() {
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
               Clientes con deuda
             </h3>
-            {data.deudores.length === 0 ? (
+            {debtorRows.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Nadie te debe dinero.</p>
             ) : (
               <ul
                 className="mt-2 divide-y divide-gray-100 dark:divide-gray-800"
                 data-testid="metrics-deudores"
               >
-                {data.deudores.map((c) => (
+                {debtorRows.map((c) => (
                   <li
-                    key={c.customer_id}
-                    className="flex items-baseline justify-between gap-2 py-2 text-sm"
+                    key={debtorKey(c.id)}
+                    className={cn(
+                      'flex items-baseline justify-between gap-2 py-2 text-sm',
+                      debtorClassName(c.id),
+                    )}
                   >
                     <span className="truncate text-gray-800 dark:text-gray-200">
                       {c.customer_name}
@@ -286,7 +329,7 @@ export function MetricsTab() {
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
               Gastos por categoría
             </h3>
-            {data.gastos_categoria.length === 0 ? (
+            {categoryRows.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Sin gastos registrados.
               </p>
@@ -295,10 +338,13 @@ export function MetricsTab() {
                 className="mt-2 divide-y divide-gray-100 dark:divide-gray-800"
                 data-testid="metrics-gastos-categoria"
               >
-                {data.gastos_categoria.map((c) => (
+                {categoryRows.map((c) => (
                   <li
-                    key={c.category_id}
-                    className="flex items-baseline justify-between gap-2 py-2 text-sm"
+                    key={categoryKey(c.id)}
+                    className={cn(
+                      'flex items-baseline justify-between gap-2 py-2 text-sm',
+                      categoryClassName(c.id),
+                    )}
                   >
                     <span className="truncate text-gray-800 dark:text-gray-200">{c.name}</span>
                     <span className="tabular-nums text-gray-600 dark:text-gray-400">

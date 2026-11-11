@@ -1,13 +1,16 @@
+import { useMemo } from 'react';
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { useSortable } from '../../hooks/useSortable';
 import { formatEuro } from '../../lib/format';
 import { SortableTableHead } from '../../components/ui/SortableTableHead';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { cn } from '../../lib/classNames';
 
 type BuyerRow = {
-  customer_id: number;
+  id: number;
   customer_name: string;
   ventas: number;
   total_gastado: number;
@@ -16,9 +19,20 @@ type BuyerRow = {
 export function BuyersTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
 
-  const { sortedItems, sortKey, sortDir, onSort } = useSortable<BuyerRow>(
-    (data?.topBuyers ?? []) as BuyerRow[],
+  const items = useMemo<BuyerRow[]>(
+    () =>
+      (data?.topBuyers ?? []).map((buyer) => ({
+        id: buyer.customer_id,
+        customer_name: buyer.customer_name,
+        ventas: buyer.ventas,
+        total_gastado: buyer.total_gastado,
+      })),
+    [data],
   );
+
+  const { sortedItems, sortKey, sortDir, onSort } = useSortable<BuyerRow>(items);
+
+  const { rows, rowClassName, rowKey } = useAnimatedRows(sortedItems, '', 'slide');
 
   if (isLoading) {
     return (
@@ -45,7 +59,7 @@ export function BuyersTab() {
       <Card>
         <CardBody>
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Compradores</h3>
-          {sortedItems.length === 0 ? (
+          {rows.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay ventas registradas para armar el ranking.
             </p>
@@ -81,8 +95,8 @@ export function BuyersTab() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  {sortedItems.map((b) => (
-                    <tr key={b.customer_id}>
+                  {rows.map((b) => (
+                    <tr key={rowKey(b.id)} className={cn(rowClassName(b.id))}>
                       <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
                         {b.customer_name}
                       </td>

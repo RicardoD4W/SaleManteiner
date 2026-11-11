@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/api/expenses', () => ({
@@ -58,6 +58,14 @@ function conceptOrder(): string[] {
     .getAllByRole('row')
     .slice(1)
     .map((row) => within(row).getAllByRole('cell')[0].textContent ?? '');
+}
+
+async function flushTimers(times = 6): Promise<void> {
+  for (let index = 0; index < times; index += 1) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  }
 }
 
 describe('ExpensesListPage', () => {
@@ -354,5 +362,61 @@ describe('ExpensesListPage', () => {
     ).toBeInTheDocument();
     expect(within(manager).getByText('Alquiler')).toBeInTheDocument();
     expect(expenseCategoriesApi.removeCascade).not.toHaveBeenCalled();
+  });
+
+  it('las filas de gastos entran con la animación de entrada', async () => {
+    vi.useFakeTimers();
+
+    try {
+      renderWithProviders(<ExpensesListPage />);
+
+      await flushTimers();
+
+      expect(screen.getByText('Alquiler de octubre').closest('tr')).toHaveClass(
+        'animate-row-slide-in',
+      );
+      expect(screen.getByText('Papel de impresora').closest('tr')).toHaveClass(
+        'animate-row-slide-in',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('la fila del gasto borrado sale con la animación de salida y se retira al terminar', async () => {
+    vi.useFakeTimers();
+
+    try {
+      renderWithProviders(<ExpensesListPage />);
+
+      await flushTimers();
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      vi.mocked(expensesApi.list).mockResolvedValue([expensesFixture[1]]);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Borrar Alquiler de octubre' }));
+
+      const dialog = screen.getByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Sí, eliminar' }));
+
+      await flushTimers();
+
+      expect(expensesApi.remove).toHaveBeenCalledWith(1);
+      expect(screen.getByText('Alquiler de octubre').closest('tr')).toHaveClass(
+        'animate-row-slide-out',
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(240);
+      });
+
+      expect(screen.queryByText('Alquiler de octubre')).toBeNull();
+      expect(screen.getByText('Papel de impresora').closest('tr')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useSortable } from '../../hooks/useSortable';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Spinner } from '../../components/ui/Spinner';
 import { errorAlertClass, tableHeadClass } from '../../components/ui/tableStyles';
 import { CustomerFormModal } from '../../components/sales/CustomerFormModal';
@@ -54,6 +55,8 @@ export function CustomersListPage() {
 
   const { sortedItems, sortKey, sortDir, onSort } = useSortable<CustomerRow>(rows);
 
+  const { rows: animatedRows, rowClassName, rowKey } = useAnimatedRows(sortedItems, '', 'slide');
+
   const closeModals = () => {
     setIsCreating(false);
     setEditing(null);
@@ -92,7 +95,7 @@ export function CustomersListPage() {
         </button>
       </div>
 
-      {sortedItems.length === 0 ? (
+      {animatedRows.length === 0 ? (
         <div className="rounded-md border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-400">No hay clientes todavía.</p>
         </div>
@@ -143,8 +146,11 @@ export function CustomersListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {sortedItems.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                {animatedRows.map((row) => (
+                  <tr
+                    key={rowKey(row.id)}
+                    className={cn('hover:bg-gray-50 dark:hover:bg-gray-800', rowClassName(row.id))}
+                  >
                     <td className="px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
                       {row.name}
                     </td>

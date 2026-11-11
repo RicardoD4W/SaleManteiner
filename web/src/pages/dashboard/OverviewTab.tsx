@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useStatsDashboard } from '../../hooks/useStatsDashboard';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { Card, CardBody } from '../../components/ui/Card';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { METRIC_COLOR, profitColorClass } from '../../lib/colors';
@@ -6,9 +8,35 @@ import { Spinner } from '../../components/ui/Spinner';
 import { LazyCashFlowChart } from '../../components/dashboard/LazyCashFlowChart';
 import { formatEuro } from '../../lib/format';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { cn } from '../../lib/classNames';
 
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useStatsDashboard();
+
+  const topProducts = useMemo(
+    () =>
+      (data?.topProducts ?? [])
+        .slice(0, 5)
+        .map((product) => ({ ...product, id: product.product_id })),
+    [data],
+  );
+
+  const topBuyers = useMemo(
+    () => (data?.topBuyers ?? []).slice(0, 5).map((buyer) => ({ ...buyer, id: buyer.customer_id })),
+    [data],
+  );
+
+  const {
+    rows: productRows,
+    rowClassName: productClassName,
+    rowKey: productKey,
+  } = useAnimatedRows(topProducts);
+
+  const {
+    rows: buyerRows,
+    rowClassName: buyerClassName,
+    rowKey: buyerKey,
+  } = useAnimatedRows(topBuyers);
 
   if (isLoading) {
     return (
@@ -95,14 +123,17 @@ export function OverviewTab() {
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
               Top 5 productos
             </h3>
-            {data.topProducts.length === 0 ? (
+            {productRows.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sin ventas todavía.</p>
             ) : (
               <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
-                {data.topProducts.slice(0, 5).map((p) => (
+                {productRows.map((p) => (
                   <li
-                    key={p.product_id}
-                    className="flex items-baseline justify-between py-2 text-sm"
+                    key={productKey(p.id)}
+                    className={cn(
+                      'flex items-baseline justify-between py-2 text-sm',
+                      productClassName(p.id),
+                    )}
                   >
                     <span className="text-gray-800 dark:text-gray-200">{p.product_name}</span>
                     <span className="tabular-nums text-gray-600 dark:text-gray-400">
@@ -121,14 +152,17 @@ export function OverviewTab() {
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
               Top 5 compradores
             </h3>
-            {data.topBuyers.length === 0 ? (
+            {buyerRows.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sin ventas todavía.</p>
             ) : (
               <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
-                {data.topBuyers.slice(0, 5).map((b) => (
+                {buyerRows.map((b) => (
                   <li
-                    key={b.customer_id}
-                    className="flex items-baseline justify-between py-2 text-sm"
+                    key={buyerKey(b.id)}
+                    className={cn(
+                      'flex items-baseline justify-between py-2 text-sm',
+                      buyerClassName(b.id),
+                    )}
                   >
                     <span className="text-gray-800 dark:text-gray-200">{b.customer_name}</span>
                     <span className="tabular-nums text-gray-600 dark:text-gray-400">

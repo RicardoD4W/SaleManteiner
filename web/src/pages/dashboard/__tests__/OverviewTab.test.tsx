@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 
 vi.mock('@/hooks/useStatsDashboard', () => ({
   useStatsDashboard: vi.fn(),
@@ -28,6 +28,30 @@ const statsFixture = {
   totals12m: { ingresos: 0, beneficio: 0, mejor_mes: null },
   topProducts: [],
   topBuyers: [],
+};
+
+const statsFixtureWithLists = {
+  ...statsFixture,
+  topProducts: [
+    {
+      product_id: 1,
+      product_name: 'Widget',
+      times_sold: 3,
+      total_revenue: 300,
+      total_profit: 120,
+    },
+    {
+      product_id: 2,
+      product_name: 'Gadget',
+      times_sold: 1,
+      total_revenue: 90,
+      total_profit: 30,
+    },
+  ],
+  topBuyers: [
+    { customer_id: 1, customer_name: 'Ana', ventas: 2, total_gastado: 250 },
+    { customer_id: 2, customer_name: 'Beto', ventas: 1, total_gastado: 90 },
+  ],
 };
 
 function cardValue(label: string): HTMLElement {
@@ -115,5 +139,66 @@ describe('OverviewTab', () => {
     expect(grid.className).toMatch(/grid-cols-2/);
     expect(grid.className).toMatch(/sm:grid-cols-3/);
     expect(grid.className).toMatch(/xl:grid-cols-6/);
+  });
+
+  it('las filas de productos y de compradores entran con la animación de entrada', () => {
+    vi.mocked(useStatsDashboard).mockReturnValue({
+      data: statsFixtureWithLists,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderWithProviders(<OverviewTab />);
+
+    expect(screen.getByText('Widget').closest('li')).toHaveClass('animate-row-in');
+    expect(screen.getByText('Gadget').closest('li')).toHaveClass('animate-row-in');
+    expect(screen.getByText('Ana').closest('li')).toHaveClass('animate-row-in');
+    expect(screen.getByText('Beto').closest('li')).toHaveClass('animate-row-in');
+  });
+
+  it('la fila que desaparece sale con la animación de salida y se retira al terminar', () => {
+    vi.useFakeTimers();
+
+    try {
+      vi.mocked(useStatsDashboard).mockReturnValue({
+        data: statsFixtureWithLists,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      } as never);
+
+      const { rerender } = renderWithProviders(<OverviewTab />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      vi.mocked(useStatsDashboard).mockReturnValue({
+        data: {
+          ...statsFixtureWithLists,
+          topProducts: [statsFixtureWithLists.topProducts[0]],
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      } as never);
+
+      rerender(<OverviewTab />);
+
+      expect(screen.getByText('Gadget').closest('li')).toHaveClass('animate-row-out');
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.queryByText('Gadget')).toBeNull();
+      expect(screen.getByText('Widget').closest('li')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

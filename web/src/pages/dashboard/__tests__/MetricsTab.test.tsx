@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 
 vi.mock('@/hooks/useStatsMetrics', () => ({
   useStatsMetrics: vi.fn(),
@@ -161,5 +161,49 @@ describe('MetricsTab', () => {
     expect(
       within(screen.getByTestId('metrics-gastos-categoria')).getByText('Alquiler'),
     ).toBeInTheDocument();
+  });
+
+  it('las filas de las tres listas entran con la animación de entrada', () => {
+    renderWithProviders(<MetricsTab />);
+
+    expect(screen.getByText('Widget').closest('li')).toHaveClass('animate-row-in');
+    expect(
+      within(screen.getByTestId('metrics-deudores')).getByText('Ana').closest('li'),
+    ).toHaveClass('animate-row-in');
+    expect(
+      within(screen.getByTestId('metrics-gastos-categoria')).getByText('Alquiler').closest('li'),
+    ).toHaveClass('animate-row-in');
+  });
+
+  it('la fila que desaparece sale con la animación de salida y se retira al terminar', () => {
+    vi.useFakeTimers();
+
+    try {
+      const { rerender } = renderWithProviders(<MetricsTab />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      mockMetrics({
+        ...metricsFixture,
+        deudores: [],
+      });
+
+      rerender(<MetricsTab />);
+
+      expect(
+        within(screen.getByTestId('metrics-deudores')).getByText('Ana').closest('li'),
+      ).toHaveClass('animate-row-out');
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.queryByText('Ana')).toBeNull();
+      expect(screen.getByText('Widget').closest('li')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
