@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
@@ -139,15 +140,17 @@ export function ProductPickerModal({
     else checkboxRefs.current.delete(id);
   };
 
+  const { rows: stockRows, rowClassName, rowKey } = useAnimatedRows(buysWithStock ?? []);
+
   const sortedBuys = useMemo(() => {
-    const filtered = (buysWithStock ?? []).filter((b) =>
+    const filtered = stockRows.filter((b) =>
       normalizeText(b.product_name).includes(normalizeText(filter.trim())),
     );
     if (initiallySelectedIds.size === 0) return filtered;
     return [...filtered].sort(
       (a, b) => Number(initiallySelectedIds.has(b.id)) - Number(initiallySelectedIds.has(a.id)),
     );
-  }, [buysWithStock, filter, initiallySelectedIds]);
+  }, [stockRows, filter, initiallySelectedIds]);
 
   useEffect(() => {
     setActiveIndex(-1);
@@ -297,7 +300,7 @@ export function ProductPickerModal({
         ) : (
           <ul onKeyDown={handleListKeyDown}>
             {sortedBuys.map((buy, index) => (
-              <li key={buy.id}>
+              <li key={rowKey(buy.id)} className={rowClassName(buy.id)}>
                 <ProductRow
                   item={buy}
                   index={index}

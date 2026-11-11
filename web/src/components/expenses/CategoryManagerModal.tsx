@@ -17,6 +17,7 @@ import {
   useUpdateExpenseCategory,
 } from '../../hooks/useExpenseCategories';
 import { useAnimatedClose } from '../../hooks/useExitAnimation';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import type { ExpenseCategory } from '../../schemas/expenses';
 
 export interface ExpenseCategoryCascadeRequest {
@@ -54,6 +55,8 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { closing, close } = useAnimatedClose(onClose);
+
+  const { rows: categoryRows, rowClassName, rowKey } = useAnimatedRows(categories ?? []);
 
   const deleteClose = useAnimatedClose(() => {
     setDeleteTarget(null);
@@ -130,16 +133,19 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
           </div>
         ) : null}
 
-        {!isLoading && !isError && (categories ?? []).length === 0 ? (
+        {!isLoading && !isError && categoryRows.length === 0 ? (
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No hay categorías todavía. Crea la primera para poder registrar gastos.
           </p>
         ) : null}
 
-        {(categories ?? []).length > 0 ? (
+        {categoryRows.length > 0 ? (
           <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-            {(categories ?? []).map((category) => (
-              <li key={category.id} className="flex flex-wrap items-center gap-3 py-3">
+            {categoryRows.map((category) => (
+              <li
+                key={rowKey(category.id)}
+                className={cn('flex flex-wrap items-center gap-3 py-3', rowClassName(category.id))}
+              >
                 {renamingId === category.id ? (
                   <div className="flex w-full flex-col gap-2">
                     <Input

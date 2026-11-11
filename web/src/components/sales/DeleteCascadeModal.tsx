@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/classNames';
 import { useAnimatedClose } from '../../hooks/useExitAnimation';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { errorAlertClass } from '../ui/tableStyles';
 
 interface CascadeItem {
@@ -58,6 +59,8 @@ export function DeleteCascadeModal({
   const { closing, close } = useAnimatedClose(onClose);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
+  const { rows: itemRows, rowClassName, rowKey } = useAnimatedRows(items);
+
   const itemsCount = items.length;
   const countLabel = itemsCount === 1 ? countLabelSingular : countLabelPlural;
 
@@ -81,10 +84,13 @@ export function DeleteCascadeModal({
         </p>
 
         <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-          {items.map((item) => (
+          {itemRows.map((item) => (
             <li
-              key={item.id}
-              className="flex items-center justify-between px-3 py-2 text-sm text-gray-800 dark:text-gray-200"
+              key={rowKey(item.id)}
+              className={cn(
+                'flex items-center justify-between px-3 py-2 text-sm text-gray-800 dark:text-gray-200',
+                rowClassName(item.id),
+              )}
             >
               <span className="font-medium">{item.title}</span>
               <span className="text-gray-500 dark:text-gray-400">{item.description}</span>

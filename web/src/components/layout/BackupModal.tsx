@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ChangeEvent } from 'react';
+import { useId, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
@@ -13,8 +13,10 @@ import {
 import { apiErrorMessage } from '../../api/client';
 import { backupsApi } from '../../api/backups';
 import { formatDate } from '../../lib/format';
+import { cn } from '../../lib/classNames';
 import { toastBackupCreated, toastBackupDeleted, toastBackupRestored } from '../../lib/toast';
 import { useAnimatedClose } from '../../hooks/useExitAnimation';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 
 type RestoreSource = { kind: 'stored'; name: string } | { kind: 'file'; file: File };
 
@@ -92,7 +94,12 @@ export function BackupModal({ onClose }: BackupModalProps) {
     setPendingRestore({ kind: 'file', file });
   };
 
-  const backups = data ?? [];
+  const backupItems = useMemo(
+    () => (data ?? []).map((backup) => ({ ...backup, id: backup.name })),
+    [data],
+  );
+
+  const { rows: backupRows, rowClassName, rowKey } = useAnimatedRows(backupItems);
 
   return (
     <>
@@ -148,16 +155,19 @@ export function BackupModal({ onClose }: BackupModalProps) {
               message={`No se pudieron cargar las copias: ${error.message}`}
               onRetry={() => refetch()}
             />
-          ) : backups.length === 0 ? (
+          ) : backupRows.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Todavía no hay copias guardadas.
             </p>
           ) : (
             <ul className="divide-y divide-gray-100 dark:divide-gray-800" data-testid="backup-list">
-              {backups.map((backup) => (
+              {backupRows.map((backup) => (
                 <li
-                  key={backup.name}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                  key={rowKey(backup.id)}
+                  className={cn(
+                    'flex flex-wrap items-center justify-between gap-2 py-2',
+                    rowClassName(backup.id),
+                  )}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm text-gray-800 dark:text-gray-200">

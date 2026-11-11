@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/hooks/useTags', () => ({
@@ -384,5 +384,66 @@ describe('TagManagerModal', () => {
       expect(remove.mutateAsync).toHaveBeenCalledWith(2);
     });
     expect(screen.queryByRole('button', { name: 'Sí, borrar el tag' })).toBeNull();
+  });
+});
+
+describe('TagManagerModal — animación de las filas', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.mocked(useTags).mockReturnValue({
+      data: tagsFixture,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useCreateTag).mockReturnValue(mutationMock() as never);
+    vi.mocked(useUpdateTag).mockReturnValue(mutationMock() as never);
+    vi.mocked(useDeleteTag).mockReturnValue(mutationMock() as never);
+    vi.mocked(useBuys).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('las filas de la lista entran con la animación de entrada', () => {
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    const row = screen.getByText('Urgente', { selector: 'span' }).closest('li');
+
+    expect(row).toHaveClass('animate-row-in');
+  });
+
+  it('una fila que desaparece sale con la animación de salida y luego se va', () => {
+    const { rerender } = renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    vi.mocked(useTags).mockReturnValue({
+      data: tagsFixture.filter((tag) => tag.id !== 3),
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    rerender(<TagManagerModal onClose={vi.fn()} />);
+
+    const row = screen.getByText('Contable', { selector: 'span' }).closest('li');
+    expect(row).toHaveClass('animate-row-out');
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.queryByText('Contable', { selector: 'span' })).toBeNull();
   });
 });

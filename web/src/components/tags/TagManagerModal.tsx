@@ -13,6 +13,7 @@ import { TAG_PALETTE } from '../../lib/tagColors';
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '../../hooks/useTags';
 import { useBuys } from '../../hooks/useBuys';
 import { useAnimatedClose } from '../../hooks/useExitAnimation';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import { TagColorPicker } from './TagColorPicker';
 import { DeleteTagCascade } from './DeleteTagCascade';
 
@@ -50,6 +51,8 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { closing, close } = useAnimatedClose(onClose);
+
+  const { rows: tagRows, rowClassName, rowKey } = useAnimatedRows(tags ?? []);
 
   const tagBuys = useBuys(
     undefined,
@@ -218,16 +221,19 @@ export function TagManagerModal({ onClose }: TagManagerModalProps) {
           </div>
         ) : null}
 
-        {!isLoading && !isError && (tags ?? []).length === 0 ? (
+        {!isLoading && !isError && tagRows.length === 0 ? (
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No hay tags todavía. Crea el primero para poder agrupar compras.
           </p>
         ) : null}
 
-        {(tags ?? []).length > 0 ? (
+        {tagRows.length > 0 ? (
           <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-            {(tags ?? []).map((tag) => (
-              <li key={tag.id} className="flex flex-wrap items-center gap-3 py-3">
+            {tagRows.map((tag) => (
+              <li
+                key={rowKey(tag.id)}
+                className={cn('flex flex-wrap items-center gap-3 py-3', rowClassName(tag.id))}
+              >
                 {editingId === tag.id ? (
                   <div className="flex w-full flex-col gap-2">
                     <Input

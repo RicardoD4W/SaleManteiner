@@ -1,4 +1,5 @@
 import { useTags } from '../../hooks/useTags';
+import { useAnimatedRows } from '../../hooks/useAnimatedRows';
 import type { TagFilter as TagFilterValue } from '../../api/queryString';
 import { cn } from '../../lib/classNames';
 
@@ -23,6 +24,8 @@ const chipActiveClass =
 
 export function TagFilter({ value, onChange, onManage }: TagFilterProps) {
   const { data: tags } = useTags('buy');
+
+  const { rows: tagRows, rowClassName, rowKey } = useAnimatedRows(tags ?? []);
 
   const selectedIds = value.tagIds ?? [];
   const sinTagActive = value.sinTag === true;
@@ -51,15 +54,19 @@ export function TagFilter({ value, onChange, onManage }: TagFilterProps) {
         aria-label="Filtro de tags"
         className="flex flex-wrap items-center gap-2 lg:justify-end"
       >
-        {(tags ?? []).map((tag) => {
+        {tagRows.map((tag) => {
           const active = selectedIds.includes(tag.id);
           return (
             <button
-              key={tag.id}
+              key={rowKey(tag.id)}
               type="button"
               aria-pressed={active}
               onClick={() => toggleTag(tag.id)}
-              className={cn(chipBaseClass, active ? chipActiveClass : chipIdleClass)}
+              className={cn(
+                chipBaseClass,
+                active ? chipActiveClass : chipIdleClass,
+                rowClassName(tag.id),
+              )}
             >
               <span
                 aria-hidden="true"
