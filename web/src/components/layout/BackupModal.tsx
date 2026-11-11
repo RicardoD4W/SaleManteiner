@@ -14,6 +14,7 @@ import { apiErrorMessage } from '../../api/client';
 import { backupsApi } from '../../api/backups';
 import { formatDate } from '../../lib/format';
 import { toastBackupCreated, toastBackupDeleted, toastBackupRestored } from '../../lib/toast';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 
 type RestoreSource = { kind: 'stored'; name: string } | { kind: 'file'; file: File };
 
@@ -42,6 +43,10 @@ export function BackupModal({ onClose }: BackupModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const restoreDescriptionId = useId();
 
+  const { closing, close } = useAnimatedClose(onClose);
+  const restoreClose = useAnimatedClose(() => setPendingRestore(null));
+  const deleteClose = useAnimatedClose(() => setPendingDelete(null));
+
   const handleCreate = async () => {
     setActionError(null);
     try {
@@ -58,7 +63,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
     try {
       await deleteBackup.mutateAsync(pendingDelete);
       toastBackupDeleted();
-      setPendingDelete(null);
+      deleteClose.close();
     } catch (err) {
       setDeleteError(apiErrorMessage(err, 'No se pudo eliminar la copia'));
     }
@@ -73,7 +78,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
         `${summary.customers} clientes, ${summary.solds} ventas y ${summary.buys} compras restaurados`,
       );
       setPendingRestore(null);
-      onClose();
+      close();
     } catch (err) {
       setRestoreError(apiErrorMessage(err, 'No se pudo restaurar la copia'));
     }
@@ -91,7 +96,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
 
   return (
     <>
-      <Modal title="Copia de seguridad" onClose={onClose} size="wide">
+      <Modal title="Copia de seguridad" onClose={close} exiting={closing} size="wide">
         <div className="space-y-4 p-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             Las copias se guardan junto a la base de datos y se pueden descargar a tu disco. Al
@@ -197,7 +202,8 @@ export function BackupModal({ onClose }: BackupModalProps) {
       {pendingRestore ? (
         <Modal
           title="Restaurar la copia"
-          onClose={() => setPendingRestore(null)}
+          onClose={restoreClose.close}
+          exiting={restoreClose.closing}
           size="medium"
           isPending={restoreBackup.isPending}
           describedById={restoreDescriptionId}
@@ -232,7 +238,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setPendingRestore(null)}
+                onClick={restoreClose.close}
                 disabled={restoreBackup.isPending}
               >
                 Cancelar
@@ -253,7 +259,8 @@ export function BackupModal({ onClose }: BackupModalProps) {
       {pendingDelete ? (
         <Modal
           title="Eliminar la copia"
-          onClose={() => setPendingDelete(null)}
+          onClose={deleteClose.close}
+          exiting={deleteClose.closing}
           size="medium"
           isPending={deleteBackup.isPending}
         >
@@ -276,7 +283,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setPendingDelete(null)}
+                onClick={deleteClose.close}
                 disabled={deleteBackup.isPending}
               >
                 Cancelar

@@ -5,11 +5,10 @@ import { useScrollLock } from './useScrollLock';
 
 type ModalSize = 'compact' | 'medium' | 'wide' | 'panel';
 
-const backdropClass =
-  'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in';
+const backdropBaseClass = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
 
-const dialogClass =
-  'flex w-full flex-col rounded-xl border border-gray-200 bg-white shadow-2xl animate-pop-in dark:border-gray-800 dark:bg-gray-900';
+const dialogBaseClass =
+  'flex w-full flex-col rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900';
 
 const sizeClasses: Record<ModalSize, string> = {
   compact: 'max-h-[80vh] max-w-lg overflow-y-auto',
@@ -44,6 +43,8 @@ export interface ModalProps {
   initialFocusSelector?: string;
 
   describedById?: string;
+
+  exiting?: boolean;
 }
 
 export function Modal({
@@ -56,9 +57,18 @@ export function Modal({
   initialFocusRef,
   initialFocusSelector,
   describedById,
+  exiting = false,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+
+  const backdropClass = exiting
+    ? `${backdropBaseClass} animate-fade-out pointer-events-none`
+    : `${backdropBaseClass} animate-fade-in`;
+
+  const dialogClass = exiting
+    ? `${dialogBaseClass} animate-pop-out`
+    : `${dialogBaseClass} animate-pop-in`;
 
   useFocusTrap({
     dialogRef,

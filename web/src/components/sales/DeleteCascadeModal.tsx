@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/classNames';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { errorAlertClass } from '../ui/tableStyles';
 
 interface CascadeItem {
@@ -54,6 +55,7 @@ export function DeleteCascadeModal({
   onClose,
   onConfirm,
 }: DeleteCascadeModalProps) {
+  const { closing, close } = useAnimatedClose(onClose);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   const itemsCount = items.length;
@@ -62,7 +64,8 @@ export function DeleteCascadeModal({
   return (
     <Modal
       title={title}
-      onClose={onClose}
+      onClose={close}
+      exiting={closing}
       isPending={isPending}
       size="medium"
       initialFocusRef={confirmButtonRef}
@@ -99,7 +102,7 @@ export function DeleteCascadeModal({
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="ghost" onClick={close} disabled={isPending}>
             Cancelar
           </Button>
           {isPending ? (

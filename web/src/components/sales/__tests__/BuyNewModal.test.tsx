@@ -90,7 +90,10 @@ describe('BuyNewModal', () => {
     renderWithProviders(<BuyNewModal onClose={onClose} />);
 
     await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('un producto de solo espacios no llega al servidor', async () => {

@@ -12,6 +12,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useCreateExpense, useUpdateExpense } from '../../hooks/useExpenses';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { useCreateExpenseCategory, useExpenseCategories } from '../../hooks/useExpenseCategories';
 import { apiErrorMessage } from '../../api/client';
 import { cn } from '../../lib/classNames';
@@ -26,6 +27,7 @@ const selectClass =
 
 export function ExpenseFormModal(props: ExpenseFormModalProps) {
   const { onClose } = props;
+  const { closing, close } = useAnimatedClose(onClose);
   const { data: categories } = useExpenseCategories();
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -112,7 +114,7 @@ export function ExpenseFormModal(props: ExpenseFormModalProps) {
           },
         });
       }
-      onClose();
+      close();
     } catch (err) {
       setError('root', { message: apiErrorMessage(err, 'Error desconocido') });
     }
@@ -121,7 +123,7 @@ export function ExpenseFormModal(props: ExpenseFormModalProps) {
   const title = props.mode === 'create' ? 'Nuevo gasto' : 'Editar gasto';
 
   return (
-    <Modal title={title} onClose={onClose} initialFocusSelector="input">
+    <Modal title={title} onClose={close} exiting={closing} initialFocusSelector="input">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
         <div>
           <Input
@@ -274,7 +276,7 @@ export function ExpenseFormModal(props: ExpenseFormModalProps) {
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={close}>
             Cancelar
           </Button>
           <Button

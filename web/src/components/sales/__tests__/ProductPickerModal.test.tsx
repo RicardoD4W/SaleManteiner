@@ -61,7 +61,10 @@ describe('ProductPickerModal', () => {
     });
 
     await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('el focus trap no deja salir el foco del diálogo', async () => {
@@ -215,7 +218,10 @@ describe('ProductPickerModal', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /Cancelar/ }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('el botón Cerrar (X) llama a onClose', async () => {
@@ -235,7 +241,10 @@ describe('ProductPickerModal', () => {
     });
 
     await userEvent.click(screen.getByRole('button', { name: /Cerrar/ }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('preselecciona los items que le llegan en initialSelection', async () => {

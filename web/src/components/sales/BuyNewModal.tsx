@@ -9,6 +9,7 @@ import { ProductNameAutocomplete } from './ProductNameAutocomplete';
 import { BuyLotTotal } from './BuyLotTotal';
 import { useCreateBuy } from '../../hooks/useCreateBuy';
 import { useTags } from '../../hooks/useTags';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage } from '../../api/client';
 import { cn } from '../../lib/classNames';
@@ -24,6 +25,7 @@ const selectClass =
   'block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100';
 
 export function BuyNewModal({ onClose }: BuyNewModalProps) {
+  const { closing, close } = useAnimatedClose(onClose);
   const create = useCreateBuy();
   const { data: tags } = useTags('buy');
   const tagSelectId = useId();
@@ -60,7 +62,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
 
     try {
       await create.mutateAsync(payload);
-      onClose();
+      close();
     } catch (err) {
       const message = apiErrorMessage(err, 'Error desconocido');
       setError('root', { message });
@@ -68,7 +70,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
   };
 
   return (
-    <Modal title="Nueva compra" onClose={onClose} initialFocusSelector="input">
+    <Modal title="Nueva compra" onClose={close} exiting={closing} initialFocusSelector="input">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
         <Controller
           control={control}
@@ -171,7 +173,7 @@ export function BuyNewModal({ onClose }: BuyNewModalProps) {
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={close}>
             Cancelar
           </Button>
           <Button type="submit" isLoading={isSubmitting || create.isPending}>

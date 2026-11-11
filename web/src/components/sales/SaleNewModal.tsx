@@ -8,6 +8,7 @@ import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useCreateSold } from '../../hooks/useCreateSold';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { todayLocalDate } from '../../lib/format';
 import { apiErrorMessage, ApiError } from '../../api/client';
 import type { Customer } from '../../schemas/customers';
@@ -37,6 +38,7 @@ interface SaleNewModalProps {
 }
 
 export function SaleNewModal({ onClose }: SaleNewModalProps) {
+  const { closing, close } = useAnimatedClose(onClose);
   const create = useCreateSold();
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -123,7 +125,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
 
     try {
       await create.mutateAsync(payload);
-      onClose();
+      close();
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setStockError(err.body as StockErrorBody);
@@ -140,7 +142,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
         initialSelection={initialSelection}
         onClose={() => {
           if (pickerReason === 'initial') {
-            onClose();
+            close();
             return;
           }
           setPickerReason(null);
@@ -153,7 +155,8 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
   return (
     <Modal
       title="Nueva venta"
-      onClose={onClose}
+      onClose={close}
+      exiting={closing}
       size="wide"
       initialFocusSelector="#customer-autocomplete-input"
     >
@@ -292,7 +295,7 @@ export function SaleNewModal({ onClose }: SaleNewModalProps) {
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={close}>
             Cancelar
           </Button>
           <Button type="submit" isLoading={isSubmitting || create.isPending}>

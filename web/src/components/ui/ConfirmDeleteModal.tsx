@@ -2,6 +2,7 @@ import { useId, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { cn } from '../../lib/classNames';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { errorAlertClass } from './tableStyles';
 
 interface ConfirmDeleteModalProps {
@@ -29,12 +30,14 @@ export function ConfirmDeleteModal({
   onClose,
   onConfirm,
 }: ConfirmDeleteModalProps) {
+  const { closing, close } = useAnimatedClose(onClose);
   const descriptionId = useId();
 
   return (
     <Modal
       title={title}
-      onClose={onClose}
+      onClose={close}
+      exiting={closing}
       isPending={isPending}
       size="medium"
       describedById={descriptionId}
@@ -51,7 +54,7 @@ export function ConfirmDeleteModal({
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="ghost" onClick={close} disabled={isPending}>
             Cancelar
           </Button>
           <Button type="button" variant="danger" isLoading={isPending} onClick={onConfirm}>

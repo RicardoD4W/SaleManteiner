@@ -9,7 +9,9 @@ function prefersReducedMotion(): boolean {
 export interface AnimatedClose {
   closing: boolean;
 
-  close: (done?: () => void) => void;
+  close: () => void;
+
+  closeWith: (done: () => void) => void;
 
   cancel: () => void;
 }
@@ -42,15 +44,15 @@ export function useAnimatedClose(
     setClosing(false);
   }, []);
 
-  const close = useCallback(
-    (done?: () => void) => {
+  const closeWith = useCallback(
+    (done: () => void) => {
       if (timerRef.current !== null) return;
       setClosing(true);
       timerRef.current = setTimeout(
         () => {
           timerRef.current = null;
           setClosing(false);
-          (done ?? onDoneRef.current)();
+          done();
         },
         prefersReducedMotion() ? 0 : durationMs,
       );
@@ -58,5 +60,10 @@ export function useAnimatedClose(
     [durationMs],
   );
 
-  return { closing, close, cancel };
+  const close = useCallback(() => {
+    if (timerRef.current !== null) return;
+    closeWith(() => onDoneRef.current());
+  }, [closeWith]);
+
+  return { closing, close, closeWith, cancel };
 }

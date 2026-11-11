@@ -259,7 +259,9 @@ describe('CustomerFormModal', () => {
 
     await user.keyboard('{Escape}');
 
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 
   it('el foco vuelve al elemento que abrió el modal', async () => {

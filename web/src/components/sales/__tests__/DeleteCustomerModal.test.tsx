@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteCustomerModal } from '@/components/sales/DeleteCustomerModal';
 import { renderWithProviders } from '@/test-utils/render';
@@ -115,7 +115,10 @@ describe('DeleteCustomerModal', () => {
     );
 
     await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('Escape no cierra mientras la mutación está en curso', async () => {

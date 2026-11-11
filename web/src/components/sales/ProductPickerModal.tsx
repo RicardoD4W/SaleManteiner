@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useBuysStock } from '../../hooks/useBuysStock';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { Spinner } from '../ui/Spinner';
@@ -115,6 +116,7 @@ export function ProductPickerModal({
   onConfirm,
   initialSelection,
 }: ProductPickerModalProps) {
+  const { closing, close } = useAnimatedClose(onClose);
   const { data: buysWithStock, isLoading, isError, error, refetch } = useBuysStock();
 
   const [checked, setChecked] = useState<Record<number, boolean>>({});
@@ -233,7 +235,8 @@ export function ProductPickerModal({
   return (
     <Modal
       title="Seleccionar productos"
-      onClose={onClose}
+      onClose={close}
+      exiting={closing}
       size="panel"
       initialFocusRef={firstFocusRef}
       footer={
@@ -244,7 +247,7 @@ export function ProductPickerModal({
               : 'Seleccioná productos para la venta'}
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={close}>
               Cancelar
             </Button>
             <Button size="sm" onClick={handleConfirm} disabled={selectedCount === 0}>

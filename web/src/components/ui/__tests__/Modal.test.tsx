@@ -40,6 +40,20 @@ describe('Modal', () => {
     expect(dialog.parentElement).toHaveClass('animate-fade-in');
   });
 
+  it('cuando está cerrándose, el diálogo y el fondo usan la animación de salida', () => {
+    renderWithProviders(
+      <Modal title="Nueva compra" onClose={vi.fn()} exiting>
+        <p>Cuerpo</p>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('animate-pop-out');
+    expect(dialog).not.toHaveClass('animate-pop-in');
+    expect(dialog.parentElement).toHaveClass('animate-fade-out');
+    expect(dialog.parentElement).not.toHaveClass('animate-fade-in');
+  });
+
   it('el botón Cerrar llama a onClose', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

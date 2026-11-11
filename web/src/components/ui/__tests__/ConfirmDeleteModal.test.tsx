@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal';
@@ -94,7 +94,35 @@ describe('ConfirmDeleteModal', () => {
     );
 
     await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('el modal sale con animación antes de cerrarse', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(
+      <ConfirmDeleteModal
+        title="Eliminar compra"
+        description={<>¿Eliminar esta compra?</>}
+        confirmLabel="Sí, eliminar"
+        onClose={onClose}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('animate-pop-out');
+    expect(dialog.parentElement).toHaveClass('animate-fade-out');
+    expect(onClose).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('Escape no cierra mientras la mutación está en curso', async () => {
@@ -172,7 +200,9 @@ describe('ConfirmDeleteModal', () => {
 
     await user.keyboard('{Escape}');
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
     expect(trigger).toHaveFocus();
   });
 });

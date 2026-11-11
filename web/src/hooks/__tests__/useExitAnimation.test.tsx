@@ -38,7 +38,7 @@ describe('useAnimatedClose', () => {
     const { result } = renderHook(() => useAnimatedClose(onDone));
 
     act(() => {
-      result.current.close(custom);
+      result.current.closeWith(custom);
     });
 
     act(() => {

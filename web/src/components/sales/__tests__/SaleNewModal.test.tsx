@@ -165,8 +165,10 @@ describe('SaleNewModal', () => {
 
     await user.click(screen.getByRole('button', { name: /Cancelar/ }));
 
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+    });
   });
 
   it('Escape con el picker abierto cancela el picker, no la venta', async () => {
@@ -334,8 +336,10 @@ describe('SaleNewModal', () => {
 
     await user.keyboard('{Escape}');
 
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Nueva venta')).not.toBeInTheDocument();
+    });
   });
 
   it('al cerrar el picker de productos el foco vuelve al cliente', async () => {

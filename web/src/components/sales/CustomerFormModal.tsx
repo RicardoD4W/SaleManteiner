@@ -13,6 +13,7 @@ import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { useUpdateCustomer } from '../../hooks/useUpdateCustomer';
 import { apiErrorMessage } from '../../api/client';
 import { cn } from '../../lib/classNames';
@@ -24,6 +25,7 @@ type CustomerFormModalProps =
 
 export function CustomerFormModal(props: CustomerFormModalProps) {
   const { onClose } = props;
+  const { closing, close } = useAnimatedClose(onClose);
   const create = useCreateCustomer();
   const update = useUpdateCustomer();
 
@@ -66,7 +68,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
         if (dirtyFields.notes) input.notes = notes || null;
         await update.mutateAsync({ id: props.customer.id, input });
       }
-      onClose();
+      close();
     } catch (err) {
       const message = apiErrorMessage(err, 'Error desconocido');
       setError('root', { message });
@@ -76,7 +78,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
   const title = props.mode === 'create' ? 'Nuevo cliente' : 'Editar cliente';
 
   return (
-    <Modal title={title} onClose={onClose} initialFocusSelector="input">
+    <Modal title={title} onClose={close} exiting={closing} initialFocusSelector="input">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 p-4">
         <Input
           {...register('name')}
@@ -121,7 +123,7 @@ export function CustomerFormModal(props: CustomerFormModalProps) {
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={close}>
             Cancelar
           </Button>
           <Button type="submit" isLoading={isSubmitting || create.isPending || update.isPending}>
