@@ -77,7 +77,7 @@ export function BackupModal({ onClose }: BackupModalProps) {
       toastBackupRestored(
         `${summary.customers} clientes, ${summary.solds} ventas y ${summary.buys} compras restaurados`,
       );
-      setPendingRestore(null);
+      restoreClose.close();
       close();
     } catch (err) {
       setRestoreError(apiErrorMessage(err, 'No se pudo restaurar la copia'));

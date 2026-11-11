@@ -30,6 +30,18 @@ function Harness({ onChange }: { onChange?: (value: string) => void }) {
   );
 }
 
+function EditableHarness() {
+  const [value, setValue] = useState('');
+  return (
+    <>
+      <ProductNameAutocomplete value={value} onChange={setValue} />
+      <button type="button" onClick={() => setValue('cámara')}>
+        Cambiar valor
+      </button>
+    </>
+  );
+}
+
 describe('ProductNameAutocomplete', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,6 +84,48 @@ describe('ProductNameAutocomplete', () => {
       expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
     expect(screen.getByRole('listbox')).toHaveClass('animate-pop-in');
+  });
+
+  it('la lista de sugerencias sale con una animación de salida y luego desaparece', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness />);
+
+    await user.type(screen.getByRole('combobox'), 'iphone');
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    const listbox = screen.getByRole('listbox');
+    await user.keyboard('{Escape}');
+
+    expect(listbox).toHaveClass('animate-pop-out');
+    expect(listbox).not.toHaveClass('animate-pop-in');
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+  });
+
+  it('la lista congelada no cambia de contenido mientras se desvanece', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EditableHarness />);
+
+    const input = screen.getByRole('combobox');
+    await user.type(input, 'iphone');
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    fireEvent.blur(input);
+
+    expect(screen.getByRole('listbox')).toHaveClass('animate-pop-out');
+
+    await user.click(screen.getByRole('button', { name: 'Cambiar valor' }));
+
+    expect(screen.getByRole('listbox')).toHaveClass('animate-pop-out');
+    expect(screen.getByText('iPhone 12')).toBeInTheDocument();
+    expect(screen.queryByText('Cámara réflex')).toBeNull();
   });
 
   it('al hacer click en una sugerencia pone ese nombre en el campo', async () => {

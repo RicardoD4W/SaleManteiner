@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useCreateCustomer } from '../../hooks/useCreateCustomer';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 
 import { Spinner } from '../ui/Spinner';
 import { inputClassName } from '../ui/inputStyles.js';
@@ -18,6 +19,14 @@ interface CustomerAutocompleteProps {
   placeholder?: string;
 }
 
+interface FrozenCustomerList {
+  customers: Customer[];
+
+  showCreateOption: boolean;
+
+  createLabel: string;
+}
+
 export function CustomerAutocomplete({
   value,
   onChange,
@@ -32,6 +41,8 @@ export function CustomerAutocomplete({
   const [isOpen, setIsOpen] = useState(false);
 
   const [activeIndex, setActiveIndex] = useState(-1);
+
+  const [frozenList, setFrozenList] = useState<FrozenCustomerList | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
@@ -51,18 +62,55 @@ export function CustomerAutocomplete({
   const showCreateOption =
     inputValue.trim().length > 0 && !exactMatch && inputValue.trim().length <= 200;
 
+  const listClose = useAnimatedClose(() => {
+    setIsOpen(false);
+    setFrozenList(null);
+  });
+
+  const openList = () => {
+    listClose.cancel();
+    setIsOpen(true);
+  };
+
+  const closeList = () => {
+    if (listClose.closing) return;
+    const listVisible = isOpen && (filtered.length > 0 || showCreateOption);
+    setFrozenList(
+      listVisible
+        ? { customers: filtered, showCreateOption, createLabel: inputValue.trim() }
+        : null,
+    );
+    listClose.close();
+  };
+
+  const visibleCustomers = listClose.closing ? (frozenList?.customers ?? []) : filtered;
+
+  const visibleShowCreateOption = listClose.closing
+    ? (frozenList?.showCreateOption ?? false)
+    : showCreateOption;
+
+  const visibleCreateLabel = listClose.closing
+    ? (frozenList?.createLabel ?? '')
+    : inputValue.trim();
+
+  const showList = listClose.closing
+    ? frozenList !== null
+    : isOpen && (filtered.length > 0 || showCreateOption);
+
+  const expanded = isOpen && !listClose.closing;
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
     setActiveIndex(-1);
-    setIsOpen(true);
+    openList();
   };
 
   const handleSelect = (customer: Customer) => {
     onChange(customer);
     setInputValue(customer.name);
-    setIsOpen(false);
     setActiveIndex(-1);
+    closeList();
   };
 
   const handleCreateCustomer = async () => {
@@ -72,8 +120,8 @@ export function CustomerAutocomplete({
       const created = await createCustomer.mutateAsync({ name });
       onChange(created);
       setInputValue(created.name);
-      setIsOpen(false);
       setActiveIndex(-1);
+      closeList();
     } catch {
       return;
     }
@@ -84,11 +132,11 @@ export function CustomerAutocomplete({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setIsOpen(true);
+      openList();
       setActiveIndex((i) => Math.min(i + 1, totalOptions - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setIsOpen(true);
+      openList();
       setActiveIndex((i) => Math.max(i - 1, -1));
     } else if (e.key === 'Enter' && isOpen) {
       e.preventDefault();
@@ -98,11 +146,9 @@ export function CustomerAutocomplete({
         void handleCreateCustomer();
       }
     } else if (e.key === 'Escape') {
-      setIsOpen(false);
-      setActiveIndex(-1);
+      closeList();
     } else if (e.key === 'Tab') {
-      setIsOpen(false);
-      setActiveIndex(-1);
+      closeList();
     }
   };
 
@@ -130,7 +176,7 @@ export function CustomerAutocomplete({
           id="customer-autocomplete-input"
           type="text"
           role="combobox"
-          aria-expanded={isOpen}
+          aria-expanded={expanded}
           aria-controls={listboxId}
           aria-activedescendant={activeDescendant}
           aria-invalid={!!error}
@@ -138,7 +184,8 @@ export function CustomerAutocomplete({
           autoComplete="off"
           value={inputValue}
           onChange={handleInputChange}
-          onBlur={() => setIsOpen(false)}
+          onBlur={() => closeList()}
+          onFocus={() => listClose.cancel()}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={inputClassName(error, 'pr-10')}
@@ -168,7 +215,7 @@ export function CustomerAutocomplete({
         )}
       </div>
 
-      {isOpen && (filtered.length > 0 || showCreateOption) && (
+      {showList ? (
         <ul
           ref={listRef}
           id={listboxId}
@@ -176,12 +223,13 @@ export function CustomerAutocomplete({
           aria-label="Clientes"
           onMouseDown={(e) => e.preventDefault()}
           className={[
-            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto origin-top rounded-lg border animate-pop-in',
+            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto origin-top rounded-lg border',
+            listClose.closing ? 'animate-pop-out' : 'animate-pop-in',
             'bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',
             'divide-y divide-gray-100 dark:divide-gray-700',
           ].join(' ')}
         >
-          {filtered.map((customer, idx) => (
+          {visibleCustomers.map((customer, idx) => (
             <li
               key={customer.id}
               id={`${listboxId}-option-${customer.id}`}
@@ -200,7 +248,7 @@ export function CustomerAutocomplete({
             </li>
           ))}
 
-          {showCreateOption && (
+          {visibleShowCreateOption && (
             <li
               id={`${listboxId}-create`}
               role="option"
@@ -208,7 +256,7 @@ export function CustomerAutocomplete({
               onClick={() => void handleCreateCustomer()}
               className={[
                 'cursor-pointer px-3 py-2 text-sm',
-                activeIndex === filtered.length
+                activeIndex === visibleCustomers.length
                   ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
                   : 'text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700',
                 'flex items-center gap-2 border-t border-gray-100 dark:border-gray-700',
@@ -229,12 +277,12 @@ export function CustomerAutocomplete({
                 />
               </svg>
               <span className="font-medium text-brand-700 dark:text-brand-300">
-                Crear cliente &quot;{inputValue.trim()}&quot;
+                Crear cliente &quot;{visibleCreateLabel}&quot;
               </span>
             </li>
           )}
         </ul>
-      )}
+      ) : null}
 
       {error ? (
         <p

@@ -1,8 +1,10 @@
 import { useId, useMemo, useState, type CSSProperties } from 'react';
 import { useProductNames } from '../../hooks/useProductNames';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import { normalizeText } from '../../lib/searchQuery.js';
 import { Spinner } from '../ui/Spinner';
 import { inputClassName } from '../ui/inputStyles.js';
+import type { ProductName } from '../../api/products';
 
 const MAX_SUGGESTIONS = 8;
 
@@ -40,6 +42,8 @@ export function ProductNameAutocomplete({
 
   const [activeIndex, setActiveIndex] = useState(-1);
 
+  const [frozenMatches, setFrozenMatches] = useState<ProductName[] | null>(null);
+
   const listboxId = useId();
 
   const inputId = `${listboxId}-input`;
@@ -55,39 +59,57 @@ export function ProductNameAutocomplete({
       .slice(0, MAX_SUGGESTIONS);
   }, [products, query]);
 
-  const showList = isOpen && matches.length > 0;
+  const listClose = useAnimatedClose(() => {
+    setIsOpen(false);
+    setFrozenMatches(null);
+  });
+
+  const openList = () => {
+    listClose.cancel();
+    setIsOpen(true);
+  };
+
+  const closeList = () => {
+    if (listClose.closing) return;
+    setFrozenMatches(isOpen && matches.length > 0 ? matches : null);
+    listClose.close();
+  };
+
+  const visibleMatches = listClose.closing ? (frozenMatches ?? []) : matches;
+
+  const showList = listClose.closing ? frozenMatches !== null : isOpen && matches.length > 0;
+
+  const expanded = showList && !listClose.closing;
 
   const handleSelect = (name: string) => {
     onChange(name);
-    setIsOpen(false);
     setActiveIndex(-1);
+    closeList();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       if (!matches.length) return;
       e.preventDefault();
-      setIsOpen(true);
+      openList();
       setActiveIndex((i) => Math.min(i + 1, matches.length - 1));
     } else if (e.key === 'ArrowUp') {
       if (!matches.length) return;
       e.preventDefault();
-      setIsOpen(true);
+      openList();
       setActiveIndex((i) => Math.max(i - 1, -1));
-    } else if (e.key === 'Enter' && showList && activeIndex >= 0) {
+    } else if (e.key === 'Enter' && expanded && activeIndex >= 0) {
       e.preventDefault();
-      handleSelect(matches[activeIndex].name);
+      handleSelect(visibleMatches[activeIndex].name);
     } else if (e.key === 'Escape') {
-      setIsOpen(false);
-      setActiveIndex(-1);
+      closeList();
     } else if (e.key === 'Tab') {
-      setIsOpen(false);
-      setActiveIndex(-1);
+      closeList();
     }
   };
 
   const activeDescendant =
-    showList && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
+    expanded && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
   const showNoMatches = isOpen && query.length > 0 && !isLoading && matches.length === 0;
 
@@ -104,7 +126,7 @@ export function ProductNameAutocomplete({
           id={inputId}
           type="text"
           role="combobox"
-          aria-expanded={showList}
+          aria-expanded={expanded}
           aria-controls={listboxId}
           aria-autocomplete="list"
           aria-activedescendant={activeDescendant}
@@ -115,12 +137,11 @@ export function ProductNameAutocomplete({
           onChange={(e) => {
             onChange(e.target.value);
             setActiveIndex(-1);
-            setIsOpen(true);
+            openList();
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => openList()}
           onBlur={() => {
-            setIsOpen(false);
-            setActiveIndex(-1);
+            closeList();
             onBlur?.();
           }}
           onKeyDown={handleKeyDown}
@@ -143,12 +164,13 @@ export function ProductNameAutocomplete({
           aria-label="Productos"
           onMouseDown={(e) => e.preventDefault()}
           className={[
-            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto origin-top rounded-lg border animate-pop-in',
+            'absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto origin-top rounded-lg border',
+            listClose.closing ? 'animate-pop-out' : 'animate-pop-in',
             'bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800',
             'divide-y divide-gray-100 dark:divide-gray-700',
           ].join(' ')}
         >
-          {matches.map((product, idx) => (
+          {visibleMatches.map((product, idx) => (
             <li
               key={product.name}
               id={`${listboxId}-option-${idx}`}

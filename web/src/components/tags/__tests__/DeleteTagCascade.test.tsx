@@ -39,6 +39,24 @@ describe('DeleteTagCascade', () => {
     expect(screen.getByText(/El tag/).closest('div')).toHaveClass('animate-pop-in');
   });
 
+  it('sale con una animación de salida cuando está exiting', () => {
+    renderWithProviders(
+      <DeleteTagCascade
+        tagName="Urgente"
+        buys={[buyFixture()]}
+        isPending={false}
+        error={null}
+        exiting
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    const block = screen.getByText(/El tag/).closest('div');
+    expect(block).toHaveClass('animate-pop-out');
+    expect(block).not.toHaveClass('animate-pop-in');
+  });
+
   it('avisa de cuántas compras tienen el tag y las lista', () => {
     renderWithProviders(
       <DeleteTagCascade

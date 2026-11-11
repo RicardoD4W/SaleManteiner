@@ -239,6 +239,58 @@ describe('TagManagerModal', () => {
     expect(confirmation.closest('div')).toHaveClass('animate-pop-in');
   });
 
+  it('la confirmación de borrado sale con una animación de salida y luego desaparece', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+
+    const confirmation = screen.getByText('¿Estás seguro de que quieres borrar el tag «Urgente»?');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(confirmation.closest('div')).toHaveClass('animate-pop-out');
+    expect(confirmation.closest('div')).not.toHaveClass('animate-pop-in');
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('¿Estás seguro de que quieres borrar el tag «Urgente»?'),
+      ).toBeNull();
+    });
+  });
+
+  it('la primera confirmación sale con animación antes de aparecer el aviso de compras', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+
+    const confirmation = screen.getByText('¿Estás seguro de que quieres borrar el tag «Urgente»?');
+    await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+    expect(confirmation.closest('div')).toHaveClass('animate-pop-out');
+    expect(await screen.findByText(/El tag/)).toBeInTheDocument();
+  });
+
+  it('el aviso de compras afectadas sale con una animación de salida al cancelar', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TagManagerModal onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Borrar Urgente' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, borrar' }));
+
+    const cascade = await screen.findByText(/El tag/);
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(cascade.closest('div')).toHaveClass('animate-pop-out');
+
+    await waitFor(() => {
+      expect(screen.queryByText(/El tag/)).toBeNull();
+    });
+  });
+
   it('la confirmación de borrado sale arriba de la lista de tags', async () => {
     const user = userEvent.setup();
 

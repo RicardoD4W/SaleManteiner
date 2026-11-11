@@ -16,6 +16,8 @@ interface DeleteTagCascadeProps {
   onCancel: () => void;
 
   onConfirm: () => void;
+
+  exiting?: boolean;
 }
 
 export function DeleteTagCascade({
@@ -25,6 +27,7 @@ export function DeleteTagCascade({
   error,
   onCancel,
   onConfirm,
+  exiting = false,
 }: DeleteTagCascadeProps) {
   const count = buys.length;
   const countLabel = count === 1 ? '1 compra' : `${count} compras`;
@@ -37,7 +40,12 @@ export function DeleteTagCascade({
       : `Si lo borrás, ${pronoun} ${verb} sin etiqueta. Las compras no se borran.`;
 
   return (
-    <div className="space-y-3 animate-pop-in rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+    <div
+      className={cn(
+        'space-y-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30',
+        exiting ? 'animate-pop-out' : 'animate-pop-in',
+      )}
+    >
       <p className="text-sm text-gray-800 dark:text-gray-100">
         El tag <strong>«{tagName}»</strong> {head}. {tail}
       </p>

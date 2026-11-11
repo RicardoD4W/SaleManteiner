@@ -126,6 +126,50 @@ describe('CustomerAutocomplete', () => {
     expect(screen.getByRole('listbox', { name: 'Clientes' })).toHaveClass('animate-pop-in');
   });
 
+  it('la lista de clientes sale con una animación de salida y luego desaparece', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CustomerAutocomplete value={null} onChange={vi.fn()} />);
+
+    await user.type(screen.getByRole('combobox'), 'juan');
+    await waitFor(() => {
+      expect(screen.getByRole('listbox', { name: 'Clientes' })).toBeInTheDocument();
+    });
+
+    const listbox = screen.getByRole('listbox', { name: 'Clientes' });
+    await user.keyboard('{Escape}');
+
+    expect(listbox).toHaveClass('animate-pop-out');
+    expect(listbox).not.toHaveClass('animate-pop-in');
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+  });
+
+  it('la lista congelada mantiene el contenido que el usuario tenía delante', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const { rerender } = renderWithProviders(
+      <CustomerAutocomplete value={null} onChange={onChange} />,
+    );
+
+    await user.type(screen.getByRole('combobox'), 'Pedro');
+    await waitFor(() => {
+      expect(screen.getByText(/Crear cliente "Pedro"/)).toBeInTheDocument();
+    });
+
+    fireEvent.blur(screen.getByRole('combobox'));
+
+    expect(screen.getByRole('listbox', { name: 'Clientes' })).toHaveClass('animate-pop-out');
+
+    rerender(<CustomerAutocomplete value={mockCustomers[0]} onChange={onChange} />);
+
+    expect(screen.getByRole('listbox', { name: 'Clientes' })).toHaveClass('animate-pop-out');
+    expect(screen.getByText(/Crear cliente "Pedro"/)).toBeInTheDocument();
+    expect(screen.queryByText('Juan Pérez')).toBeNull();
+  });
+
   it('al hacer click en un cliente llama a onChange', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

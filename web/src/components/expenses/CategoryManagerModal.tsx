@@ -16,6 +16,7 @@ import {
   useExpenseCategories,
   useUpdateExpenseCategory,
 } from '../../hooks/useExpenseCategories';
+import { useAnimatedClose } from '../../hooks/useExitAnimation';
 import type { ExpenseCategory } from '../../schemas/expenses';
 
 export interface ExpenseCategoryCascadeRequest {
@@ -51,6 +52,13 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
   const [renameError, setRenameError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const { closing, close } = useAnimatedClose(onClose);
+
+  const deleteClose = useAnimatedClose(() => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  });
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -93,7 +101,7 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
     setDeleteError(null);
     try {
       await deleteCategory.mutateAsync(deleteTarget.id);
-      setDeleteTarget(null);
+      deleteClose.close();
     } catch (err) {
       if (isCascadeConflict(err)) {
         onCascadeRequired({ category: deleteTarget, expenses: err.body.associated_expenses });
@@ -104,7 +112,7 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
   };
 
   return (
-    <Modal title="Categorías de gasto" onClose={onClose} size="medium">
+    <Modal title="Categorías de gasto" onClose={close} exiting={closing} size="medium">
       <div className="space-y-4 p-4">
         {isLoading ? (
           <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -188,6 +196,7 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
                       <button
                         type="button"
                         onClick={() => {
+                          deleteClose.cancel();
                           setDeleteTarget(category);
                           setDeleteError(null);
                         }}
@@ -205,7 +214,12 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
         ) : null}
 
         {deleteTarget ? (
-          <div className="space-y-2 animate-pop-in rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30">
+          <div
+            className={cn(
+              'space-y-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/30',
+              deleteClose.closing ? 'animate-pop-out' : 'animate-pop-in',
+            )}
+          >
             <p className="text-sm text-gray-800 dark:text-gray-100">
               ¿Eliminar la categoría <strong>"{deleteTarget.name}"</strong>? No se puede deshacer.
             </p>
@@ -220,8 +234,7 @@ export function CategoryManagerModal({ onClose, onCascadeRequired }: CategoryMan
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setDeleteTarget(null);
-                  setDeleteError(null);
+                  deleteClose.close();
                 }}
               >
                 Cancelar
