@@ -72,9 +72,7 @@ describe('decodePublicKey', () => {
   });
 
   it('rechaza una clave pública con el formato equivocado', () => {
-    const decoded = decodePublicKey(
-      Buffer.from('untrusted comment: x\nabc\n').toString('base64'),
-    );
+    const decoded = decodePublicKey(Buffer.from('untrusted comment: x\nabc\n').toString('base64'));
     expect(decoded.ok).toBe(false);
   });
 });
@@ -92,13 +90,9 @@ describe('decodeSignatureFile', () => {
     const sections = text.split('\n');
     const blob = Buffer.from(sections[1], 'base64');
     const legacy = Buffer.concat([Buffer.from('Ed', 'latin1'), blob.subarray(2)]);
-    const legacyText = [
-      sections[0],
-      legacy.toString('base64'),
-      sections[2],
-      sections[3],
-      '',
-    ].join('\n');
+    const legacyText = [sections[0], legacy.toString('base64'), sections[2], sections[3], ''].join(
+      '\n',
+    );
     const decoded = decodeSignatureFile(Buffer.from(legacyText, 'utf8').toString('base64'));
     expect(decoded.ok).toBe(false);
     expect(decoded.reason).toContain('ED');
@@ -141,6 +135,27 @@ describe('verifyArtifactSignature', () => {
     });
     expect(result.ok).toBe(false);
     expect(result.reason).toContain('la firma es de la clave');
+  });
+
+  it('rechaza un comentario dependable cambiado', () => {
+    const data = Buffer.from('contenido del instalador');
+    const fixture = buildTauriStyleSignature(data);
+    const text = Buffer.from(fixture.signatureBase64, 'base64').toString('utf8');
+    const sections = text.split('\n');
+    const tampered = [
+      sections[0],
+      sections[1],
+      sections[2].replace('artefacto.zip', 'otro.zip'),
+      sections[3],
+      '',
+    ].join('\n');
+    const result = verifyArtifactSignature({
+      data,
+      signatureBase64: Buffer.from(tampered, 'utf8').toString('base64'),
+      pubkeyBase64: fixture.pubkey,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('firma global');
   });
 });
 

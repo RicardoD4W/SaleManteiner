@@ -19,7 +19,7 @@ export function decodeBase64Strict(value) {
 
 const PUBLIC_KEY_MARKER = 'minisign public key';
 
-export function readPublicKeyFile(pubkey) {
+function readPublicKeyFile(pubkey) {
   const text = String(pubkey ?? '').trim();
   if (!text) return null;
   if (text.includes(PUBLIC_KEY_MARKER)) return Buffer.from(text, 'utf8');

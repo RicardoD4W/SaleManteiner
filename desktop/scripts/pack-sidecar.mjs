@@ -83,10 +83,12 @@ const nodePin = readJson(NODE_PIN_PATH);
 const nodeSha256 = sha256File(process.execPath);
 const nodeCheck = verifyNodeRuntime(nodePin.runtimes, process.version, nodeSha256);
 if (!nodeCheck.ok) {
+  const allowed = (nodePin.runtimes ?? []).map((runtime) => runtime.version);
   fail(
     `${nodeCheck.reason}\n` +
-      `  instalá una de las versiones verificadas ` +
-      `(${(nodePin.runtimes ?? []).map((runtime) => runtime.version).join(', ')}) y volvé a empaquetar`,
+      `  instalá una de las versiones verificadas y volvé a empaquetar: ` +
+      `fnm install ${allowed[0] ?? '<version>'} && fnm use ${allowed[0] ?? '<version>'}\n` +
+      `  (la lista está en desktop/runtime/node-runtime.json: ${allowed.join(', ')})`,
   );
 }
 log(`  node ${nodeCheck.runtime.version} verificado (sha256 ${nodeSha256})`);
@@ -128,13 +130,21 @@ if (driftLines.length) {
   );
 }
 
-const expected = buildRuntimeArtifacts({
-  rootLock,
-  workspacePath: 'server',
-  runtimeName: runtimePackage.name,
-  runtimeVersion: runtimePackage.version,
-  serverDependencies: serverPackage.dependencies ?? {},
-});
+let expected;
+try {
+  expected = buildRuntimeArtifacts({
+    rootLock,
+    workspacePath: 'server',
+    runtimeName: runtimePackage.name,
+    runtimeVersion: runtimePackage.version,
+    serverDependencies: serverPackage.dependencies ?? {},
+  });
+} catch (err) {
+  fail(
+    `no pude derivar el lockfile del runtime desde el lockfile raíz: ${err.message}\n` +
+      '  corré `npm run sync:runtime` en desktop/',
+  );
+}
 const lockProblems = diffRuntimeLockfiles(expected.lockfile, committedLock);
 if (lockProblems.length) {
   fail(
@@ -144,22 +154,16 @@ if (lockProblems.length) {
   );
 }
 
-writeFileSync(
-  path.join(runtimeDir, 'package.json'),
-  readFileSync(RUNTIME_PACKAGE_PATH, 'utf8'),
-);
-writeFileSync(
-  path.join(runtimeDir, 'package-lock.json'),
-  readFileSync(RUNTIME_LOCK_PATH, 'utf8'),
-);
+writeFileSync(path.join(runtimeDir, 'package.json'), readFileSync(RUNTIME_PACKAGE_PATH, 'utf8'));
+writeFileSync(path.join(runtimeDir, 'package-lock.json'), readFileSync(RUNTIME_LOCK_PATH, 'utf8'));
 log('  instalando las dependencias de runtime (npm ci, solo prod)');
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 try {
-  execFileSync(
-    npmCmd,
-    ['ci', '--omit=dev', '--no-audit', '--no-fund', '--loglevel=error'],
-    { cwd: runtimeDir, stdio: 'inherit', shell: process.platform === 'win32' },
-  );
+  execFileSync(npmCmd, ['ci', '--omit=dev', '--no-audit', '--no-fund', '--loglevel=error'], {
+    cwd: runtimeDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 } catch (err) {
   fail(`falló el npm ci de las dependencias de runtime: ${err.message}`);
 }

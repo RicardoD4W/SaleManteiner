@@ -15,9 +15,7 @@ const DESKTOP = path.resolve(HERE, '../..');
 const REPO = path.resolve(DESKTOP, '..');
 
 const rootLock = JSON.parse(readFileSync(path.join(REPO, 'package-lock.json'), 'utf8'));
-const serverPackage = JSON.parse(
-  readFileSync(path.join(REPO, 'server', 'package.json'), 'utf8'),
-);
+const serverPackage = JSON.parse(readFileSync(path.join(REPO, 'server', 'package.json'), 'utf8'));
 const runtimePackage = JSON.parse(
   readFileSync(path.join(DESKTOP, 'runtime', 'package.json'), 'utf8'),
 );
@@ -76,6 +74,72 @@ describe('diffRuntimeDependencies', () => {
     const drift = diffRuntimeDependencies({ express: '^5.3.0' }, { express: '4.21.0' });
     expect(drift.incompatible).toHaveLength(1);
     expect(drift.incompatible[0]).toContain('express');
+  });
+
+  it('no toma una prerelease por una versión pineada', () => {
+    const drift = diffRuntimeDependencies({ express: '^5.3.0' }, { express: '5.3.0-rc.1' });
+    expect(drift.unpinned).toEqual(['express (5.3.0-rc.1)']);
+    expect(satisfiesRange('5.3.0-rc.1', '^5.3.0')).toBe(false);
+  });
+});
+
+describe('diffRuntimeLockfiles', () => {
+  const base = {
+    packages: {
+      '': { name: 'runtime', version: '1.0.0', dependencies: { express: '5.3.0' } },
+      'node_modules/express': {
+        version: '5.3.0',
+        resolved: 'https://registry.npmjs.org/express/-/express-5.3.0.tgz',
+        integrity: 'sha512-express',
+        dependencies: { 'body-parser': '2.3.0' },
+      },
+    },
+  };
+
+  it('no encuentra problemas cuando los dos lockfiles son el mismo', () => {
+    expect(diffRuntimeLockfiles(base, structuredClone(base))).toEqual([]);
+  });
+
+  it('detecta una versión cambiada', () => {
+    const other = structuredClone(base);
+    other.packages['node_modules/express'].version = '4.21.0';
+    expect(diffRuntimeLockfiles(base, other)).toEqual([
+      'node_modules/express: 4.21.0 en vez de 5.3.0',
+    ]);
+  });
+
+  it('detecta un integrity cambiado', () => {
+    const other = structuredClone(base);
+    other.packages['node_modules/express'].integrity = 'sha512-otro';
+    expect(diffRuntimeLockfiles(base, other)).toEqual([
+      'node_modules/express: el integrity no coincide',
+    ]);
+  });
+
+  it('detecta un resolved cambiado', () => {
+    const other = structuredClone(base);
+    other.packages['node_modules/express'].resolved = 'https://ejemplo.invalido/express.tgz';
+    expect(diffRuntimeLockfiles(base, other)).toEqual([
+      'node_modules/express: la entrada no coincide con el lockfile raíz',
+    ]);
+  });
+
+  it('detecta las dependencias de un paquete cambiadas', () => {
+    const other = structuredClone(base);
+    other.packages['node_modules/express'].dependencies = { 'body-parser': '9.9.9' };
+    expect(diffRuntimeLockfiles(base, other)).toEqual([
+      'node_modules/express: la entrada no coincide con el lockfile raíz',
+    ]);
+  });
+
+  it('detecta un paquete de más y uno de menos', () => {
+    const withExtra = structuredClone(base);
+    withExtra.packages['node_modules/left-pad'] = { version: '1.3.0' };
+    expect(diffRuntimeLockfiles(base, withExtra)).toEqual(['sobra node_modules/left-pad']);
+
+    const withMissing = structuredClone(base);
+    delete withMissing.packages['node_modules/express'];
+    expect(diffRuntimeLockfiles(base, withMissing)).toEqual(['falta node_modules/express']);
   });
 });
 

@@ -57,7 +57,7 @@ El instalador lleva dentro el runtime de Node y las dependencias de producción 
 | **El binario de Node** | la versión tiene que estar en la lista de runtimes verificados **y** el `sha256` del binario tiene que ser el del archivo oficial de nodejs.org | `desktop/runtime/node-runtime.json` |
 | **Las dependencias**   | el lockfile del runtime tiene que ser el que se deriva del lockfile raíz del repo (mismos 85 paquetes, mismas versiones y mismo `integrity`)    | `desktop/runtime/package-lock.json` |
 
-- **Los checksums de Node son oficiales**: el `sha256` es el del `node.exe` dentro del zip oficial de nodejs.org para esa versión (comprobado: el binario que instala `fnm` es byte a byte el del zip). Las versiones permitidas están en `desktop/runtime/node-runtime.json`, con el `sha256` del zip y el origen. Para agregar una versión nueva hay que sumar su checksum oficial.
+- **Los checksums de Node son oficiales**: el `sha256` es el del `node.exe` dentro del zip oficial de nodejs.org para esa versión (comprobado: el binario que instala `fnm` es byte a byte el del zip). Las versiones permitidas están en `desktop/runtime/node-runtime.json`, con el `sha256` del zip publicado por nodejs.org (procedencia) y el origen. Para agregar una versión nueva hay que sumar su checksum oficial.
 - **El lockfile del runtime no se escribe a mano**: `npm run sync:runtime` (en `desktop/`) lo deriva del `package-lock.json` raíz, que ya pinnea el árbol del repo → lo que viaja en el instalador es **exactamente** lo que está probado en el repo, y dos empaquetados instalan el mismo árbol. Si cambian las dependencias del server, hay que correr ese comando y commitear el lockfile.
 - **El empaquetado se niega a continuar** si el lockfile del runtime se aparta del raíz o si el Node no está verificado: primero hay que arreglar el desajuste, no se publishes a medias.
 - Queda un `runtime-manifest.json` en `desktop/resources/server` con la versión y el checksum del runtime de Node y las versiones instaladas: es el registro de qué se metió dentro del instalador.
@@ -123,7 +123,7 @@ Para verificar a mano un ZIP ya descargado:
 npm --workspace desktop run verify:release -- <ruta-del-zip> <ruta-del-zip>.sig
 ```
 
-El script usa la clave pública de `desktop/tauri.conf.json` (o la que se le pase como tercer argumento) y dice si la firma valida o no. **Las rutas son relativas a `desktop/`** (o absolutas): el comando del workspace corre desde esa carpeta.
+El script usa la clave pública de `desktop/tauri.conf.json` (o la que se le pase como tercer argumento) y dice si la firma valida o no. **Las rutas son relativas a `desktop/`** (o absolutas): el comando del workspace corre desde esa carpeta. **El ancla de confianza es la clave pública compilada en la app** (`desktop/tauri.conf.json`), no el archivo publicado en la release: si dudás de ese archivo, comparálo con el de la app instalada.
 
 ### El instalador, en español
 

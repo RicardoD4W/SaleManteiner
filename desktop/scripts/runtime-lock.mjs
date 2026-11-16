@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 export function parseSemver(value) {
-  const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(String(value).trim());
+  const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(value).trim());
   if (!match) return null;
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
@@ -213,6 +213,15 @@ export function buildRuntimeArtifacts({
   };
 }
 
+function canonicalEntry(entry) {
+  if (entry === null || typeof entry !== 'object') return JSON.stringify(entry);
+  if (Array.isArray(entry)) return `[${entry.map(canonicalEntry).join(',')}]`;
+  return `{${Object.keys(entry)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalEntry(entry[key])}`)
+    .join(',')}}`;
+}
+
 export function diffRuntimeLockfiles(expected, actual) {
   const expectedPackages = expected?.packages ?? {};
   const actualPackages = actual?.packages ?? {};
@@ -230,6 +239,10 @@ export function diffRuntimeLockfiles(expected, actual) {
     }
     if (entry.integrity && other.integrity !== entry.integrity) {
       problems.push(`${path}: el integrity no coincide`);
+      continue;
+    }
+    if (canonicalEntry(entry) !== canonicalEntry(other)) {
+      problems.push(`${path}: la entrada no coincide con el lockfile raíz`);
     }
   }
 
