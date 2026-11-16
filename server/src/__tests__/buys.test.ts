@@ -351,6 +351,75 @@ describe('buys repo', () => {
       expect(items).toEqual([{ sold_id: 1, buy_id: buyB.id, quantity: 3 }]);
     });
 
+    it('venta pack: al borrar en cascada se prorratean los importes de la venta', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 100, 10, 60, new Date().toISOString());
+      const buyA = repo.create(validCreate({ product_name: 'A', purchase_cost: 50, quantity: 2 }));
+      const buyB = repo.create(validCreate({ product_name: 'B', purchase_cost: 30, quantity: 3 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyA.id,
+        2,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyB.id,
+        3,
+      );
+
+      const result = repo.removeWithCascade(buyA.id);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('el borrado en cascada debería haber funcionado');
+      expect(result.adjustments).toEqual([
+        {
+          sold_id: 1,
+          sale_price_before: 100,
+          sale_price_after: 60,
+          associated_costs_before: 10,
+          associated_costs_after: 6,
+          paid_amount_before: 60,
+          paid_amount_after: 36,
+        },
+      ]);
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(60);
+      expect(sold.associated_costs).toBe(6);
+      expect(sold.paid_amount).toBe(36);
+
+      const deuda = db
+        .prepare(
+          'SELECT COALESCE(SUM(sale_price - paid_amount), 0) AS deuda FROM solds WHERE customer_id = ?',
+        )
+        .get(1) as { deuda: number };
+      expect(deuda.deuda).toBe(24);
+
+      const profit = db.prepare('SELECT profit FROM v_sold_costs WHERE sold_id = ?').get(1) as {
+        profit: number;
+      };
+      expect(profit.profit).toBe(-36);
+
+      expect(repo.getById(buyA.id)).toBeNull();
+      expect(db.prepare('SELECT * FROM solds WHERE id = 1').get()).toBeDefined();
+      const items = db.prepare('SELECT * FROM sale_items').all() as Array<{
+        sold_id: number;
+        buy_id: number;
+        quantity: number;
+      }>;
+      expect(items).toEqual([{ sold_id: 1, buy_id: buyB.id, quantity: 3 }]);
+    });
+
     it('venta pack donde este buy era el único item: borra la compra Y la venta', () => {
       db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
         1,
@@ -372,6 +441,216 @@ describe('buys repo', () => {
       expect(repo.getById(buy.id)).toBeNull();
       expect(db.prepare('SELECT * FROM solds WHERE id = 1').get()).toBeUndefined();
       expect(db.prepare('SELECT * FROM sale_items').all()).toEqual([]);
+    });
+
+    it('prorrateo exacto: el importe restante es el de las unidades que quedan', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 383.13, 61, 383.13, new Date().toISOString());
+      const buyA = repo.create(validCreate({ product_name: 'A', quantity: 7 }));
+      const buyB = repo.create(validCreate({ product_name: 'B', quantity: 15 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyA.id,
+        7,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyB.id,
+        15,
+      );
+
+      expect(repo.removeWithCascade(buyA.id).ok).toBe(true);
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(261.23);
+      expect(sold.associated_costs).toBe(41.59);
+      expect(sold.paid_amount).toBe(261.23);
+    });
+
+    it('prorrateo exacto en el medio exacto: 4.27 entre 2 unidades deja 2.14', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 4.27, 0, 0, new Date().toISOString());
+      const buyA = repo.create(validCreate({ product_name: 'A', quantity: 1 }));
+      const buyB = repo.create(validCreate({ product_name: 'B', quantity: 1 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyA.id,
+        1,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyB.id,
+        1,
+      );
+
+      expect(repo.removeWithCascade(buyA.id).ok).toBe(true);
+
+      const sold = db.prepare('SELECT sale_price FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+      };
+      expect(sold.sale_price).toBe(2.14);
+    });
+
+    it('venta con tres compras: al borrar una quedan dos y los importes se reparten', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 90, 9, 0, new Date().toISOString());
+      const buyA = repo.create(validCreate({ product_name: 'A', quantity: 2 }));
+      const buyB = repo.create(validCreate({ product_name: 'B', quantity: 3 }));
+      const buyC = repo.create(validCreate({ product_name: 'C', quantity: 4 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyA.id,
+        2,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyB.id,
+        3,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyC.id,
+        4,
+      );
+
+      const result = repo.removeWithCascade(buyA.id);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('el borrado en cascada debería haber funcionado');
+      expect(result.adjustments).toEqual([
+        {
+          sold_id: 1,
+          sale_price_before: 90,
+          sale_price_after: 70,
+          associated_costs_before: 9,
+          associated_costs_after: 7,
+          paid_amount_before: 0,
+          paid_amount_after: 0,
+        },
+      ]);
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(70);
+      expect(sold.associated_costs).toBe(7);
+      expect(sold.paid_amount).toBe(0);
+
+      const deuda = db
+        .prepare(
+          'SELECT COALESCE(SUM(sale_price - paid_amount), 0) AS deuda FROM solds WHERE customer_id = ?',
+        )
+        .get(1) as { deuda: number };
+      expect(deuda.deuda).toBe(70);
+
+      const items = db.prepare('SELECT * FROM sale_items ORDER BY buy_id').all() as Array<{
+        sold_id: number;
+        buy_id: number;
+        quantity: number;
+      }>;
+      expect(items).toEqual([
+        { sold_id: 1, buy_id: buyB.id, quantity: 3 },
+        { sold_id: 1, buy_id: buyC.id, quantity: 4 },
+      ]);
+    });
+
+    it('id inexistente: no toca los importes de las ventas', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 100, 10, 60, new Date().toISOString());
+      const buy = repo.create(validCreate({ product_name: 'X', quantity: 5 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buy.id,
+        1,
+      );
+
+      expect(repo.removeWithCascade(99999)).toEqual({ ok: false, code: 'NOT_FOUND' });
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(100);
+      expect(sold.associated_costs).toBe(10);
+      expect(sold.paid_amount).toBe(60);
+      expect(repo.getById(buy.id)).not.toBeNull();
+    });
+
+    it('planCascadeAdjustments devuelve los importes previstos sin escribir nada', () => {
+      db.prepare('INSERT INTO customers (id, name, created_at) VALUES (?, ?, ?)').run(
+        1,
+        'Test',
+        new Date().toISOString(),
+      );
+      db.prepare(
+        'INSERT INTO solds (id, customer_id, sale_price, associated_costs, paid_amount, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run(1, 1, 100, 10, 60, new Date().toISOString());
+      const buyA = repo.create(validCreate({ product_name: 'A', quantity: 2 }));
+      const buyB = repo.create(validCreate({ product_name: 'B', quantity: 3 }));
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyA.id,
+        2,
+      );
+      db.prepare('INSERT INTO sale_items (sold_id, buy_id, quantity) VALUES (?, ?, ?)').run(
+        1,
+        buyB.id,
+        3,
+      );
+
+      const planned = repo.planCascadeAdjustments(buyA.id);
+
+      expect(planned).toEqual([
+        {
+          sold_id: 1,
+          sale_price_before: 100,
+          sale_price_after: 60,
+          associated_costs_before: 10,
+          associated_costs_after: 6,
+          paid_amount_before: 60,
+          paid_amount_after: 36,
+        },
+      ]);
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = 1').get() as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(100);
+      expect(sold.associated_costs).toBe(10);
+      expect(sold.paid_amount).toBe(60);
     });
   });
 

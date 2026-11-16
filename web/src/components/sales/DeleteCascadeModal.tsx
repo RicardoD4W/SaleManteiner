@@ -32,6 +32,10 @@ interface DeleteCascadeModalProps {
 
   items: CascadeItem[];
 
+  description?: string;
+
+  note?: string | null;
+
   isPending: boolean;
 
   cascadeError: string | null;
@@ -51,6 +55,8 @@ export function DeleteCascadeModal({
   countLabelPlural,
   itemsNoun,
   items,
+  description,
+  note,
   isPending,
   cascadeError,
   onClose,
@@ -74,14 +80,18 @@ export function DeleteCascadeModal({
       initialFocusRef={confirmButtonRef}
     >
       <div className="space-y-4 p-4">
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          {entityPhrase} <strong>"{entityName}"</strong> tiene{' '}
-          <strong>
-            {itemsCount} {countLabel}
-          </strong>
-          . Si {entityPronoun} borrás también se van a borrar {itemsNoun} siguientes. Esta acción no
-          se puede deshacer.
-        </p>
+        {description ? (
+          <p className="text-sm text-gray-700 dark:text-gray-300">{description}</p>
+        ) : (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {entityPhrase} <strong>"{entityName}"</strong> tiene{' '}
+            <strong>
+              {itemsCount} {countLabel}
+            </strong>
+            . Si {entityPronoun} borrás también se van a borrar {itemsNoun} siguientes. Esta acción
+            no se puede deshacer.
+          </p>
+        )}
 
         <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
           {itemRows.map((item) => (
@@ -100,6 +110,8 @@ export function DeleteCascadeModal({
             </li>
           ))}
         </ul>
+
+        {note ? <p className="text-sm text-gray-700 dark:text-gray-300">{note}</p> : null}
 
         {cascadeError ? (
           <p className={cn(errorAlertClass, 'px-3 py-2')} role="alert">

@@ -29,6 +29,17 @@ export function DeleteBuyModal({
     };
   });
 
+  const salesCount = sales.length;
+  const countLabel = salesCount === 1 ? 'venta registrada' : 'ventas registradas';
+  const description =
+    `La compra "${productName}" tiene ${salesCount} ${countLabel}. ` +
+    `Si borrás la compra, las ventas que solo contenían sus productos se borran; ` +
+    `las que tenían más productos se quedan y su importe (precio, gastos e importe cobrado) ` +
+    `se ajusta a la parte que queda. Esta acción no se puede deshacer.`;
+  const note =
+    'Las ventas que quedan con otros productos no cambian de cliente ni de fecha: ' +
+    'solo se recalculan sus importes.';
+
   return (
     <DeleteCascadeModal
       title="La compra tiene ventas asociadas"
@@ -40,6 +51,8 @@ export function DeleteBuyModal({
       countLabelPlural="ventas registradas"
       itemsNoun="las ventas"
       items={items}
+      description={description}
+      note={note}
       isPending={isPending}
       cascadeError={cascadeError}
       onClose={onClose}

@@ -24,13 +24,64 @@ describe('DeleteBuyModal', () => {
     );
 
     expect(screen.getByText('La compra tiene ventas asociadas')).toBeInTheDocument();
-    expect(screen.getByText('"Funda iPhone"')).toBeInTheDocument();
+    expect(screen.getByText(/Funda iPhone/)).toBeInTheDocument();
     expect(screen.getByText('Venta #7')).toBeInTheDocument();
     expect(screen.getByText('Venta #9')).toBeInTheDocument();
     expect(screen.getByText(/Cliente Cascade/)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Borrar también las ventas y la compra' }),
     ).toBeInTheDocument();
+  });
+
+  it('avisa de que las ventas con más productos se quedan y su importe se ajusta', () => {
+    renderWithProviders(
+      <DeleteBuyModal
+        productName="Funda iPhone"
+        sales={SALES}
+        isPending={false}
+        cascadeError={null}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(/las que tenían más productos se quedan y su importe/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/se ajusta a la parte que queda/)).toBeInTheDocument();
+    expect(screen.getByText(/Esta acción no se puede deshacer/)).toBeInTheDocument();
+  });
+
+  it('avisa de que las ventas que solo contenían la compra se borran', () => {
+    renderWithProviders(
+      <DeleteBuyModal
+        productName="Funda iPhone"
+        sales={SALES}
+        isPending={false}
+        cascadeError={null}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(/las ventas que solo contenían sus productos se borran/),
+    ).toBeInTheDocument();
+  });
+
+  it('muestra la nota sobre lo que no cambia en las ventas que quedan', () => {
+    renderWithProviders(
+      <DeleteBuyModal
+        productName="Funda iPhone"
+        sales={SALES}
+        isPending={false}
+        cascadeError={null}
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/no cambian de cliente ni de fecha/)).toBeInTheDocument();
   });
 
   it('confirma el borrado en cascada', async () => {

@@ -72,6 +72,7 @@
 
 ### Corregido
 
+- **Borrar una compra en cascada ya no descuadra las ventas que quedan**: si borrás una compra que estaba en una venta junto a otros productos, la venta **no se pierde**, pero su importe (precio, gastos e importe cobrado) **se ajusta a la parte que queda**, repartido por unidades. Antes, la venta se quedaba con el precio del cesto entero aunque ya no incluyera esa compra, y por eso el beneficio y la deuda del cliente salían descuadrados. El aviso de borrado te dice que las ventas que sobrevivan cambian de importe.
 - **Restaurar una copia ya no puede meter datos imposibles**: al restaurar, la app **comprueba los importes y las cantidades** de la copia igual que cuando los escribes a mano. Si la copia trae un precio negativo, más de dos decimales, una cantidad que no es un entero o un importe cobrado **mayor que el precio de venta**, la restauración **se rechaza y no se toca nada**: tu base de datos queda como estaba y la app te dice qué dato va mal. Los importes se guardan ya redondeados a dos decimales, como el resto de la app.
 - **Crear una categoría en línea ya la usa**: al escribir el nombre de una categoría nueva y pulsar **"Crear y usar"**, la categoría queda **seleccionada** en el campo de categoría del gasto (antes se creaba pero el selector se quedaba vacío).
 - **El total de cada categoría ya no sale "NaN €"**: el servidor manda el importe como `total_amount` y el web lo leía con otro nombre, así que el gestor de categorías mostraba "NaN €" en el total.
