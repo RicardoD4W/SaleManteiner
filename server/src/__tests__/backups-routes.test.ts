@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
+import BetterSqlite3 from 'better-sqlite3';
 import type { Database } from 'better-sqlite3';
 
 const { openDb } = await import('../db/index.js');
@@ -130,5 +131,34 @@ describe('contrato HTTP de /api/backups', () => {
     expect(body.data.customers).toBe(1);
     expect(body.data.safety_backup).toMatch(/^pre-restauracion-/);
     expect(customerNames()).toEqual(['Ana']);
+  });
+
+  it('devuelve 400 al restaurar una copia con importes inválidos y no toca los datos', async () => {
+    db.prepare('INSERT INTO customers (name, created_at) VALUES (?, ?)').run('Ana', '2026-01-01');
+    createBuysRepo(db).create({
+      product_name: 'Widget',
+      purchase_cost: 10,
+      quantity: 1,
+      associated_costs: 0,
+    });
+
+    const created = await fetch(`${baseUrl}/api/backups`, { method: 'POST' });
+    const createdBody = (await created.json()) as { data: { name: string } };
+    const backupPath = join(dir, 'backups', createdBody.data.name);
+    const copy = new BetterSqlite3(backupPath);
+    copy.exec('UPDATE buys SET purchase_cost = -5');
+    copy.close();
+    const bytes = readFileSync(backupPath);
+
+    const res = await fetch(`${baseUrl}/api/backups/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'X-Filename': 'copia.db' },
+      body: bytes,
+    });
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toMatch(/no se puede restaurar/);
+    expect(customerNames()).toEqual(['Ana']);
+    expect(db.prepare('SELECT COUNT(*) AS c FROM buys').get()).toEqual({ c: 1 });
   });
 });

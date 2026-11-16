@@ -72,6 +72,7 @@
 
 ### Corregido
 
+- **Restaurar una copia ya no puede meter datos imposibles**: al restaurar, la app **comprueba los importes y las cantidades** de la copia igual que cuando los escribes a mano. Si la copia trae un precio negativo, más de dos decimales, una cantidad que no es un entero o un importe cobrado **mayor que el precio de venta**, la restauración **se rechaza y no se toca nada**: tu base de datos queda como estaba y la app te dice qué dato va mal. Los importes se guardan ya redondeados a dos decimales, como el resto de la app.
 - **Crear una categoría en línea ya la usa**: al escribir el nombre de una categoría nueva y pulsar **"Crear y usar"**, la categoría queda **seleccionada** en el campo de categoría del gasto (antes se creaba pero el selector se quedaba vacío).
 - **El total de cada categoría ya no sale "NaN €"**: el servidor manda el importe como `total_amount` y el web lo leía con otro nombre, así que el gestor de categorías mostraba "NaN €" en el total.
 - **El nº de gastos y el total de cada categoría se actualizan al añadir, editar o borrar un gasto**: la lista de categorías se quedaba con las cifras viejas hasta recargar la página.
@@ -85,6 +86,7 @@
 - `011`: tabla `tags` (con el catálogo `buy` o `sold`, el nombre único por catálogo y el color) y la columna `buys.tag_id` (borrar un tag deja las compras **sin etiqueta**, no las borra).
 
 La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y tablas nuevas): no reescriben ni borran datos de la base de datos existente. La `011` también es **aditiva**: añade una tabla nueva y una columna nueva en `buys` (que empieza vacía), así que **tus compras quedan intactas** y sin tag hasta que se lo pongas; y borrar un tag **nunca borra compras**, solo les quita la etiqueta. La `008` es una migración de **datos**: reescribe el importe cobrado de las ventas que nunca se informó (de `0` a su precio de venta) y no toca ninguna otra columna. La `010` **no reescribe datos**: solo cambia las vistas de las cifras, así que las compras que ya tenías conservan el total pagado en el campo y hay que corregirlas a mano (por eso el cambio de la columna "Coste (€)" a "Precio unidad (€)"). Si restaurás desde la app una copia de seguridad anterior a esta versión, sus compras vuelven con su valor anterior (la app **no** las convierte) y las vistas de esta versión siguen activas: revisa los precios de compra de esa copia. Para volver del todo al comportamiento anterior hay que **reemplazar el archivo de la base de datos** por una copia previa a la `010` (el botón "Restaurar" de la app solo restaura las filas, no las vistas).
+
 
 ## [0.1.1]
 
