@@ -54,9 +54,7 @@ export function readUpdaterPubkey() {
     if (!pubkey) throw new Error('no está plugins.updater.pubkey');
     return pubkey;
   } catch (err) {
-    throw new Error(
-      `no puedo leer la clave pública del updater en ${confPath}: ${err.message}`,
-    );
+    throw new Error(`no puedo leer la clave pública del updater en ${confPath}: ${err.message}`);
   }
 }
 
