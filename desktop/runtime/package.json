@@ -1,0 +1,14 @@
+{
+  "name": "salemanteiner-server-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "cors": "2.8.6",
+    "express": "5.3.0",
+    "pino": "10.4.0",
+    "pino-http": "11.0.0",
+    "zod": "4.6.7"
+  }
+}
