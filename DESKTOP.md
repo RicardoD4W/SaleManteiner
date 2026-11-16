@@ -40,6 +40,7 @@ npm run build:desktop     # = desktop/ → build:app
 | `npm run build:app`           | front + back + sidecar + instalador (**el de entrega**)                     |
 | `npm run pack:sidecar`        | solo re-empaqueta el runtime (node + server + web)                          |
 | `npm run sync:runtime`        | regenera el lockfile del runtime desde el lockfile raíz del repo            |
+| `npm run verify:release`      | verifica la firma minisign de un artefacto descargado                       |
 | `npm run release`             | arma el `latest.json` del updater                                           |
 | `npm run publish:new-version` | publica la release **solo si** la versión local difiere                     |
 | `npm run icon`                | regenera los íconos desde `icon-source.png` y sincroniza el favicon del web |
@@ -106,9 +107,23 @@ GH_TOKEN=github_pat_...
 | `SaleManteiner_<v>_x64-setup.exe`     | el instalador (lo usa el updater)                             |
 | `SaleManteiner_<v>_x64-setup.zip`     | **el instalador comprimido**: es lo que se le pasa al cliente |
 | `SaleManteiner_<v>_x64-setup.exe.sig` | la firma minisign (la verifica el updater)                    |
+| `SaleManteiner_<v>_x64-setup.zip.sig` | la firma minisign del ZIP (la verifica el usuario)            |
+| `salemanteiner-minisign.pub`          | la clave pública minisign (la misma que usa el updater)       |
 | `latest.json`                         | el manifiesto que el updater consulta (versión, URL y firma)  |
 
 **Por qué el ZIP**: Windows marca los archivos descargados con el _Mark of the Web_, y esa marca es la que dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un ZIP no la lleva → el cliente descomprime y ejecuta, sin avisos y **sin necesidad de un certificado de firma de Windows** (que cuesta plata). El updater sigue usando el `.exe` directamente, así que las actualizaciones tampoco pasan por ese aviso.
+
+### Verificar el ZIP
+
+El ZIP va **firmado con la misma clave minisign que el instalador**, y la clave pública se publica junto a él (`salemanteiner-minisign.pub`). El script de publicación **verifica la firma antes de subir nada**: si el ZIP no valida contra la clave pública del updater, la publicación se corta.
+
+Para verificar a mano un ZIP ya descargado:
+
+```bash
+npm --workspace desktop run verify:release -- <ruta-del-zip> <ruta-del-zip>.sig
+```
+
+El script usa la clave pública de `desktop/tauri.conf.json` (o la que se le pase como tercer argumento) y dice si la firma valida o no. **Las rutas son relativas a `desktop/`** (o absolutas): el comando del workspace corre desde esa carpeta.
 
 ### El instalador, en español
 

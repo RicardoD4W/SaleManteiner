@@ -46,6 +46,20 @@ export function readLocalVersion() {
   }
 }
 
+export function readUpdaterPubkey() {
+  const confPath = path.join(DESKTOP, 'tauri.conf.json');
+  try {
+    const conf = JSON.parse(readFileSync(confPath, 'utf8'));
+    const pubkey = conf?.plugins?.updater?.pubkey;
+    if (!pubkey) throw new Error('no está plugins.updater.pubkey');
+    return pubkey;
+  } catch (err) {
+    throw new Error(
+      `no puedo leer la clave pública del updater en ${confPath}: ${err.message}`,
+    );
+  }
+}
+
 export function readChangelog() {
   const changelogPath = path.join(DESKTOP, '..', 'CHANGELOG.md');
   try {
