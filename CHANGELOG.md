@@ -12,7 +12,7 @@
 
 ## [1.0.0]
 
-**Sin publicar**
+**Publicada el 2026-11-16**
 
 ### Añadido
 
