@@ -39,12 +39,28 @@ npm run build:desktop     # = desktop/ → build:app
 | `npm run dev`                 | el shell en modo desarrollo                                                 |
 | `npm run build:app`           | front + back + sidecar + instalador (**el de entrega**)                     |
 | `npm run pack:sidecar`        | solo re-empaqueta el runtime (node + server + web)                          |
+| `npm run sync:runtime`        | regenera el lockfile del runtime desde el lockfile raíz del repo            |
+| `npm run verify:release`      | verifica la firma minisign de un artefacto descargado                       |
 | `npm run release`             | arma el `latest.json` del updater                                           |
 | `npm run publish:new-version` | publica la release **solo si** la versión local difiere                     |
 | `npm run icon`                | regenera los íconos desde `icon-source.png` y sincroniza el favicon del web |
 | `npm run test`                | los tests de los scripts de release                                         |
 
 **Ojo**: un `tauri build` a secas empaqueta el **sidecar viejo** → siempre `build:app`.
+
+### El runtime que viaja dentro
+
+El instalador lleva dentro el runtime de Node y las dependencias de producción del server. Las dos cosas van **verificadas**, y el empaquetado **falla** si algo no cuadra (no avisa y sigue):
+
+| Qué                    | Cómo se verifica                                                                                                                                | Dónde está el pin                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **El binario de Node** | la versión tiene que estar en la lista de runtimes verificados **y** el `sha256` del binario tiene que ser el del archivo oficial de nodejs.org | `desktop/runtime/node-runtime.json` |
+| **Las dependencias**   | el lockfile del runtime tiene que ser el que se deriva del lockfile raíz del repo (mismos 85 paquetes, mismas versiones y mismo `integrity`)    | `desktop/runtime/package-lock.json` |
+
+- **Los checksums de Node son oficiales**: el `sha256` es el del `node.exe` dentro del zip oficial de nodejs.org para esa versión (comprobado: el binario que instala `fnm` es byte a byte el del zip). Las versiones permitidas están en `desktop/runtime/node-runtime.json`, con el `sha256` del zip publicado por nodejs.org (procedencia) y el origen. Para agregar una versión nueva hay que sumar su checksum oficial.
+- **El lockfile del runtime no se escribe a mano**: `npm run sync:runtime` (en `desktop/`) lo deriva del `package-lock.json` raíz, que ya pinnea el árbol del repo → lo que viaja en el instalador es **exactamente** lo que está probado en el repo, y dos empaquetados instalan el mismo árbol. Si cambian las dependencias del server, hay que correr ese comando y commitear el lockfile.
+- **El empaquetado se niega a continuar** si el lockfile del runtime se aparta del raíz o si el Node no está verificado: primero hay que arreglar el desajuste, no se publishes a medias.
+- Queda un `runtime-manifest.json` en `desktop/resources/server` con la versión y el checksum del runtime de Node y las versiones instaladas: es el registro de qué se metió dentro del instalador.
 
 ## 4. El auto-update
 
@@ -91,9 +107,23 @@ GH_TOKEN=github_pat_...
 | `SaleManteiner_<v>_x64-setup.exe`     | el instalador (lo usa el updater)                             |
 | `SaleManteiner_<v>_x64-setup.zip`     | **el instalador comprimido**: es lo que se le pasa al cliente |
 | `SaleManteiner_<v>_x64-setup.exe.sig` | la firma minisign (la verifica el updater)                    |
+| `SaleManteiner_<v>_x64-setup.zip.sig` | la firma minisign del ZIP (la verifica el usuario)            |
+| `salemanteiner-minisign.pub`          | la clave pública minisign (la misma que usa el updater)       |
 | `latest.json`                         | el manifiesto que el updater consulta (versión, URL y firma)  |
 
 **Por qué el ZIP**: Windows marca los archivos descargados con el _Mark of the Web_, y esa marca es la que dispara el aviso "Windows te protegió tu PC". Un archivo dentro de un ZIP no la lleva → el cliente descomprime y ejecuta, sin avisos y **sin necesidad de un certificado de firma de Windows** (que cuesta plata). El updater sigue usando el `.exe` directamente, así que las actualizaciones tampoco pasan por ese aviso.
+
+### Verificar el ZIP
+
+El ZIP va **firmado con la misma clave minisign que el instalador**, y la clave pública se publica junto a él (`salemanteiner-minisign.pub`). El script de publicación **verifica la firma antes de subir nada**: si el ZIP no valida contra la clave pública del updater, la publicación se corta.
+
+Para verificar a mano un ZIP ya descargado:
+
+```bash
+npm --workspace desktop run verify:release -- <ruta-del-zip> <ruta-del-zip>.sig
+```
+
+El script usa la clave pública de `desktop/tauri.conf.json` (o la que se le pase como tercer argumento) y dice si la firma valida o no. **Las rutas son relativas a `desktop/`** (o absolutas): el comando del workspace corre desde esa carpeta. **El ancla de confianza es la clave pública compilada en la app** (`desktop/tauri.conf.json`), no el archivo publicado en la release: si dudás de ese archivo, comparálo con el de la app instalada.
 
 ### El instalador, en español
 

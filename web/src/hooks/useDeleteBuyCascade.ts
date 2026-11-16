@@ -9,7 +9,16 @@ export function useDeleteBuyCascade() {
     mutationFn: (id: number) => buysApi.removeCascade(id),
     onSuccess: () => {
       toastDeleted('buy');
-      invalidate(qc, ['buys'], ['solds'], ['tags'], ['stats', 'dashboard']);
+      invalidate(
+        qc,
+        ['buys'],
+        ['solds'],
+        ['tags'],
+        ['customers'],
+        ['stats', 'dashboard'],
+        ['stats', 'metrics'],
+        ['products'],
+      );
     },
   });
 }

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { logger } from '../logger.js';
 import type { BuysRepo } from '../repo/buys-repo.js';
 import { UnknownTagError } from '../repo/tags-repo.js';
-import type { CascadeResult } from '../repo/types.js';
+import type { BuyCascadeResult } from '../repo/types.js';
 import { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
 import {
   BuysListQuery,
@@ -134,10 +134,11 @@ export function buysRouter(deps: BuysRouterDeps): Router {
             customer_name: s.customer_name,
             items_count: s.items_count,
           })),
+          adjustments: repo.planCascadeAdjustments(id),
         },
         'Borrado en cascada de compra (iniciado)',
       );
-      let result: CascadeResult;
+      let result: BuyCascadeResult;
       try {
         result = repo.removeWithCascade(id);
       } catch (err) {
@@ -147,6 +148,13 @@ export function buysRouter(deps: BuysRouterDeps): Router {
       if (!result.ok) {
         logger.error({ buy_id: id }, 'Borrado en cascada sin efecto: la compra ya no existía');
         return res.status(404).json({ error: 'Compra no encontrada', id });
+      }
+      const adjustments = result.adjustments;
+      if (adjustments.length > 0) {
+        logger.info(
+          { buy_id: id, adjustments },
+          'Borrado en cascada de compra: importes de las ventas ajustados',
+        );
       }
       res.status(204).end();
     }),

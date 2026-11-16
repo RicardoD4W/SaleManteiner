@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { round2 } from '../lib/round.js';
 import { definedOnly } from '../lib/defined-only.js';
-import type { AssociatedSale, CascadeResult, DateRange } from './types.js';
+import type { AssociatedSale, BuyCascadeResult, DateRange, SaleAdjustment } from './types.js';
 import { UnknownTagError } from './tags-repo.js';
 import type { Buy } from '../schemas/buys.js';
 import type { CreateBuyInput, UpdateBuyInput } from '../schemas/buys.js';
@@ -66,8 +66,14 @@ export interface BuysRepo {
   listProductNames(): ProductName[];
   update(id: number, input: UpdateBuyInput): Buy | null;
   remove(id: number): RemoveBuyResult;
-  removeWithCascade(id: number): CascadeResult;
+  removeWithCascade(id: number): BuyCascadeResult;
+  planCascadeAdjustments(id: number): SaleAdjustment[];
   listAssociatedSales(id: number): AssociatedSale[];
+}
+
+function prorateCents(amount: number, remainingQty: number, totalQty: number): number {
+  const cents = Math.round(amount * 100);
+  return round2(Math.round((cents * remainingQty) / totalQty) / 100);
 }
 
 export function createBuysRepo(db: Database): BuysRepo {
@@ -133,6 +139,18 @@ export function createBuysRepo(db: Database): BuysRepo {
     ORDER BY s.id DESC
   `);
   const cascadeSoldIdsStmt = db.prepare(`SELECT DISTINCT sold_id FROM sale_items WHERE buy_id = ?`);
+  const cascadeItemQtyStmt = db.prepare(
+    `SELECT COALESCE(SUM(quantity), 0) AS q FROM sale_items WHERE sold_id = ? AND buy_id = ?`,
+  );
+  const saleItemQtyStmt = db.prepare(
+    `SELECT COALESCE(SUM(quantity), 0) AS q FROM sale_items WHERE sold_id = ?`,
+  );
+  const saleMoneyStmt = db.prepare(
+    `SELECT sale_price, associated_costs, paid_amount FROM solds WHERE id = ?`,
+  );
+  const adjustSoldStmt = db.prepare(
+    `UPDATE solds SET sale_price = ?, associated_costs = ?, paid_amount = ? WHERE id = ?`,
+  );
   const deleteItemStmt = db.prepare(`DELETE FROM sale_items WHERE sold_id = ? AND buy_id = ?`);
   const deleteSoldIfEmptyStmt = db.prepare(
     `DELETE FROM solds WHERE id = ? AND NOT EXISTS (SELECT 1 FROM sale_items WHERE sold_id = ?)`,
@@ -259,15 +277,54 @@ export function createBuysRepo(db: Database): BuysRepo {
     })();
   }
 
-  function removeWithCascade(id: number): CascadeResult {
-    return db.transaction((): CascadeResult => {
+  function planCascadeAdjustments(id: number): SaleAdjustment[] {
+    const soldIds = cascadeSoldIdsStmt.all(id) as Array<{ sold_id: number }>;
+    const adjustments: SaleAdjustment[] = [];
+    for (const { sold_id } of soldIds) {
+      const removedQty = (cascadeItemQtyStmt.get(sold_id, id) as { q: number }).q;
+      const totalQty = (saleItemQtyStmt.get(sold_id) as { q: number }).q;
+      const sale = saleMoneyStmt.get(sold_id) as
+        { sale_price: number; associated_costs: number; paid_amount: number } | undefined;
+      const remainingQty = totalQty - removedQty;
+      if (!sale || remainingQty <= 0) continue;
+      const nextSalePrice = prorateCents(sale.sale_price, remainingQty, totalQty);
+      const nextAssoc = prorateCents(sale.associated_costs, remainingQty, totalQty);
+      const nextPaid = Math.min(
+        prorateCents(sale.paid_amount, remainingQty, totalQty),
+        nextSalePrice,
+      );
+      adjustments.push({
+        sold_id,
+        sale_price_before: sale.sale_price,
+        sale_price_after: nextSalePrice,
+        associated_costs_before: sale.associated_costs,
+        associated_costs_after: nextAssoc,
+        paid_amount_before: sale.paid_amount,
+        paid_amount_after: nextPaid,
+      });
+    }
+    return adjustments;
+  }
+
+  function removeWithCascade(id: number): BuyCascadeResult {
+    return db.transaction((): BuyCascadeResult => {
+      if (!getStmt.get(id)) return { ok: false, code: 'NOT_FOUND' };
+      const adjustments = planCascadeAdjustments(id);
+      for (const adjustment of adjustments) {
+        adjustSoldStmt.run(
+          adjustment.sale_price_after,
+          adjustment.associated_costs_after,
+          adjustment.paid_amount_after,
+          adjustment.sold_id,
+        );
+      }
       const soldIds = cascadeSoldIdsStmt.all(id) as Array<{ sold_id: number }>;
       for (const { sold_id } of soldIds) {
         deleteItemStmt.run(sold_id, id);
         deleteSoldIfEmptyStmt.run(sold_id, sold_id);
       }
-      if (deleteStmt.run(id).changes === 0) return { ok: false, code: 'NOT_FOUND' };
-      return { ok: true };
+      deleteStmt.run(id);
+      return { ok: true, adjustments };
     })();
   }
 
@@ -280,6 +337,7 @@ export function createBuysRepo(db: Database): BuysRepo {
     update,
     remove,
     removeWithCascade,
+    planCascadeAdjustments,
     listAssociatedSales,
   };
 }

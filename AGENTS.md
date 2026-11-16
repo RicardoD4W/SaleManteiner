@@ -1,7 +1,7 @@
 # SaleManteiner — Contexto para agentes
 
 > App **local** (React + Node, con shell de escritorio Tauri) para llevar el control de **compras, ventas y clientes**: un gestor de números para cualquier tipo de usuario.
-> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-11-04.
+> Este archivo es el **punto de entrada**: lo mínimo para trabajar sin contexto. El detalle vive en los docs enlazados de la raíz. Última actualización: 2026-11-16.
 
 ## 0. Reglas no negociables
 

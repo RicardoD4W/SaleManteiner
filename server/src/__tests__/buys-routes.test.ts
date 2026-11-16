@@ -237,6 +237,75 @@ describe('contrato HTTP del borrado de compras', () => {
       expect(data.items[0]).toMatchObject({ buy_id: buyB.id, quantity: 2 });
     });
 
+    it('pack: los importes de la venta superviviente quedan prorrateados y quedan registrados', async () => {
+      const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
+      const buyA = repos.buys.create({
+        product_name: 'Cascada A',
+        purchase_cost: 50,
+        quantity: 2,
+        associated_costs: 0,
+      });
+      const buyB = repos.buys.create({
+        product_name: 'Cascada B',
+        purchase_cost: 30,
+        quantity: 3,
+        associated_costs: 0,
+      });
+      const customer = seedCustomer('Hilda');
+      const sale = repos.solds.createManyWithStockCheck({
+        customer_id: customer.id,
+        sale_price: 100,
+        associated_costs: 10,
+        paid_amount: 60,
+        sold_at: '2026-10-19',
+        items: [
+          { buy_id: buyA.id, quantity: 2 },
+          { buy_id: buyB.id, quantity: 3 },
+        ],
+      });
+
+      const del = await api('DELETE', `/api/buys/${buyA.id}/cascade`);
+
+      expect(del.status).toBe(204);
+      expect(del.body).toBeNull();
+
+      const get = await api('GET', `/api/solds/${sale.id}`);
+      expect(get.status).toBe(200);
+      const data = get.body?.data as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number | null;
+        items: Array<{ buy_id: number; quantity: number }>;
+      };
+      expect(data.sale_price).toBe(60);
+      expect(data.associated_costs).toBe(6);
+      expect(data.paid_amount).toBe(36);
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0]).toMatchObject({ buy_id: buyB.id, quantity: 3 });
+
+      const clients = await api('GET', '/api/customers');
+      const clientList = clients.body?.data as Array<{ name: string; deuda: number }>;
+      expect(clientList.find((c) => c.name === 'Hilda')?.deuda).toBe(24);
+
+      const adjustmentCalls = info.mock.calls.filter(
+        (c) => c[1] === 'Borrado en cascada de compra: importes de las ventas ajustados',
+      );
+      expect(adjustmentCalls).toHaveLength(1);
+      const [payload] = adjustmentCalls[0] as [{ buy_id: number; adjustments: unknown[] }];
+      expect(payload.buy_id).toBe(buyA.id);
+      expect(payload.adjustments).toEqual([
+        {
+          sold_id: sale.id,
+          sale_price_before: 100,
+          sale_price_after: 60,
+          associated_costs_before: 10,
+          associated_costs_after: 6,
+          paid_amount_before: 60,
+          paid_amount_after: 36,
+        },
+      ]);
+    });
+
     it('el path /:id/cascade lo maneja la ruta cascade, no se interpreta como un id', async () => {
       const buy = seedBuy('Path de la ruta cascade', 2);
       const customer = seedCustomer('Eva');
@@ -319,6 +388,57 @@ describe('contrato HTTP del borrado de compras', () => {
       expect((await api('GET', `/api/solds/${sale.id}`)).status).toBe(200);
     });
 
+    it('el registro write-ahead incluye los ajustes de importes previstos', async () => {
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+      const buyA = repos.buys.create({
+        product_name: 'Write-ahead A',
+        purchase_cost: 50,
+        quantity: 2,
+        associated_costs: 0,
+      });
+      const buyB = repos.buys.create({
+        product_name: 'Write-ahead B',
+        purchase_cost: 30,
+        quantity: 3,
+        associated_costs: 0,
+      });
+      const customer = seedCustomer('Mara');
+      const sale = repos.solds.createManyWithStockCheck({
+        customer_id: customer.id,
+        sale_price: 100,
+        associated_costs: 10,
+        paid_amount: 60,
+        sold_at: '2026-10-19',
+        items: [
+          { buy_id: buyA.id, quantity: 2 },
+          { buy_id: buyB.id, quantity: 3 },
+        ],
+      });
+
+      const del = await api('DELETE', `/api/buys/${buyA.id}/cascade`);
+
+      expect(del.status).toBe(204);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [payload] = warn.mock.calls[0] as [
+        { buy_id: number; affected_sales: unknown[]; adjustments: unknown[] },
+      ];
+      expect(payload.buy_id).toBe(buyA.id);
+      expect(payload.affected_sales).toEqual([
+        { id: sale.id, customer_name: 'Mara', items_count: 2 },
+      ]);
+      expect(payload.adjustments).toEqual([
+        {
+          sold_id: sale.id,
+          sale_price_before: 100,
+          sale_price_after: 60,
+          associated_costs_before: 10,
+          associated_costs_after: 6,
+          paid_amount_before: 60,
+          paid_amount_after: 36,
+        },
+      ]);
+    });
+
     it('no deja registro si el borrado no ocurrió (409 por ventas y 404 por inexistente)', async () => {
       const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
       const buy = seedBuy('Audit sin borrado', 3);
@@ -351,6 +471,61 @@ describe('contrato HTTP del borrado de compras', () => {
         .prepare('SELECT COUNT(*) AS c FROM sale_items WHERE buy_id = ?')
         .get(buy.id) as { c: number };
       expect(items.c).toBe(1);
+    });
+
+    it('si el borrado falla a mitad, los importes ajustados de la venta se revierten', async () => {
+      const buyA = repos.buys.create({
+        product_name: 'Rollback A',
+        purchase_cost: 50,
+        quantity: 2,
+        associated_costs: 0,
+      });
+      const buyB = repos.buys.create({
+        product_name: 'Rollback B',
+        purchase_cost: 30,
+        quantity: 3,
+        associated_costs: 0,
+      });
+      const customer = seedCustomer('Rita');
+      const sale = repos.solds.createManyWithStockCheck({
+        customer_id: customer.id,
+        sale_price: 100,
+        associated_costs: 10,
+        paid_amount: 60,
+        sold_at: '2026-10-19',
+        items: [
+          { buy_id: buyA.id, quantity: 2 },
+          { buy_id: buyB.id, quantity: 3 },
+        ],
+      });
+      db.exec(
+        `CREATE TRIGGER block_buy_delete BEFORE DELETE ON buys
+         BEGIN SELECT RAISE(ABORT, 'boom'); END;`,
+      );
+
+      const del = await api('DELETE', `/api/buys/${buyA.id}/cascade`);
+
+      expect(del.status).toBe(500);
+
+      const sold = db.prepare('SELECT * FROM solds WHERE id = ?').get(sale.id) as {
+        sale_price: number;
+        associated_costs: number;
+        paid_amount: number;
+      };
+      expect(sold.sale_price).toBe(100);
+      expect(sold.associated_costs).toBe(10);
+      expect(sold.paid_amount).toBe(60);
+
+      const items = db
+        .prepare('SELECT buy_id, quantity FROM sale_items WHERE sold_id = ? ORDER BY buy_id')
+        .all(sale.id) as Array<{ buy_id: number; quantity: number }>;
+      expect(items).toEqual([
+        { buy_id: buyA.id, quantity: 2 },
+        { buy_id: buyB.id, quantity: 3 },
+      ]);
+
+      expect((await api('GET', `/api/buys/${buyA.id}`)).status).toBe(200);
+      expect((await api('GET', `/api/buys/${buyB.id}`)).status).toBe(200);
     });
   });
 

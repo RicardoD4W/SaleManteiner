@@ -11,6 +11,13 @@ import {
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  buildRuntimeArtifacts,
+  diffRuntimeDependencies,
+  diffRuntimeLockfiles,
+  sha256File,
+  verifyNodeRuntime,
+} from './runtime-lock.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESKTOP = path.resolve(HERE, '..');
@@ -18,9 +25,16 @@ const REPO = path.resolve(DESKTOP, '..');
 
 const BINARIES = path.join(DESKTOP, 'binaries');
 const RESOURCES = path.join(DESKTOP, 'resources');
+const RUNTIME_DIR = path.join(DESKTOP, 'runtime');
 
 const TARGET = 'x86_64-pc-windows-msvc';
 const SIDECAR = `salemanteiner-server-${TARGET}.exe`;
+
+const NODE_PIN_PATH = path.join(RUNTIME_DIR, 'node-runtime.json');
+const RUNTIME_PACKAGE_PATH = path.join(RUNTIME_DIR, 'package.json');
+const RUNTIME_LOCK_PATH = path.join(RUNTIME_DIR, 'package-lock.json');
+const ROOT_LOCK_PATH = path.join(REPO, 'package-lock.json');
+const SERVER_PACKAGE_PATH = path.join(REPO, 'server', 'package.json');
 
 function log(msg) {
   console.log(`[pack] ${msg}`);
@@ -29,6 +43,14 @@ function log(msg) {
 function fail(msg) {
   console.error(`[pack] ERROR: ${msg}`);
   process.exit(1);
+}
+
+function readJson(filePath) {
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    fail(`no puedo leer ${filePath}: ${err.message}`);
+  }
 }
 
 function dirSizeMB(dir) {
@@ -56,6 +78,21 @@ resetDir(BINARIES);
 resetDir(path.join(RESOURCES, 'server'));
 resetDir(path.join(RESOURCES, 'web'));
 
+log('verificando el runtime de node');
+const nodePin = readJson(NODE_PIN_PATH);
+const nodeSha256 = sha256File(process.execPath);
+const nodeCheck = verifyNodeRuntime(nodePin.runtimes, process.version, nodeSha256);
+if (!nodeCheck.ok) {
+  const allowed = (nodePin.runtimes ?? []).map((runtime) => runtime.version);
+  fail(
+    `${nodeCheck.reason}\n` +
+      `  instalá una de las versiones verificadas y volvé a empaquetar: ` +
+      `fnm install ${allowed[0] ?? '<version>'} && fnm use ${allowed[0] ?? '<version>'}\n` +
+      `  (la lista está en desktop/runtime/node-runtime.json: ${allowed.join(', ')})`,
+  );
+}
+log(`  node ${nodeCheck.runtime.version} verificado (sha256 ${nodeSha256})`);
+
 log('copiando el runtime de node como sidecar');
 const nodeExe = process.execPath;
 if (!existsSync(nodeExe)) fail(`no encuentro el node en ${nodeExe}`);
@@ -69,37 +106,66 @@ if (!existsSync(serverDist)) fail('falta server/dist → corré `npm run build:s
 cpSync(serverDist, path.join(RESOURCES, 'server', 'dist'), { recursive: true });
 log('  server/dist ✓');
 
-let serverPkg;
-try {
-  serverPkg = JSON.parse(readFileSync(path.join(REPO, 'server', 'package.json'), 'utf8'));
-} catch (err) {
-  fail(`no puedo leer server/package.json: ${err.message}`);
-}
 const runtimeDir = path.join(RESOURCES, 'server');
-writeFileSync(
-  path.join(runtimeDir, 'package.json'),
-  `${JSON.stringify(
-    {
-      name: 'salemanteiner-server-runtime',
-      version: serverPkg.version,
-      private: true,
-      type: 'module',
-      dependencies: serverPkg.dependencies,
-    },
-    null,
-    2,
-  )}\n`,
+const serverPackage = readJson(SERVER_PACKAGE_PATH);
+const runtimePackage = readJson(RUNTIME_PACKAGE_PATH);
+const rootLock = readJson(ROOT_LOCK_PATH);
+const committedLock = readJson(RUNTIME_LOCK_PATH);
+
+const drift = diffRuntimeDependencies(
+  serverPackage.dependencies ?? {},
+  runtimePackage.dependencies ?? {},
 );
-log('  instalando las dependencias de runtime (npm, solo prod)');
+const driftLines = [
+  ...drift.missing.map((name) => `falta ${name}`),
+  ...drift.extra.map((name) => `sobra ${name}`),
+  ...drift.unpinned.map((name) => `${name} no está pineada`),
+  ...drift.incompatible.map((problem) => problem),
+];
+if (driftLines.length) {
+  fail(
+    'las dependencias de runtime no están sincronizadas con server/package.json:\n' +
+      `${driftLines.map((line) => `  ${line}`).join('\n')}\n` +
+      '  corré `npm run sync:runtime` en desktop/',
+  );
+}
+
+let expected;
+try {
+  expected = buildRuntimeArtifacts({
+    rootLock,
+    workspacePath: 'server',
+    runtimeName: runtimePackage.name,
+    runtimeVersion: runtimePackage.version,
+    serverDependencies: serverPackage.dependencies ?? {},
+  });
+} catch (err) {
+  fail(
+    `no pude derivar el lockfile del runtime desde el lockfile raíz: ${err.message}\n` +
+      '  corré `npm run sync:runtime` en desktop/',
+  );
+}
+const lockProblems = diffRuntimeLockfiles(expected.lockfile, committedLock);
+if (lockProblems.length) {
+  fail(
+    'el lockfile del runtime no coincide con el lockfile raíz:\n' +
+      `${lockProblems.map((problem) => `  ${problem}`).join('\n')}\n` +
+      '  corré `npm run sync:runtime` en desktop/',
+  );
+}
+
+writeFileSync(path.join(runtimeDir, 'package.json'), readFileSync(RUNTIME_PACKAGE_PATH, 'utf8'));
+writeFileSync(path.join(runtimeDir, 'package-lock.json'), readFileSync(RUNTIME_LOCK_PATH, 'utf8'));
+log('  instalando las dependencias de runtime (npm ci, solo prod)');
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 try {
-  execFileSync(
-    npmCmd,
-    ['install', '--omit=dev', '--no-package-lock', '--no-audit', '--no-fund', '--loglevel=error'],
-    { cwd: runtimeDir, stdio: 'inherit', shell: process.platform === 'win32' },
-  );
+  execFileSync(npmCmd, ['ci', '--omit=dev', '--no-audit', '--no-fund', '--loglevel=error'], {
+    cwd: runtimeDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 } catch (err) {
-  fail(`falló el npm install de las dependencias de runtime: ${err.message}`);
+  fail(`falló el npm ci de las dependencias de runtime: ${err.message}`);
 }
 
 log('  escribiendo el manifiesto de versiones');
@@ -112,6 +178,25 @@ try {
 } catch (err) {
   fail(`no pude escribir el manifiesto de versiones: ${err.message}`);
 }
+
+const runtimeManifest = {
+  node: {
+    version: nodeCheck.runtime.version,
+    sha256: nodeSha256,
+    source: nodeCheck.runtime.source ?? null,
+  },
+  dependencies: Object.fromEntries(
+    Object.entries(committedLock.packages)
+      .filter(([name]) => name.startsWith('node_modules/'))
+      .map(([name, entry]) => [name.slice('node_modules/'.length), entry.version])
+      .sort(([a], [b]) => a.localeCompare(b)),
+  ),
+};
+writeFileSync(
+  path.join(runtimeDir, 'runtime-manifest.json'),
+  `${JSON.stringify(runtimeManifest, null, 2)}\n`,
+);
+log('  runtime-manifest.json ✓');
 
 const webDist = path.join(REPO, 'web', 'dist');
 if (!existsSync(webDist)) fail('falta web/dist → corré `npm run build:web` primero');

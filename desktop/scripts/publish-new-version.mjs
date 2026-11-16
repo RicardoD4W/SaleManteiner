@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -14,7 +15,9 @@ import {
   installerZipName,
   readChangelog,
   readLocalVersion,
+  readUpdaterPubkey,
 } from './release.mjs';
+import { decodePublicKey, verifyArtifactFile } from './release-signing.mjs';
 
 try {
   process.loadEnvFile(new URL('../.env', import.meta.url));
@@ -77,6 +80,62 @@ async function fetchDistributed() {
 
 function git(...args) {
   return execFileSync('git', args, { cwd: DESKTOP, encoding: 'utf8' }).trim();
+}
+
+function tauriCliPath() {
+  const require = createRequire(import.meta.url);
+  try {
+    return require.resolve('@tauri-apps/cli/tauri.js');
+  } catch (err) {
+    fail(
+      `no encuentro la CLI de Tauri (@tauri-apps/cli): ${err.message}\n` +
+        '  corré `npm install` en la raíz del repo',
+    );
+  }
+}
+
+function signArtifact(filePath, version) {
+  const args = ['signer', 'sign'];
+  if (process.env.TAURI_SIGNING_PRIVATE_KEY_PATH) {
+    args.push('-f', process.env.TAURI_SIGNING_PRIVATE_KEY_PATH);
+  } else if (process.env.TAURI_SIGNING_PRIVATE_KEY) {
+    args.push('-k', process.env.TAURI_SIGNING_PRIVATE_KEY);
+  } else {
+    fail(
+      'falta la clave de firma: poné TAURI_SIGNING_PRIVATE_KEY_PATH ' +
+        '(o TAURI_SIGNING_PRIVATE_KEY) en el entorno para firmar el ZIP',
+    );
+  }
+  args.push('--app-version', version, filePath);
+  try {
+    execFileSync(process.execPath, [tauriCliPath(), ...args], { stdio: 'inherit' });
+  } catch (err) {
+    fail(`no pude firmar ${path.basename(filePath)}: ${err.message}`);
+  }
+  return `${filePath}.sig`;
+}
+
+function prepareSignedZip(installerZip, version) {
+  const zipSignature = signArtifact(installerZip, version);
+  const pubkey = readUpdaterPubkey();
+  const publicKey = decodePublicKey(pubkey);
+  if (!publicKey.ok) fail(`la clave pública del updater no es válida: ${publicKey.reason}`);
+
+  const verification = verifyArtifactFile({
+    filePath: installerZip,
+    signaturePath: zipSignature,
+    pubkeyBase64: pubkey,
+  });
+  if (!verification.ok) {
+    fail(`la firma del ZIP no valida contra la clave pública del updater: ${verification.reason}`);
+  }
+  log(`ZIP firmado con minisign y verificado (clave ${verification.keyId})`);
+
+  const publicKeyFile = path.join(RELEASE_DIR, 'salemanteiner-minisign.pub');
+  writeFileSync(publicKeyFile, publicKey.publicKeyFile);
+  log(`clave pública escrita en ${publicKeyFile}`);
+
+  return { zipSignature, publicKeyFile };
 }
 
 async function main() {
@@ -174,6 +233,8 @@ async function main() {
   );
   log(`instalador comprimido en ${installerZip} (para el cliente: sin aviso de SmartScreen)`);
 
+  const { zipSignature, publicKeyFile } = prepareSignedZip(installerZip, localVersion);
+
   const releaseResponse = await fetch(`${api}/releases`, {
     method: 'POST',
     headers: { ...headers, 'content-type': 'application/json' },
@@ -213,12 +274,15 @@ async function main() {
   await uploadAsset(release.id, installer, 'application/octet-stream');
   await uploadAsset(release.id, installerZip, 'application/zip');
   await uploadAsset(release.id, signatureFile, 'text/plain');
+  await uploadAsset(release.id, zipSignature, 'text/plain');
+  await uploadAsset(release.id, publicKeyFile, 'text/plain');
   await uploadAsset(release.id, latestPath, 'application/json');
 
   log('');
   log(`publicada la versión ${localVersion} (${tag})`);
   log(`el updater la va a ver en: ${ENDPOINT}`);
   log('la app del cliente la detecta al abrir, verifica la firma minisign y se actualiza sola');
+  log('el ZIP que se le pasa al cliente va firmado: se verifica con scripts/verify-release.mjs');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

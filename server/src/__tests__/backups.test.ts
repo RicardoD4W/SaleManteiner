@@ -333,4 +333,119 @@ describe('copias de seguridad de la base de datos', () => {
     expect(soldRow()).toEqual({ paid_amount: 40, sale_price: 200 });
     expect(customerDebt()).toBe(160);
   });
+
+  function buyRows(): Array<{ id: number; purchase_cost: number; associated_costs: number }> {
+    return db
+      .prepare('SELECT id, purchase_cost, associated_costs FROM buys ORDER BY id')
+      .all() as Array<{
+      id: number;
+      purchase_cost: number;
+      associated_costs: number;
+    }>;
+  }
+
+  it('rechaza una copia con un importe de compra negativo y no importa ninguna fila', () => {
+    seedCustomer('Ana');
+    createBuysRepo(db).create(CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10 }));
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('UPDATE buys SET purchase_cost = -5');
+    copy.close();
+
+    expect(() => service.restoreFromStored(backup.name)).toThrow(InvalidBackupError);
+    expect(customerNames()).toEqual(['Ana']);
+    expect(buyRows()).toEqual([{ id: 1, purchase_cost: 10, associated_costs: 0 }]);
+  });
+
+  it('rechaza una copia con un importe cobrado mayor que el precio de venta y no importa ninguna fila', () => {
+    seedSale(100, 50);
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('UPDATE solds SET paid_amount = 500');
+    copy.close();
+
+    expect(() => service.restoreFromStored(backup.name)).toThrow(InvalidBackupError);
+    expect(customerNames()).toEqual(['Ana']);
+    expect(soldRow()).toEqual({ paid_amount: 50, sale_price: 100 });
+  });
+
+  it('restaura una copia con importes decimales válidos', () => {
+    seedCustomer('Ana');
+    createBuysRepo(db).create(
+      CreateBuyInput.parse({
+        product_name: 'Widget',
+        purchase_cost: 12.34,
+        associated_costs: 0.07,
+      }),
+    );
+    const backup = service.create();
+
+    const summary = service.restoreFromStored(backup.name);
+
+    expect(summary.buys).toBe(1);
+    expect(buyRows()).toEqual([{ id: 1, purchase_cost: 12.34, associated_costs: 0.07 }]);
+  });
+
+  it('rechaza una copia con un importe de gasto negativo y no importa ninguna fila', () => {
+    seedCustomer('Ana');
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec(
+      "INSERT INTO expense_categories (id, name, created_at) VALUES (99, 'Otros', '2026-01-01')",
+    );
+    copy.exec(
+      "INSERT INTO expenses (id, concept, amount, category_id, expense_date, created_at) VALUES (1, 'Reparación', -10, 99, '2026-01-01', '2026-01-01')",
+    );
+    copy.close();
+
+    expect(() => service.restoreFromStored(backup.name)).toThrow(InvalidBackupError);
+    expect(() => service.restoreFromStored(backup.name)).toThrow(
+      /tiene un importe no válido \(-10\)/,
+    );
+    expect(customerNames()).toEqual(['Ana']);
+    expect(db.prepare('SELECT COUNT(*) AS c FROM expenses').get()).toEqual({ c: 0 });
+  });
+
+  it('rechaza una copia con una cantidad fraccionaria en los ítems vendidos', () => {
+    seedSale(100);
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('UPDATE sale_items SET quantity = 1.5');
+    copy.close();
+
+    expect(() => service.restoreFromStored(backup.name)).toThrow(InvalidBackupError);
+    expect(() => service.restoreFromStored(backup.name)).toThrow(/cantidad no válida \(1\.5\)/);
+    expect(soldRow()).toEqual({ paid_amount: 100, sale_price: 100 });
+  });
+
+  it('normaliza los importes al restaurar', () => {
+    seedCustomer('Ana');
+    createBuysRepo(db).create(CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 30 }));
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('UPDATE buys SET purchase_cost = 30.299999999999997');
+    copy.close();
+
+    service.restoreFromStored(backup.name);
+
+    expect(buyRows()).toEqual([{ id: 1, purchase_cost: 30.3, associated_costs: 0 }]);
+  });
+
+  it('no deja copia de seguridad previa cuando rechaza la copia', () => {
+    seedCustomer('Ana');
+    createBuysRepo(db).create(CreateBuyInput.parse({ product_name: 'Widget', purchase_cost: 10 }));
+    const backup = service.create();
+
+    const copy = new Database(join(dir, 'backups', backup.name));
+    copy.exec('UPDATE buys SET purchase_cost = -5');
+    copy.close();
+
+    expect(() => service.restoreFromStored(backup.name)).toThrow(InvalidBackupError);
+    expect(service.list().map((file) => file.name)).toEqual([backup.name]);
+  });
 });

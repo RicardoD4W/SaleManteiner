@@ -3,6 +3,11 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from 'better-sqlite3';
 import { runMigrations } from '../db/migrate.js';
+import { BackupNotFoundError, InvalidBackupError } from './backup-errors.js';
+import { normalizeBackupRows } from './backup-validation.js';
+import type { BackupRowBundle } from './backup-validation.js';
+
+export { BackupNotFoundError, InvalidBackupError } from './backup-errors.js';
 
 export interface BackupFile {
   name: string;
@@ -30,20 +35,6 @@ export interface BackupService {
   backupsDir(): string;
   pathOf(name: string): string;
   exists(name: string): boolean;
-}
-
-export class InvalidBackupError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InvalidBackupError';
-  }
-}
-
-export class BackupNotFoundError extends Error {
-  constructor(name: string) {
-    super(`La copia "${name}" no existe`);
-    this.name = 'BackupNotFoundError';
-  }
 }
 
 const REQUIRED_TABLES = ['customers', 'buys', 'solds', 'sale_items'];
@@ -276,21 +267,26 @@ export function createBackupService(deps: {
     runMigrations(db);
   }
 
-  function importFrom(backup: DatabaseType): RestoreSummary {
-    const customers = readRows(backup, SELECT_CUSTOMERS_CURRENT, SELECT_CUSTOMERS_LEGACY);
-    const buys = readRowsAny(backup, [
-      ...(columnExists(backup, 'buys', 'tag_id') ? [SELECT_BUYS_WITH_TAG] : []),
-      SELECT_BUYS_CURRENT,
-      SELECT_BUYS_LEGACY,
-    ]);
-    const solds = readRows(backup, soldsSelect(backup), SELECT_SOLDS_LEGACY);
-    const saleItems = readRows(backup, SELECT_SALE_ITEMS, null);
-    const categories = tableExists(backup, 'expense_categories')
-      ? readRows(backup, SELECT_EXPENSE_CATEGORIES, null)
-      : [];
-    const expenses = tableExists(backup, 'expenses') ? readRows(backup, SELECT_EXPENSES, null) : [];
-    const tags = tableExists(backup, 'tags') ? readRows(backup, SELECT_TAGS, null) : [];
+  function readBackupRows(backup: DatabaseType): BackupRowBundle {
+    return {
+      customers: readRows(backup, SELECT_CUSTOMERS_CURRENT, SELECT_CUSTOMERS_LEGACY),
+      buys: readRowsAny(backup, [
+        ...(columnExists(backup, 'buys', 'tag_id') ? [SELECT_BUYS_WITH_TAG] : []),
+        SELECT_BUYS_CURRENT,
+        SELECT_BUYS_LEGACY,
+      ]),
+      solds: readRows(backup, soldsSelect(backup), SELECT_SOLDS_LEGACY),
+      saleItems: readRows(backup, SELECT_SALE_ITEMS, null),
+      categories: tableExists(backup, 'expense_categories')
+        ? readRows(backup, SELECT_EXPENSE_CATEGORIES, null)
+        : [],
+      expenses: tableExists(backup, 'expenses') ? readRows(backup, SELECT_EXPENSES, null) : [],
+      tags: tableExists(backup, 'tags') ? readRows(backup, SELECT_TAGS, null) : [],
+    };
+  }
 
+  function importFrom(rows: BackupRowBundle): RestoreSummary {
+    const { customers, buys, solds, saleItems, categories, expenses, tags } = rows;
     const counts = {
       customers: customers.length,
       buys: buys.length,
@@ -335,10 +331,11 @@ export function createBackupService(deps: {
   function restoreFromPath(path: string): RestoreSummary {
     const backup = openBackup(path);
     try {
+      const rows = normalizeBackupRows(readBackupRows(backup));
       ensureDir();
       const safetyPath = uniquePath('pre-restauracion-');
       writeSnapshot(safetyPath);
-      const summary = importFrom(backup);
+      const summary = importFrom(rows);
       summary.safety_backup = safetyPath.split(/[\\/]/).pop() as string;
       return summary;
     } finally {
