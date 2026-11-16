@@ -98,6 +98,8 @@ db.pragma('busy_timeout = 5000');
 
 El orden es **lexicográfico**: el prefijo `NN_` va con ceros a la izquierda (`006_`, `007_`).
 
+**Aviso sobre la `008`**: la migración no puede distinguir un `paid_amount = 0` que significa «no lo informaste» de un `0` que significa «no se cobró nada»: en los dos casos lo reescribe al precio de venta y **la deuda de esas ventas desaparece**. Si venís de una versión anterior a la `006` y usabas el `0` como deuda real, **hacé una copia de la base de datos antes de actualizar** (botón de copia junto a la versión, o `POST /api/backups`) y poné a mano el importe cobrado de esas ventas.
+
 ### Índices y predicados sargables
 
 Índices que hay hoy: `idx_buys_purchase_date`, `idx_solds_sold_at`, `idx_solds_customer`, `idx_sale_items_buy`, `idx_expenses_date`, `idx_expenses_category`.
