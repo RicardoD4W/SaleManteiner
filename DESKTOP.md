@@ -162,4 +162,5 @@ El server expone `GET /api/version` → `{ app, front, back }` (la del back sale
 - **Instalador firmado 0.1.0**: 36,62 MiB (Node + server + web adentro) + `.sig` minisign ✓.
 - **Instalado en un sandbox** (`%TEMP%\sm-e2e\app`): arranca, levanta el sidecar, sirve el web y la BD cae en el directorio temporal (`dbSource: explicit-dir`) → la BD real del usuario no se toca ✓. Captura revisada: dashboard en dark, 4 tabs, KPIs, chart y el footer con las versiones ✓.
 - Los íconos salen de una única fuente: `desktop/icon-source.png` (PNG 1024x1024). `npm run icon` regenera `desktop/icons/**` con `tauri icon` y sincroniza `web/public/favicon.png`.
+- El ícono de la barra de tareas es un **recurso de Windows compilado dentro del `.exe`**, no un fichero que se lea en runtime. Cambiar `desktop/icons/icon.ico` no relanza el binario por sí solo: `desktop/build.rs` declara `cargo:rerun-if-changed=icons/icon.ico` para que cargo regenere el recurso y vuelva a enlazar el `.exe` en el siguiente build (si no, el `.exe` sigue con el icono anterior).
 - El smoke en frío (L11 del feature doc): la app instalada abre, guarda datos y el sidecar muere con la ventana.
