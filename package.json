@@ -1,6 +1,6 @@
 {
   "name": "salemanteiner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "App local para llevar el control de compras, ventas y clientes",
   "type": "module",

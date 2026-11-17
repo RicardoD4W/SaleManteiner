@@ -10,6 +10,14 @@
 > `server/version.json` → la app las muestra en el pie y `GET /api/version` las
 > devuelve.
 
+## [1.0.1]
+
+**Sin publicar**
+
+### Corregido
+
+- **El ícono de la barra de tareas puede verse con el arte anterior**: el ícono de la app de escritorio es un recurso de Windows **compilado dentro del ejecutable**, y el build no lo regeneraba cuando lo único que cambiaba era el `.ico` → el binario seguía con el ícono viejo. Ahora el build declara `rerun-if-changed` para `desktop/icons/icon.ico`: cambiar el ícono recompila el recurso y vuelve a enlazar el ejecutable. Esta versión sale con el ejecutable recién compilado.
+
 ## [1.0.0]
 
 **Publicada el 2026-11-16**
@@ -128,6 +136,7 @@ La `006` y la `007` son **aditivas** (columnas nuevas con valor por defecto y ta
 - **Búsqueda que entiende**: texto, precios, cantidades (`x3`), fechas (`12/03/2025`) y pérdidas (`-30`), combinables.
 - **100% local**: sin cuentas, sin nube, sin telemetría y sin peticiones a terceros.
 
+[1.0.1]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v1.0.1
 [1.0.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v1.0.0
 [0.1.1]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RicardoD4W/SaleManteiner/releases/tag/v0.1.0
